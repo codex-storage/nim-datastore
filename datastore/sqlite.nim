@@ -41,12 +41,10 @@ proc bindParam(
       sqlite3_bind_blob(s, n.cint, nil, 0.cint, nil)
   elif val is int32:
     sqlite3_bind_int(s, n.cint, val)
-  elif val is uint32:
-    sqlite3_bind_int(s, n.cint, int(val).cint)
-  elif val is int64:
-    sqlite3_bind_int64(s, n.cint, val)
-  elif val is float64:
-    sqlite3_bind_double(s, n.cint, val)
+  elif val is uint32 | int64:
+    sqlite3_bind_int64(s, n.cint, val.int64)
+  elif val is float32 | float64:
+    sqlite3_bind_double(s, n.cint, val.float64)
   elif val is string:
     # `-1` implies string length is num bytes up to first null-terminator;
     # `SQLITE_TRANSIENT` "indicate[s] that the object is to be copied prior
