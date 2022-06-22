@@ -38,7 +38,7 @@ proc bindParam(
       sqlite3_bind_blob(s, n.cint, unsafeAddr val[0], val.len.cint,
         SQLITE_TRANSIENT)
     else:
-      sqlite3_bind_blob(s, n.cint, nil, 0.cint, nil)
+      sqlite3_bind_null(s, n.cint)
   elif val is int32:
     sqlite3_bind_int(s, n.cint, val)
   elif val is uint32 | int64:
