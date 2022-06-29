@@ -1,33 +1,35 @@
 import std/options
 import std/os
 
+import pkg/asynctest/unittest2
+import pkg/chronos
 import pkg/stew/results
-import pkg/unittest2
 
 import ../../datastore/sqlite_datastore
+import ./templates
 
 suite "SQLiteDatastore":
+  var
+    ds: SQLiteDatastore
+
+  # assumes tests/test_all is run from project root, e.g. with `nimble test`
+  let
+    basePath = "tests" / "test_data"
+    basePathAbs = getCurrentDir() / basePath
+    filename = "test_store" & dbExt
+    dbPathAbs = basePathAbs / filename
+
   setup:
-    var
-      ds: SQLiteDatastore
-
-    # assumes tests/test_all is run from project root, e.g. with `nimble test`
-    let
-      basePath = "tests" / "test_data"
-      basePathAbs = getCurrentDir() / basePath
-      filename = "test_store" & dbExt
-      dbPathAbs = basePathAbs / filename
-
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
-    discard dbPathAbs # suppresses "declared but not used" re: dbPathAbs
 
   teardown:
     if not ds.isNil: ds.close
+    ds = nil
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 
-  test "new":
+  asyncTest "new":
     var
       dsRes = SQLiteDatastore.new(basePathAbs, filename, readOnly = true)
 
@@ -90,14 +92,14 @@ suite "SQLiteDatastore":
 
     check: dsRes.isErr
 
-  test "accessors":
+  asyncTest "accessors":
     ds = SQLiteDatastore.new(basePath).get
 
     check:
       parentDir(ds.dbPath) == basePathAbs
       not ds.env.isNil
 
-  test "helpers":
+  asyncTest "helpers":
     ds = SQLiteDatastore.new(basePath).get
 
     ds.close
@@ -106,7 +108,7 @@ suite "SQLiteDatastore":
       ds.env.isNil
       timestamp(10.123_456) == 10_123_456.int64
 
-  test "put":
+  asyncTest "put":
     let
       key = Key.init("a:b/c/d:e").get
 
@@ -118,7 +120,7 @@ suite "SQLiteDatastore":
     var
       bytes: seq[byte]
       timestamp = timestamp()
-      putRes = ds.put(key, bytes, timestamp)
+      putRes = await ds.put(key, bytes, timestamp)
 
     check: putRes.isErr
 
@@ -129,7 +131,7 @@ suite "SQLiteDatastore":
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
     timestamp = timestamp()
-    putRes = ds.put(key, bytes, timestamp)
+    putRes = await ds.put(key, bytes, timestamp)
 
     check: putRes.isOk
 
@@ -162,7 +164,7 @@ suite "SQLiteDatastore":
 
     bytes = @[1.byte, 2.byte, 3.byte]
     timestamp = timestamp()
-    putRes = ds.put(key, bytes, timestamp)
+    putRes = await ds.put(key, bytes, timestamp)
 
     check: putRes.isOk
 
@@ -179,7 +181,7 @@ suite "SQLiteDatastore":
 
     bytes = @[4.byte, 5.byte, 6.byte]
     timestamp = timestamp()
-    putRes = ds.put(key, bytes, timestamp)
+    putRes = await ds.put(key, bytes, timestamp)
 
     check: putRes.isOk
 
@@ -194,7 +196,7 @@ suite "SQLiteDatastore":
       qTimestamp == timestamp
       rowCount == 1
 
-  test "delete":
+  asyncTest "delete":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
 
@@ -207,7 +209,7 @@ suite "SQLiteDatastore":
     ds = SQLiteDatastore.new(basePathAbs, filename, readOnly = true).get
 
     var
-      delRes = ds.delete(key)
+      delRes = await ds.delete(key)
 
     check: delRes.isErr
 
@@ -218,7 +220,7 @@ suite "SQLiteDatastore":
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
     let
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
@@ -236,7 +238,7 @@ suite "SQLiteDatastore":
 
     assert qRes.isOk
     check: rowCount == 1
-    delRes = ds.delete(key)
+    delRes = await ds.delete(key)
 
     check: delRes.isOk
 
@@ -250,11 +252,11 @@ suite "SQLiteDatastore":
 
     key = Key.init("X/Y/Z").get
 
-    delRes = ds.delete(key)
+    delRes = await ds.delete(key)
 
     check: delRes.isOk
 
-  test "contains":
+  asyncTest "contains":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
 
@@ -264,12 +266,12 @@ suite "SQLiteDatastore":
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
     let
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
     var
-      containsRes = ds.contains(key)
+      containsRes = await ds.contains(key)
 
     assert containsRes.isOk
 
@@ -277,46 +279,46 @@ suite "SQLiteDatastore":
 
     key = Key.init("X/Y/Z").get
 
-    containsRes = ds.contains(key)
+    containsRes = await ds.contains(key)
     assert containsRes.isOk
 
     check: containsRes.get == false
 
-  test "get":
+  asyncTest "get":
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
     var
       bytes: seq[byte]
       key = Key.init("a:b/c/d:e").get
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
     var
-      getRes = ds.get(key)
+      getRes = await ds.get(key)
       getOpt = getRes.get
 
     check: getOpt.isSome and getOpt.get == bytes
 
     bytes = @[1.byte, 2.byte, 3.byte]
-    putRes = ds.put(key, bytes)
+    putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
-    getRes = ds.get(key)
+    getRes = await ds.get(key)
     getOpt = getRes.get
 
     check: getOpt.isSome and getOpt.get == bytes
 
     key = Key.init("X/Y/Z").get
 
-    assert not ds.contains(key).get
+    assert not (await ds.contains(key)).get
 
-    getRes = ds.get(key)
+    getRes = await ds.get(key)
     getOpt = getRes.get
 
     check: getOpt.isNone
 
-  # test "query":
+  # asyncTest "query":
   #   check:
   #     true

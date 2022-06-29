@@ -1,5 +1,7 @@
+import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
+from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 import ./datastore
@@ -26,57 +28,94 @@ proc stores*(self: TieredDatastore): seq[Datastore] =
 
 method contains*(
   self: TieredDatastore,
-  key: Key): ?!bool {.locks: "unknown".} =
+  key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
   var
     exists = false
 
   for store in self.stores:
-    exists = ? store.contains(key)
+    let
+      containsRes = await store.contains(key)
+
+    if containsRes.isErr: return failure containsRes.error.msg
+
+    exists = containsRes.get
+
     if exists: break
 
-  success exists
+  return success exists
 
 method delete*(
   self: TieredDatastore,
-  key: Key): ?!void {.locks: "unknown".} =
+  key: Key): Future[?!void] {.async, locks: "unknown".} =
+
+  var
+    pending: seq[Future[?!void]]
 
   for store in self.stores:
-    ? store.delete(key)
+    pending.add store.delete(key)
 
-  success()
+  await allFutures(pending)
+
+  for fut in pending:
+    let
+      deleteRes = fut.read()
+
+    if deleteRes.isErr: return failure deleteRes.error.msg
+
+  return success()
 
 method get*(
   self: TieredDatastore,
-  key: Key): ?!(?seq[byte]) {.locks: "unknown".} =
+  key: Key): Future[?!(?seq[byte])] {.async, locks: "unknown".} =
 
   var
     bytesOpt: ?seq[byte]
 
   for store in self.stores:
-    bytesOpt = ? store.get(key)
+    let
+      getRes = await store.get(key)
+
+    if getRes.isErr: return failure getRes.error.msg
+
+    bytesOpt = getRes.get
 
     # put found data into stores logically in front of the current store
     if bytes =? bytesOpt:
       for s in self.stores:
         if s == store: break
-        ? s.put(key, bytes)
+        let
+          putRes = await s.put(key, bytes)
+
+        if putRes.isErr: return failure putRes.error.msg
+
       break
 
-  success bytesOpt
+  return success bytesOpt
 
 method put*(
   self: TieredDatastore,
   key: Key,
-  data: openArray[byte]): ?!void {.locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
+
+  var
+    pending: seq[Future[?!void]]
 
   for store in self.stores:
-    ? store.put(key, data)
+    pending.add store.put(key, data)
 
-  success()
+  await allFutures(pending)
+
+  for fut in pending:
+    let
+      putRes = fut.read()
+
+    if putRes.isErr: return failure putRes.error.msg
+
+  return success()
 
 # method query*(
 #   self: TieredDatastore,
-#   query: ...): ?!(?...) {.locks: "unknown".} =
+#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   success ....none
+#   return success ....none

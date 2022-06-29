@@ -1,19 +1,21 @@
 import std/options
 import std/os
 
+import pkg/asynctest/unittest2
+import pkg/chronos
 import pkg/stew/byteutils
 import pkg/stew/results
-import pkg/unittest2
 
 import ../../datastore/filesystem_datastore
+import ./templates
 
 suite "FileSystemDatastore":
-  setup:
-    # assumes tests/test_all is run from project root, e.g. with `nimble test`
-    let
-      root = "tests" / "test_data"
-      rootAbs = getCurrentDir() / root
+  # assumes tests/test_all is run from project root, e.g. with `nimble test`
+  let
+    root = "tests" / "test_data"
+    rootAbs = getCurrentDir() / root
 
+  setup:
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
 
@@ -21,7 +23,7 @@ suite "FileSystemDatastore":
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
 
-  test "new":
+  asyncTest "new":
     var
       dsRes: Result[FileSystemDatastore, ref CatchableError]
       ds: FileSystemDatastore
@@ -43,13 +45,13 @@ suite "FileSystemDatastore":
 
     check: dirExists(rootAbs)
 
-  test "accessors":
+  asyncTest "accessors":
     let
       ds = FileSystemDatastore.new(root).get
 
     check: ds.root == rootAbs
 
-  test "helpers":
+  asyncTest "helpers":
       let
         ds = FileSystemDatastore.new(root).get
 
@@ -65,7 +67,7 @@ suite "FileSystemDatastore":
         ds.path(Key.init("a/b/c:d").get) == rootAbs / "a" / "b" / "c" / "d" & objExt
         ds.path(Key.init("a/b/c/d").get) == rootAbs / "a" / "b" / "c" / "d" & objExt
 
-  test "put":
+  asyncTest "put":
     let
       ds = FileSystemDatastore.new(root).get
       key = Key.init("a:b/c/d:e").get
@@ -73,7 +75,7 @@ suite "FileSystemDatastore":
 
     var
       bytes: seq[byte]
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     check:
       putRes.isOk
@@ -81,7 +83,7 @@ suite "FileSystemDatastore":
 
     bytes = @[1.byte, 2.byte, 3.byte]
 
-    putRes = ds.put(key, bytes)
+    putRes = await ds.put(key, bytes)
 
     check:
       putRes.isOk
@@ -89,13 +91,13 @@ suite "FileSystemDatastore":
 
     bytes = @[4.byte, 5.byte, 6.byte]
 
-    putRes = ds.put(key, bytes)
+    putRes = await ds.put(key, bytes)
 
     check:
       putRes.isOk
       readFile(path).toBytes == bytes
 
-  test "delete":
+  asyncTest "delete":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
       ds = FileSystemDatastore.new(root).get
@@ -105,12 +107,12 @@ suite "FileSystemDatastore":
       path = ds.path(key)
 
     let
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
     var
-      delRes = ds.delete(key)
+      delRes = await ds.delete(key)
 
     check:
       delRes.isOk
@@ -121,11 +123,11 @@ suite "FileSystemDatastore":
     path = ds.path(key)
     assert not fileExists(path)
 
-    delRes = ds.delete(key)
+    delRes = await ds.delete(key)
 
     check: delRes.isOk
 
-  test "contains":
+  asyncTest "contains":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
       ds = FileSystemDatastore.new(root).get
@@ -133,12 +135,12 @@ suite "FileSystemDatastore":
     var
       key = Key.init("a:b/c/d:e").get
       path = ds.path(key)
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
     var
-      containsRes = ds.contains(key)
+      containsRes = await ds.contains(key)
 
     assert containsRes.isOk
 
@@ -148,12 +150,12 @@ suite "FileSystemDatastore":
     path = ds.path(key)
     assert not fileExists(path)
 
-    containsRes = ds.contains(key)
+    containsRes = await ds.contains(key)
     assert containsRes.isOk
 
     check: containsRes.get == false
 
-  test "get":
+  asyncTest "get":
     let
       ds = FileSystemDatastore.new(root).get
 
@@ -161,22 +163,22 @@ suite "FileSystemDatastore":
       bytes: seq[byte]
       key = Key.init("a:b/c/d:e").get
       path = ds.path(key)
-      putRes = ds.put(key, bytes)
+      putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
     var
-      getRes = ds.get(key)
+      getRes = await ds.get(key)
       getOpt = getRes.get
 
     check: getOpt.isSome and getOpt.get == bytes
 
     bytes = @[1.byte, 2.byte, 3.byte]
-    putRes = ds.put(key, bytes)
+    putRes = await ds.put(key, bytes)
 
     assert putRes.isOk
 
-    getRes = ds.get(key)
+    getRes = await ds.get(key)
     getOpt = getRes.get
 
     check: getOpt.isSome and getOpt.get == bytes
@@ -186,11 +188,11 @@ suite "FileSystemDatastore":
 
     assert not fileExists(path)
 
-    getRes = ds.get(key)
+    getRes = await ds.get(key)
     getOpt = getRes.get
 
     check: getOpt.isNone
 
-  # test "query":
+  # asyncTest "query":
   #   check:
   #     true

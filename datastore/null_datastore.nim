@@ -1,3 +1,4 @@
+import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
@@ -16,31 +17,31 @@ proc new*(T: type NullDatastore): T =
 
 method contains*(
   self: NullDatastore,
-  key: Key): ?!bool {.locks: "unknown".} =
+  key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
-  success false
+  return success false
 
 method delete*(
   self: NullDatastore,
-  key: Key): ?!void {.locks: "unknown".} =
+  key: Key): Future[?!void] {.async, locks: "unknown".} =
 
-  success()
+  return success()
 
 method get*(
   self: NullDatastore,
-  key: Key): ?!(?seq[byte]) {.locks: "unknown".} =
+  key: Key): Future[?!(?seq[byte])] {.async, locks: "unknown".} =
 
-  success seq[byte].none
+  return success seq[byte].none
 
 method put*(
   self: NullDatastore,
   key: Key,
-  data: openArray[byte]): ?!void {.locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
-  success()
+  return success()
 
 # method query*(
 #   self: NullDatastore,
-#   query: ...): ?!(?...) {.locks: "unknown".} =
+#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   success ....none
+#   return success ....none

@@ -6,6 +6,7 @@ import std/strutils
 
 import pkg/questionable
 import pkg/questionable/results
+from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 export hashes
@@ -157,13 +158,12 @@ proc init*(
     for s in namespaces:
       let
         nsRes = Namespace.init(s)
-      # if `without ns =? Namespace.init(s), e:` is used `e` is nil in the body
-      # at runtime, why?
-      without ns =? nsRes:
+
+      if nsRes.isErr:
         return failure "namespaces contains an invalid Namespace: " &
           nsRes.error.msg
 
-      nss.add ns
+      nss.add nsRes.get
 
     success T(namespaces: nss)
 
@@ -186,13 +186,12 @@ proc init*(
 
   let
     keyRes = Key.init(nsStrs)
-  # if `without key =? Key.init(nsStrs), e:` is used `e` is nil in the body
-  # at runtime, why?
-  without key =? keyRes:
+
+  if keyRes.isErr:
     return failure "id string contains an invalid Namespace:" &
       keyRes.error.msg.split(":")[1..^1].join("").replace("\"\"", "\":\"")
 
-  success key
+  success keyRes.get
 
 proc namespaces*(self: Key): seq[Namespace] =
   self.namespaces
