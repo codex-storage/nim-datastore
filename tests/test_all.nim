@@ -4,6 +4,7 @@ import
   ./datastore/test_null_datastore,
   ./datastore/test_filesystem_datastore,
   ./datastore/test_sqlite_datastore,
+  ./datastore/test_async_sqlite_datastore,
   ./datastore/test_tiered_datastore
 
 {.warning[UnusedImport]: off.}
