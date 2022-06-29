@@ -1,38 +1,37 @@
 import std/options
 
+import pkg/asynctest/unittest2
+import pkg/chronos
 import pkg/stew/results
-import pkg/unittest2
 
 import ../../datastore/null_datastore
+import ./templates
 
 suite "NullDatastore":
-  setup:
-    let
-      key = Key.init("a").get
-      ds = NullDatastore.new()
+  let
+    key = Key.init("a").get
+    ds = NullDatastore.new()
 
-    discard key # suppresses "declared but not used" re: key
-
-  test "new":
+  asyncTest "new":
     check: not ds.isNil
 
-  test "put":
-    check: ds.put(key, [1.byte]).isOk
+  asyncTest "put":
+    check: (await ds.put(key, @[1.byte])).isOk
 
-  test "delete":
-    check: ds.delete(key).isOk
+  asyncTest "delete":
+    check: (await ds.delete(key)).isOk
 
-  test "contains":
+  asyncTest "contains":
     check:
-      ds.contains(key).isOk
-      ds.contains(key).get == false
+      (await ds.contains(key)).isOk
+      (await ds.contains(key)).get == false
 
-  test "get":
+  asyncTest "get":
     check:
-      ds.get(key).isOk
-      ds.get(key).get.isNone
+      (await ds.get(key)).isOk
+      (await ds.get(key)).get.isNone
 
-  # test "query":
+  # asyncTest "query":
   #   check:
-  #     ds.query(...).isOk
-  #     ds.query(...).get.isNone
+  #     (await ds.query(...)).isOk
+  #     (await ds.query(...)).get.isNone

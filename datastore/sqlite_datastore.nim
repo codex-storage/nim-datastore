@@ -1,10 +1,12 @@
 import std/os
 import std/times
 
+import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/stew/byteutils
+from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 import ./datastore
@@ -204,7 +206,7 @@ proc timestampCol*(
 
 method contains*(
   self: SQLiteDatastore,
-  key: Key): ?!bool {.locks: "unknown".} =
+  key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
   var
     exists = false
@@ -212,61 +214,64 @@ method contains*(
   proc onData(s: RawStmtPtr) {.closure.} =
     exists = sqlite3_column_int64(s, 0).bool
 
-  discard ? self.containsStmt.query((key.id), onData)
+  let
+    queryRes = self.containsStmt.query((key.id), onData)
 
-  success exists
+  if queryRes.isErr: return queryRes
+
+  return success exists
 
 method delete*(
   self: SQLiteDatastore,
-  key: Key): ?!void {.locks: "unknown".} =
+  key: Key): Future[?!void] {.async, locks: "unknown".} =
 
   if self.readOnly:
-    failure "database is read-only":
+    return failure "database is read-only":
   else:
-    self.deleteStmt.exec((key.id))
+    return self.deleteStmt.exec((key.id))
 
 method get*(
   self: SQLiteDatastore,
-  key: Key): ?!(?seq[byte]) {.locks: "unknown".} =
+  key: Key): Future[?!(?seq[byte])] {.async, locks: "unknown".} =
 
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `method get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
 
   var
-    bytes: seq[byte]
+    bytes: ?seq[byte]
 
   proc onData(s: RawStmtPtr) {.closure.} =
-    bytes = dataCol(s, 0)
+    bytes = dataCol(s, 0).some
 
   let
-    exists = ? self.getStmt.query((key.id), onData)
+    queryRes = self.getStmt.query((key.id), onData)
 
-  if exists:
-    success bytes.some
+  if queryRes.isErr:
+    return failure queryRes.error.msg
   else:
-    success seq[byte].none
+    return success bytes
 
 proc put*(
   self: SQLiteDatastore,
   key: Key,
-  data: openArray[byte],
-  timestamp: int64): ?!void =
+  data: seq[byte],
+  timestamp: int64): Future[?!void] {.async.} =
 
   if self.readOnly:
-    failure "database is read-only"
+    return failure "database is read-only"
   else:
-    self.putStmt.exec((key.id, @data, timestamp))
+    return self.putStmt.exec((key.id, @data, timestamp))
 
 method put*(
   self: SQLiteDatastore,
   key: Key,
-  data: openArray[byte]): ?!void {.locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
-  self.put(key, data, timestamp())
+  return await self.put(key, data, timestamp())
 
 # method query*(
 #   self: SQLiteDatastore,
-#   query: ...): ?!(?...) {.locks: "unknown".} =
+#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   success ....none
+#   return success ....some

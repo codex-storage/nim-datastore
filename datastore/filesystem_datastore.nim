@@ -1,7 +1,9 @@
 import std/os
 
+import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
+from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 import ./datastore
@@ -60,31 +62,31 @@ proc path*(
 
 method contains*(
   self: FileSystemDatastore,
-  key: Key): ?!bool {.locks: "unknown".} =
+  key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
-  success fileExists(self.path(key))
+  return success fileExists(self.path(key))
 
 method delete*(
   self: FileSystemDatastore,
-  key: Key): ?!void {.locks: "unknown".} =
+  key: Key): Future[?!void] {.async, locks: "unknown".} =
 
   let
     path = self.path(key)
 
   try:
     removeFile(path)
-    success()
+    return success()
 
     # removing an empty directory might lead to surprising behavior depending
     # on what the user specified as the `root` of the FileSystemDatastore, so
     # until further consideration, empty directories will be left in place
 
   except OSError as e:
-    failure e
+    return failure e
 
 method get*(
   self: FileSystemDatastore,
-  key: Key): ?!(?seq[byte]) {.locks: "unknown".} =
+  key: Key): Future[?!(?seq[byte])] {.async, locks: "unknown".} =
 
   # to support finer control of memory allocation, maybe could/should change
   # the signature of `get` so that it has a 3rd parameter
@@ -95,9 +97,11 @@ method get*(
 
   let
     path = self.path(key)
-    exists = ? self.contains(key)
+    containsRes = await self.contains(key)
 
-  if exists:
+  if containsRes.isErr: return failure containsRes.error.msg
+
+  if containsRes.get:
     var
       file: File
 
@@ -121,21 +125,21 @@ method get*(
             return failure $bytesRead & " bytes were read from " & path &
               " but " & $size & " bytes were expected"
 
-        success bytes.some
+        return success bytes.some
 
       except IOError as e:
-        failure e
+        return failure e
 
       finally:
         file.close
 
   else:
-    success seq[byte].none
+    return success seq[byte].none
 
 method put*(
   self: FileSystemDatastore,
   key: Key,
-  data: openArray[byte]): ?!void {.locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
   let
     path = self.path(key)
@@ -144,16 +148,16 @@ method put*(
     createDir(parentDir(path))
     if data.len > 0: writeFile(path, data)
     else: writeFile(path, "")
-    success()
+    return success()
 
   except IOError as e:
-    failure e
+    return failure e
 
   except OSError as e:
-    failure e
+    return failure e
 
 # method query*(
 #   self: FileSystemDatastore,
-#   query: ...): ?!(?...) {.locks: "unknown".} =
+#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   success ....none
+#   return success ....some

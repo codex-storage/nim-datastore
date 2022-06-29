@@ -1,30 +1,29 @@
 import std/options
 
+import pkg/asynctest/unittest2
+import pkg/chronos
 import pkg/stew/results
-import pkg/unittest2
 
 import ../../datastore
-
-const
-  oneByte = @[1.byte]
+import ./templates
 
 suite "Datastore (base)":
-  setup:
-    let
-      key = Key.init("a").get
-      ds = Datastore()
+  let
+    key = Key.init("a").get
+    ds = Datastore()
+    oneByte = @[1.byte]
 
-  test "put":
+  asyncTest "put":
     expect Defect: discard ds.put(key, oneByte)
 
-  test "delete":
+  asyncTest "delete":
     expect Defect: discard ds.delete(key)
 
-  test "contains":
+  asyncTest "contains":
     expect Defect: discard ds.contains(key)
 
-  test "get":
+  asyncTest "get":
     expect Defect: discard ds.get(key)
 
-  # test "query":
+  # asyncTest "query":
   #   expect Defect: discard ds.query(...)
