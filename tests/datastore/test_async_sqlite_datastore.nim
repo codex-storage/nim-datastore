@@ -1,7 +1,7 @@
 import std/options
 import std/os
 
-import asynctest/unittest2
+import pkg/asynctest/unittest2
 import pkg/stew/results
 
 import ../../datastore/async_sqlite_datastore
