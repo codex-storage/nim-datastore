@@ -58,8 +58,7 @@ suite "AsyncSQLiteDatastore":
 
     ds.close
 
-    check:
-      ds.store.isNil
+    check: ds.store.isNil
 
   test "put":
     ds = AsyncSQLiteDatastore.new(basePathAbs, filename).get
