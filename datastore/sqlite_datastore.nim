@@ -239,20 +239,18 @@ method get*(
   # incrementally with `sqlite3_blob_read`
 
   var
-    bytes: seq[byte]
+    bytes: ?seq[byte]
 
   proc onData(s: RawStmtPtr) {.closure.} =
-    bytes = dataCol(s, 0)
+    bytes = dataCol(s, 0).some
 
   let
     queryRes = self.getStmt.query((key.id), onData)
 
-  if queryRes.isErr: return failure queryRes.error.msg
-
-  if queryRes.get:
-    return success bytes.some
+  if queryRes.isErr:
+    return failure queryRes.error.msg
   else:
-    return success seq[byte].none
+    return success bytes
 
 proc put*(
   self: SQLiteDatastore,
