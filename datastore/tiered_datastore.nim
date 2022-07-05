@@ -1,3 +1,5 @@
+import std/sequtils
+
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
@@ -49,19 +51,11 @@ method delete*(
   self: TieredDatastore,
   key: Key): Future[?!void] {.async, locks: "unknown".} =
 
-  var
-    pending: seq[Future[?!void]]
-
-  for store in self.stores:
-    pending.add store.delete(key)
-
-  await allFutures(pending)
+  let
+    pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-    let
-      deleteRes = fut.read()
-
-    if deleteRes.isErr: return failure deleteRes.error.msg
+    if fut.read().isErr: return fut.read()
 
   return success()
 
@@ -98,19 +92,11 @@ method put*(
   key: Key,
   data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
-  var
-    pending: seq[Future[?!void]]
-
-  for store in self.stores:
-    pending.add store.put(key, data)
-
-  await allFutures(pending)
+  let
+    pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    let
-      putRes = fut.read()
-
-    if putRes.isErr: return failure putRes.error.msg
+    if fut.read().isErr: return fut.read()
 
   return success()
 
