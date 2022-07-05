@@ -217,7 +217,7 @@ method contains*(
   let
     queryRes = self.containsStmt.query((key.id), onData)
 
-  if queryRes.isErr: return failure queryRes.error.msg
+  if queryRes.isErr: return queryRes
 
   return success exists
 
@@ -274,4 +274,4 @@ method put*(
 #   self: SQLiteDatastore,
 #   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   return success ....none
+#   return success ....some

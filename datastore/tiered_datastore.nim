@@ -64,7 +64,7 @@ method get*(
     let
       getRes = await store.get(key)
 
-    if getRes.isErr: return failure getRes.error.msg
+    if getRes.isErr: return getRes
 
     bytesOpt = getRes.get
 
@@ -98,4 +98,4 @@ method put*(
 #   self: TieredDatastore,
 #   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   return success ....none
+#   return success ....some

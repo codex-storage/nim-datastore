@@ -191,7 +191,7 @@ proc init*(
     return failure "id string contains an invalid Namespace:" &
       keyRes.error.msg.split(":")[1..^1].join("").replace("\"\"", "\":\"")
 
-  success keyRes.get
+  keyRes
 
 proc namespaces*(self: Key): seq[Namespace] =
   self.namespaces

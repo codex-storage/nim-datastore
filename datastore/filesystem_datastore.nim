@@ -160,4 +160,4 @@ method put*(
 #   self: FileSystemDatastore,
 #   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
-#   return success ....none
+#   return success ....some
