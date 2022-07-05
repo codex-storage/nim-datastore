@@ -32,20 +32,14 @@ method contains*(
   self: TieredDatastore,
   key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
-  var
-    exists = false
-
   for store in self.stores:
     let
       containsRes = await store.contains(key)
 
-    if containsRes.isErr: return failure containsRes.error.msg
+    if containsRes.isErr: return containsRes
+    if containsRes.get == true: return success true
 
-    exists = containsRes.get
-
-    if exists: break
-
-  return success exists
+  return success false
 
 method delete*(
   self: TieredDatastore,
