@@ -136,9 +136,26 @@ template journalModePragmaStmt*(env: SQLite): RawStmtPtr =
     s.dispose
     return failure $sqlite3_errstr(x)
 
-  if (let x = $sqlite3_column_text(s, 0).cstring; x != "memory" and x != "wal"):
+  let
+    x = sqlite3_column_text(s, 0).cstring
+
+  # detect out-of-memory error
+  # see the conversion table and final paragraph of:
+  # https://www.sqlite.org/c3ref/column_blob.html
+  # see also https://www.sqlite.org/rescode.html
+
+  # in order to detect an out-of-memory error check that the result is a null
+  # pointer and that the result code is an error code
+  if x.isNil:
+    let
+      code = sqlite3_errcode(sqlite3_db_handle(s))
+
+    if not (code in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+      raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+  if not ($x in ["memory", "wal"]):
     s.dispose
-    return failure "Invalid pragma result: " & $x
+    return failure "Invalid pragma result: \"" & $x & "\""
 
   s
 
