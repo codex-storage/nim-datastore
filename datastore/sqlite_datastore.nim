@@ -17,6 +17,12 @@ export datastore, sqlite
 push: {.upraises: [].}
 
 type
+  BoundIdCol = proc (): string {.closure, gcsafe, upraises: [].}
+
+  BoundDataCol = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
+
+  BoundTimestampCol = proc (): int64 {.closure, gcsafe, upraises: [].}
+
   # feels odd to use `void` for prepared statements corresponding to SELECT
   # queries but it fits with the rest of the SQLite wrapper adapted from
   # status-im/nwaku, at least in its current form in ./sqlite
@@ -33,17 +39,26 @@ type
     containsStmt: ContainsStmt
     deleteStmt: DeleteStmt
     env: SQLite
+    getDataCol: BoundDataCol
     getStmt: GetStmt
     putStmt: PutStmt
     readOnly: bool
 
 const
-  IdType = "TEXT"
-  DataType = "BLOB"
-  TimestampType = "INTEGER"
-
   dbExt* = ".sqlite3"
-  tableTitle* = "Store"
+  tableName* = "Store"
+
+  idColName = "id"
+  dataColName = "data"
+  timestampColName = "timestamp"
+
+  idColIndex = 0
+  dataColIndex = 1
+  timestampColIndex = 2
+
+  idColType = "TEXT"
+  dataColType = "BLOB"
+  timestampColType = "INTEGER"
 
   # https://stackoverflow.com/a/9756276
   # EXISTS returns a boolean value represented by an integer:
@@ -51,34 +66,127 @@ const
   # https://sqlite.org/lang_expr.html#the_exists_operator
   containsStmtStr = """
     SELECT EXISTS(
-      SELECT 1 FROM """ & tableTitle & """
-      WHERE id = ?
+      SELECT 1 FROM """ & tableName & """
+      WHERE """ & idColName & """ = ?
     );
   """
 
   createStmtStr = """
-    CREATE TABLE IF NOT EXISTS """ & tableTitle & """ (
-      id """ & IdType & """ NOT NULL PRIMARY KEY,
-      data """ & DataType & """,
-      timestamp """ & TimestampType & """ NOT NULL
+    CREATE TABLE IF NOT EXISTS """ & tableName & """ (
+      """ & idColName & """ """ & idColType & """ NOT NULL PRIMARY KEY,
+      """ & dataColName & """ """ & dataColType & """,
+      """ & timestampColName & """ """ & timestampColType & """ NOT NULL
     ) WITHOUT ROWID;
   """
 
   deleteStmtStr = """
-    DELETE FROM """ & tableTitle & """
-    WHERE id = ?;
+    DELETE FROM """ & tableName & """
+    WHERE """ & idColName & """ = ?;
   """
 
   getStmtStr = """
-    SELECT data FROM """ & tableTitle & """
-    WHERE id = ?;
+    SELECT """ & dataColName & """ FROM """ & tableName & """
+    WHERE """ & idColName & """ = ?;
   """
 
   putStmtStr = """
-    REPLACE INTO """ & tableTitle & """ (
-      id, data, timestamp
+    REPLACE INTO """ & tableName & """ (
+      """ & idColName & """,
+      """ & dataColName & """,
+      """ & timestampColName & """
     ) VALUES (?, ?, ?);
   """
+
+proc idCol*(
+  s: RawStmtPtr,
+  index = idColIndex): BoundIdCol =
+
+  let
+    i = index.cint
+    colName = sqlite3_column_origin_name(s, i)
+
+  if colName.isNil or $colName != idColName:
+    raise (ref Defect)(msg: "original column name for index " & $index &
+      " was not \"" & idColName & "\"")
+
+  return proc (): string =
+    let
+      text = sqlite3_column_text(s, i)
+
+    # detect out-of-memory error
+    # see the conversion table and final paragraph of:
+    # https://www.sqlite.org/c3ref/column_blob.html
+
+    # the "id" column is NOT NULL PRIMARY KEY so an out-of-memory error can be
+    # inferred from a null pointer result
+    if text.isNil:
+      let
+        code = sqlite3_errcode(sqlite3_db_handle(s))
+
+      raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+    $text.cstring
+
+proc dataCol*(
+  s: RawStmtPtr,
+  index = dataColIndex): BoundDataCol =
+
+  let
+    i = index.cint
+    colName = sqlite3_column_origin_name(s, i)
+
+  if colName.isNil or $colName != dataColName:
+    raise (ref Defect)(msg: "original column name for index " & $index &
+      " was not \"" & dataColName & "\"")
+
+  return proc (): seq[byte] =
+    let
+      blob = sqlite3_column_blob(s, i)
+
+    # detect out-of-memory error
+    # see the conversion table and final paragraph of:
+    # https://www.sqlite.org/c3ref/column_blob.html
+    # see also https://www.sqlite.org/rescode.html
+
+    # the "data" column can be NULL so in order to detect an out-of-memory error
+    # it is necessary to check that the result is a null pointer and that the
+    # result code is an error code
+    if blob.isNil:
+      let
+        code = sqlite3_errcode(sqlite3_db_handle(s))
+
+      if not (code in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+        raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+    let
+      dataLen = sqlite3_column_bytes(s, i)
+
+    # an out-of-memory error can be inferred from a null pointer result
+    if (unsafeAddr dataLen).isNil:
+      let
+        code = sqlite3_errcode(sqlite3_db_handle(s))
+
+      raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+    let
+      dataBytes = cast[ptr UncheckedArray[byte]](blob)
+
+    @(toOpenArray(dataBytes, 0, dataLen - 1))
+
+proc timestampCol*(
+  s: RawStmtPtr,
+  index = timestampColIndex): BoundTimestampCol =
+
+  let
+    i = index.cint
+    colName = sqlite3_column_origin_name(s, i)
+
+  if colName.isNil or $colName != timestampColName:
+    raise (ref Defect)(msg: "original column name for index " & $index &
+      " was not \"" & timestampColName & "\"")
+
+  return proc (): int64 =
+    sqlite3_column_int64(s, i)
 
 proc new*(
   T: type SQLiteDatastore,
@@ -157,9 +265,12 @@ proc new*(
   # `pepare()` will fail and `new` will return an error with message
   # "SQL logic error"
 
+  let
+    getDataCol = dataCol(RawStmtPtr(getStmt), 0)
+
   success T(dbPath: dbPath, containsStmt: containsStmt, deleteStmt: deleteStmt,
-            env: env.release, getStmt: getStmt, putStmt: putStmt,
-            readOnly: readOnly)
+            env: env.release, getStmt: getStmt, getDataCol: getDataCol,
+            putStmt: putStmt, readOnly: readOnly)
 
 proc dbPath*(self: SQLiteDatastore): string =
   self.dbPath
@@ -181,71 +292,6 @@ proc close*(self: SQLiteDatastore) =
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc idCol*(
-  s: RawStmtPtr,
-  index = 0): string =
-
-  let
-    text = sqlite3_column_text(s, index.cint).cstring
-
-  # detect out-of-memory error
-  # see the conversion table and final paragraph of:
-  # https://www.sqlite.org/c3ref/column_blob.html
-
-  # the "id" column is NOT NULL PRIMARY KEY so an out-of-memory error can be
-  # inferred from a null pointer result
-  if text.isNil:
-    let
-      code = sqlite3_errcode(sqlite3_db_handle(s))
-
-    raise (ref Defect)(msg: $sqlite3_errstr(code))
-
-  $text
-
-proc dataCol*(
-  s: RawStmtPtr,
-  index = 1): seq[byte] =
-
-  let
-    i = index.cint
-    blob = sqlite3_column_blob(s, i)
-
-  # detect out-of-memory error
-  # see the conversion table and final paragraph of:
-  # https://www.sqlite.org/c3ref/column_blob.html
-  # see also https://www.sqlite.org/rescode.html
-
-  # the "data" column can be NULL so in order to detect an out-of-memory error
-  # it is necessary to check that the result is a null pointer and that the
-  # result code is an error code
-  if blob.isNil:
-    let
-      code = sqlite3_errcode(sqlite3_db_handle(s))
-
-    if not (code in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
-      raise (ref Defect)(msg: $sqlite3_errstr(code))
-
-  let
-    dataLen = sqlite3_column_bytes(s, i)
-
-  # an out-of-memory error can be inferred from a null pointer result
-  if (unsafeAddr dataLen).isNil:
-    let
-      code = sqlite3_errcode(sqlite3_db_handle(s))
-
-    raise (ref Defect)(msg: $sqlite3_errstr(code))
-
-  let
-    dataBytes = cast[ptr UncheckedArray[byte]](blob)
-
-  @(toOpenArray(dataBytes, 0, dataLen - 1))
-
-proc timestampCol*(
-  s: RawStmtPtr,
-  index = 2): int64 =
-
-  sqlite3_column_int64(s, index.cint)
-
 method contains*(
   self: SQLiteDatastore,
   key: Key): Future[?!bool] {.async, locks: "unknown".} =
@@ -253,7 +299,7 @@ method contains*(
   var
     exists = false
 
-  proc onData(s: RawStmtPtr) {.closure.} =
+  proc onData(s: RawStmtPtr) =
     exists = sqlite3_column_int64(s, 0).bool
 
   let
@@ -283,8 +329,11 @@ method get*(
   var
     bytes: ?seq[byte]
 
-  proc onData(s: RawStmtPtr) {.closure.} =
-    bytes = dataCol(s, 0).some
+  let
+    dataCol = self.getDataCol
+
+  proc onData(s: RawStmtPtr) =
+    bytes = dataCol().some
 
   let
     queryRes = self.getStmt.query((key.id), onData)

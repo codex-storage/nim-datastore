@@ -3,16 +3,22 @@ import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/upraises
 
-push: {.upraises: [].}
-
 # Adapted from:
 # https://github.com/status-im/nwaku/blob/master/waku/v2/node/storage/sqlite.nim
+
+# see https://www.sqlite.org/c3ref/column_database_name.html
+# can pass `--forceBuild:on` to the Nim compiler if a SQLite build without
+# `-DSQLITE_ENABLE_COLUMN_METADATA` option is stuck in the build cache,
+# e.g. `nimble test --forceBuild:on`
+{.passC: "-DSQLITE_ENABLE_COLUMN_METADATA".}
+
+push: {.upraises: [].}
 
 type
   AutoDisposed*[T: ptr|ref] = object
     val*: T
 
-  DataProc* = proc(s: RawStmtPtr) {.closure.}
+  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
 
   NoParams* = tuple # empty tuple
 

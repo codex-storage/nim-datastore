@@ -136,7 +136,17 @@ suite "SQLiteDatastore":
     check: putRes.isOk
 
     let
-      query = "SELECT * FROM " & tableTitle & ";"
+      prequeryRes = NoParamsStmt.prepare(
+        ds.env, "SELECT timestamp as foo, id as baz, data as bar FROM " &
+          tableName & ";")
+
+    assert prequeryRes.isOk
+
+    let
+      prequery = prequeryRes.get
+      idCol = idCol(RawStmtPtr(prequery), 1)
+      dataCol = dataCol(RawStmtPtr(prequery), 2)
+      timestampCol = timestampCol(RawStmtPtr(prequery), 0)
 
     var
       qId: string
@@ -145,13 +155,13 @@ suite "SQLiteDatastore":
       rowCount = 0
 
     proc onData(s: RawStmtPtr) {.closure.} =
-      qId = idCol(s)
-      qData = dataCol(s)
-      qTimestamp = timestampCol(s)
+      qId = idCol()
+      qData = dataCol()
+      qTimestamp = timestampCol()
       inc rowCount
 
     var
-      qRes = ds.env.query(query, onData)
+      qRes = prequery.query((), onData)
 
     assert qRes.isOk
 
@@ -169,7 +179,7 @@ suite "SQLiteDatastore":
     check: putRes.isOk
 
     rowCount = 0
-    qRes = ds.env.query(query, onData)
+    qRes = prequery.query((), onData)
     assert qRes.isOk
 
     check:
@@ -186,7 +196,7 @@ suite "SQLiteDatastore":
     check: putRes.isOk
 
     rowCount = 0
-    qRes = ds.env.query(query, onData)
+    qRes = prequery.query((), onData)
     assert qRes.isOk
 
     check:
@@ -195,6 +205,8 @@ suite "SQLiteDatastore":
       qData == bytes
       qTimestamp == timestamp
       rowCount == 1
+
+    prequery.dispose
 
   asyncTest "delete":
     let
@@ -225,7 +237,7 @@ suite "SQLiteDatastore":
     assert putRes.isOk
 
     let
-      query = "SELECT * FROM " & tableTitle & ";"
+      query = "SELECT * FROM " & tableName & ";"
 
     var
       rowCount = 0
