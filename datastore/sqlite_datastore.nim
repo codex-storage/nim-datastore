@@ -227,11 +227,17 @@ proc new*(
   if not readOnly:
     checkExec(env.val, createStmtStr)
 
-    deleteStmt = ? DeleteStmt.prepare(env.val, deleteStmtStr)
-    putStmt = ? PutStmt.prepare(env.val, putStmtStr)
+    deleteStmt = ? DeleteStmt.prepare(
+      env.val, deleteStmtStr, SQLITE_PREPARE_PERSISTENT)
 
-  containsStmt = ? ContainsStmt.prepare(env.val, containsStmtStr)
-  getStmt = ? GetStmt.prepare(env.val, getStmtStr)
+    putStmt = ? PutStmt.prepare(
+      env.val, putStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+  containsStmt = ? ContainsStmt.prepare(
+    env.val, containsStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+  getStmt = ? GetStmt.prepare(
+    env.val, getStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   # if a readOnly/existing database does not satisfy the expected schema
   # `pepare()` will fail and `new` will return an error with message

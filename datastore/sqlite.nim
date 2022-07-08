@@ -161,23 +161,27 @@ template open*(
 proc prepare*[Params, Res](
   T: type SQLiteStmt[Params, Res],
   env: SQLite,
-  stmt: string): ?!T =
+  stmt: string,
+  prepFlags: cuint = 0): ?!T =
 
   var
     s: RawStmtPtr
 
-  checkErr sqlite3_prepare_v2(env, stmt.cstring, stmt.len.cint, addr s, nil)
+  checkErr sqlite3_prepare_v3(
+    env, stmt.cstring, stmt.len.cint, prepFlags, addr s, nil)
 
   success T(s)
 
 template prepare*(
   env: SQLite,
-  q: string): RawStmtPtr =
+  q: string,
+  prepFlags: cuint = 0): RawStmtPtr =
 
   var
     s: RawStmtPtr
 
-  checkErr sqlite3_prepare_v2(env, q.cstring, q.len.cint, addr s, nil)
+  checkErr sqlite3_prepare_v3(
+    env, q.cstring, q.len.cint, prepFlags, addr s, nil)
 
   s
 
