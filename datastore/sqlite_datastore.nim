@@ -185,7 +185,22 @@ proc idCol*(
   s: RawStmtPtr,
   index = 0): string =
 
-  $sqlite3_column_text(s, index.cint).cstring
+  let
+    text = sqlite3_column_text(s, index.cint).cstring
+
+  # detect out-of-memory error
+  # see the conversion table and final paragraph of:
+  # https://www.sqlite.org/c3ref/column_blob.html
+
+  # the "id" column is NOT NULL PRIMARY KEY so an out-of-memory error can be
+  # inferred from a null pointer result
+  if text.isNil:
+    let
+      code = sqlite3_errcode(sqlite3_db_handle(s))
+
+    raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+  $text
 
 proc dataCol*(
   s: RawStmtPtr,
@@ -193,8 +208,35 @@ proc dataCol*(
 
   let
     i = index.cint
-    dataBytes = cast[ptr UncheckedArray[byte]](sqlite3_column_blob(s, i))
+    blob = sqlite3_column_blob(s, i)
+
+  # detect out-of-memory error
+  # see the conversion table and final paragraph of:
+  # https://www.sqlite.org/c3ref/column_blob.html
+  # see also https://www.sqlite.org/rescode.html
+
+  # the "data" column can be NULL so in order to detect an out-of-memory error
+  # it is necessary to check that the result is a null pointer and that the
+  # result code is an error code
+  if blob.isNil:
+    let
+      code = sqlite3_errcode(sqlite3_db_handle(s))
+
+    if not (code in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+      raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+  let
     dataLen = sqlite3_column_bytes(s, i)
+
+  # an out-of-memory error can be inferred from a null pointer result
+  if (unsafeAddr dataLen).isNil:
+    let
+      code = sqlite3_errcode(sqlite3_db_handle(s))
+
+    raise (ref Defect)(msg: $sqlite3_errstr(code))
+
+  let
+    dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
   @(toOpenArray(dataBytes, 0, dataLen - 1))
 
