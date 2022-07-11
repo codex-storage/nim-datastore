@@ -97,24 +97,26 @@ const
     ) VALUES (?, ?, ?);
   """
 
+template checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
+  let
+    colName = sqlite3_column_origin_name(s, i.cint)
+
+  if colName.isNil:
+    raise (ref Defect)(msg: "no column exists for index " & $i)
+
+  if $colName != expectedName:
+    raise (ref Defect)(msg: "original column name for index " & $i & " was \"" &
+      $colName & "\" but expected \"" & expectedName & "\"")
+
 proc idCol*(
   s: RawStmtPtr,
   index = idColIndex): BoundIdCol =
 
-  let
-    i = index.cint
-    colName = sqlite3_column_origin_name(s, i)
-
-  if colName.isNil:
-    raise (ref Defect)(msg: "no column exists for index " & $index)
-
-  if $colName != idColName:
-    raise (ref Defect)(msg: "original column name for index " & $index &
-      " was \"" & $colName & "\" but expected \"" & idColName & "\"")
+  checkColMetadata(s, index, idColName)
 
   return proc (): string =
     let
-      text = sqlite3_column_text(s, i)
+      text = sqlite3_column_text(s, index.cint)
 
     # detect out-of-memory error
     # see the conversion table and final paragraph of:
@@ -134,19 +136,11 @@ proc dataCol*(
   s: RawStmtPtr,
   index = dataColIndex): BoundDataCol =
 
-  let
-    i = index.cint
-    colName = sqlite3_column_origin_name(s, i)
-
-  if colName.isNil:
-    raise (ref Defect)(msg: "no column exists for index " & $index)
-
-  if $colName != dataColName:
-    raise (ref Defect)(msg: "original column name for index " & $index &
-      " was \"" & $colName & "\" but expected \"" & dataColName & "\"")
+  checkColMetadata(s, index, dataColName)
 
   return proc (): seq[byte] =
     let
+      i = index.cint
       blob = sqlite3_column_blob(s, i)
 
     # detect out-of-memory error
@@ -183,19 +177,10 @@ proc timestampCol*(
   s: RawStmtPtr,
   index = timestampColIndex): BoundTimestampCol =
 
-  let
-    i = index.cint
-    colName = sqlite3_column_origin_name(s, i)
-
-  if colName.isNil:
-    raise (ref Defect)(msg: "no column exists for index " & $index)
-
-  if $colName != timestampColName:
-    raise (ref Defect)(msg: "original column name for index " & $index &
-      " was \"" & $colName & "\" but expected \"" & timestampColName & "\"")
+  checkColMetadata(s, index, timestampColName)
 
   return proc (): int64 =
-    sqlite3_column_int64(s, i)
+    sqlite3_column_int64(s, index.cint)
 
 proc new*(
   T: type SQLiteDatastore,
