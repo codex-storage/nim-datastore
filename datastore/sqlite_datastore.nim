@@ -105,9 +105,12 @@ proc idCol*(
     i = index.cint
     colName = sqlite3_column_origin_name(s, i)
 
-  if colName.isNil or $colName != idColName:
+  if colName.isNil:
+    raise (ref Defect)(msg: "no column exists for index " & $index)
+
+  if $colName != idColName:
     raise (ref Defect)(msg: "original column name for index " & $index &
-      " was not \"" & idColName & "\"")
+      " was \"" & $colName & "\" but expected \"" & idColName & "\"")
 
   return proc (): string =
     let
@@ -135,9 +138,12 @@ proc dataCol*(
     i = index.cint
     colName = sqlite3_column_origin_name(s, i)
 
-  if colName.isNil or $colName != dataColName:
+  if colName.isNil:
+    raise (ref Defect)(msg: "no column exists for index " & $index)
+
+  if $colName != dataColName:
     raise (ref Defect)(msg: "original column name for index " & $index &
-      " was not \"" & dataColName & "\"")
+      " was \"" & $colName & "\" but expected \"" & dataColName & "\"")
 
   return proc (): seq[byte] =
     let
@@ -181,9 +187,12 @@ proc timestampCol*(
     i = index.cint
     colName = sqlite3_column_origin_name(s, i)
 
-  if colName.isNil or $colName != timestampColName:
+  if colName.isNil:
+    raise (ref Defect)(msg: "no column exists for index " & $index)
+
+  if $colName != timestampColName:
     raise (ref Defect)(msg: "original column name for index " & $index &
-      " was not \"" & timestampColName & "\"")
+      " was \"" & $colName & "\" but expected \"" & timestampColName & "\"")
 
   return proc (): int64 =
     sqlite3_column_int64(s, i)
