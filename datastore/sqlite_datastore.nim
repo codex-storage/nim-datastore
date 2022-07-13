@@ -97,7 +97,7 @@ const
     ) VALUES (?, ?, ?);
   """
 
-template checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
+proc checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
   let
     colName = sqlite3_column_origin_name(s, i.cint)
 
