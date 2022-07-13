@@ -48,9 +48,9 @@ const
   dbExt* = ".sqlite3"
   tableName* = "Store"
 
-  idColName = "id"
-  dataColName = "data"
-  timestampColName = "timestamp"
+  idColName* = "id"
+  dataColName* = "data"
+  timestampColName* = "timestamp"
 
   idColType = "TEXT"
   dataColType = "BLOB"
