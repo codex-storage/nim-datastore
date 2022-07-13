@@ -160,15 +160,6 @@ proc dataCol*(
 
     let
       dataLen = sqlite3_column_bytes(s, i)
-
-    # an out-of-memory error can be inferred from a null pointer result
-    if (unsafeAddr dataLen).isNil:
-      let
-        code = sqlite3_errcode(sqlite3_db_handle(s))
-
-      raise (ref Defect)(msg: $sqlite3_errstr(code))
-
-    let
       dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
     @(toOpenArray(dataBytes, 0, dataLen - 1))
