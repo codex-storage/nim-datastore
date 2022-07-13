@@ -52,10 +52,6 @@ const
   dataColName = "data"
   timestampColName = "timestamp"
 
-  idColIndex = 0
-  dataColIndex = 1
-  timestampColIndex = 2
-
   idColType = "TEXT"
   dataColType = "BLOB"
   timestampColType = "INTEGER"
@@ -110,7 +106,7 @@ proc checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
 
 proc idCol*(
   s: RawStmtPtr,
-  index = idColIndex): BoundIdCol =
+  index: int): BoundIdCol =
 
   checkColMetadata(s, index, idColName)
 
@@ -134,7 +130,7 @@ proc idCol*(
 
 proc dataCol*(
   s: RawStmtPtr,
-  index = dataColIndex): BoundDataCol =
+  index: int): BoundDataCol =
 
   checkColMetadata(s, index, dataColName)
 
@@ -175,7 +171,7 @@ proc dataCol*(
 
 proc timestampCol*(
   s: RawStmtPtr,
-  index = timestampColIndex): BoundTimestampCol =
+  index: int): BoundTimestampCol =
 
   checkColMetadata(s, index, timestampColName)
 
