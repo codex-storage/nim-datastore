@@ -67,6 +67,8 @@ const
     );
   """
 
+  containsStmtExistsCol = 0
+
   createStmtStr = """
     CREATE TABLE IF NOT EXISTS """ & tableName & """ (
       """ & idColName & """ """ & idColType & """ NOT NULL PRIMARY KEY,
@@ -84,6 +86,8 @@ const
     SELECT """ & dataColName & """ FROM """ & tableName & """
     WHERE """ & idColName & """ = ?;
   """
+
+  getStmtDataCol = 0
 
   putStmtStr = """
     REPLACE INTO """ & tableName & """ (
@@ -256,7 +260,7 @@ proc new*(
   # "SQL logic error"
 
   let
-    getDataCol = dataCol(RawStmtPtr(getStmt), 0)
+    getDataCol = dataCol(RawStmtPtr(getStmt), getStmtDataCol)
 
   success T(dbPath: dbPath, containsStmt: containsStmt, deleteStmt: deleteStmt,
             env: env.release, getStmt: getStmt, getDataCol: getDataCol,
@@ -290,7 +294,7 @@ method contains*(
     exists = false
 
   proc onData(s: RawStmtPtr) =
-    exists = sqlite3_column_int64(s, 0).bool
+    exists = sqlite3_column_int64(s, containsStmtExistsCol.cint).bool
 
   let
     queryRes = self.containsStmt.query((key.id), onData)
