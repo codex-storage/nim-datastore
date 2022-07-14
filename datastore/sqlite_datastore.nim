@@ -117,22 +117,7 @@ proc idCol*(
   checkColMetadata(s, index, idColName)
 
   return proc (): string =
-    let
-      text = sqlite3_column_text(s, index.cint)
-
-    # detect out-of-memory error
-    # see the conversion table and final paragraph of:
-    # https://www.sqlite.org/c3ref/column_blob.html
-
-    # the "id" column is NOT NULL PRIMARY KEY so an out-of-memory error can be
-    # inferred from a null pointer result
-    if text.isNil:
-      let
-        code = sqlite3_errcode(sqlite3_db_handle(s))
-
-      raise (ref Defect)(msg: $sqlite3_errstr(code))
-
-    $text.cstring
+    $sqlite3_column_text_not_null(s, index.cint)
 
 proc dataCol*(
   s: RawStmtPtr,
