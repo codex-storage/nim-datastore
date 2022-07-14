@@ -137,7 +137,7 @@ suite "SQLiteDatastore":
 
     let
       prequeryRes = NoParamsStmt.prepare(
-        ds.env, "SELECT timestamp as foo, id as baz, data as bar FROM " &
+        ds.env, "SELECT timestamp AS foo, id AS baz, data AS bar FROM " &
           tableName & ";")
 
     assert prequeryRes.isOk
