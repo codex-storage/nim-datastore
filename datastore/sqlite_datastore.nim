@@ -102,11 +102,13 @@ proc checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
     colName = sqlite3_column_origin_name(s, i.cint)
 
   if colName.isNil:
-    raise (ref Defect)(msg: "no column exists for index " & $i)
+    raise (ref Defect)(msg: "no column exists for index " & $i & " in `" &
+      $sqlite3_sql(s) & "`")
 
   if $colName != expectedName:
     raise (ref Defect)(msg: "original column name for index " & $i & " was \"" &
-      $colName & "\" but expected \"" & expectedName & "\"")
+      $colName & "\" in `" & $sqlite3_sql(s) & "` but callee expected \"" &
+      expectedName & "\"")
 
 proc idCol*(
   s: RawStmtPtr,
