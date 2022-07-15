@@ -11,10 +11,9 @@ suite "Datastore (base)":
   let
     key = Key.init("a").get
     ds = Datastore()
-    oneByte = @[1.byte]
 
   asyncTest "put":
-    expect Defect: discard ds.put(key, oneByte)
+    expect Defect: discard ds.put(key, @[1.byte])
 
   asyncTest "delete":
     expect Defect: discard ds.delete(key)
@@ -25,5 +24,6 @@ suite "Datastore (base)":
   asyncTest "get":
     expect Defect: discard ds.get(key)
 
-  # asyncTest "query":
-  #   expect Defect: discard ds.query(...)
+  asyncTest "query":
+    expect Defect:
+      for n in ds.query(Query.init(key)): discard

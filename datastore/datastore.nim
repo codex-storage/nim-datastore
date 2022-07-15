@@ -4,8 +4,9 @@ import pkg/questionable/results
 import pkg/upraises
 
 import ./key
+import ./query
 
-export key
+export key, query
 
 push: {.upraises: [].}
 
@@ -37,8 +38,8 @@ method put*(
 
   raiseAssert("Not implemented!")
 
-# method query*(
-#   self: Datastore,
-#   query: ...): Future[?!(?...)] {.async, base, locks: "unknown".} =
-#
-#   raiseAssert("Not implemented!")
+iterator query*(
+  self: Datastore,
+  query: Query): Future[QueryResponse] =
+
+  raiseAssert("Not implemented!")

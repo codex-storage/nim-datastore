@@ -211,7 +211,7 @@ template `[]`*(
 proc len*(self: Key): int =
   self.namespaces.len
 
-iterator items*(key: Key): Namespace {.inline.} =
+iterator items*(key: Key): Namespace =
   var
     i = 0
 

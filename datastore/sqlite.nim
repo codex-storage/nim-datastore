@@ -30,6 +30,13 @@ type
 
   SQLiteStmt*[Params, Res] = distinct RawStmtPtr
 
+  # see https://github.com/arnetheduck/nim-sqlite3-abi/issues/4
+  sqlite3_destructor_type_gcsafe =
+    proc (a1: pointer) {.cdecl, gcsafe, upraises: [].}
+
+const
+  SQLITE_TRANSIENT_GCSAFE* = cast[sqlite3_destructor_type_gcsafe](-1)
+
 proc bindParam(
   s: RawStmtPtr,
   n: int,
@@ -248,8 +255,8 @@ proc sqlite3_column_text_not_null*(
     # https://www.sqlite.org/c3ref/column_blob.html
     # a null pointer here implies an out-of-memory error
     let
-      code = sqlite3_errcode(sqlite3_db_handle(s))
+      v = sqlite3_errcode(sqlite3_db_handle(s))
 
-    raise (ref Defect)(msg: $sqlite3_errstr(code))
+    raise (ref Defect)(msg: $sqlite3_errstr(v))
 
   text

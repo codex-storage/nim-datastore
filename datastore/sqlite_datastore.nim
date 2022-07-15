@@ -6,7 +6,7 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/stew/byteutils
-from pkg/stew/results as stewResults import get, isErr
+from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
 import ./datastore
@@ -33,6 +33,8 @@ type
   GetStmt = SQLiteStmt[(string), void]
 
   PutStmt = SQLiteStmt[(string, seq[byte], int64), void]
+
+  QueryStmt = SQLiteStmt[(string), void]
 
   SQLiteDatastore* = ref object of Datastore
     dbPath: string
@@ -97,6 +99,14 @@ const
     ) VALUES (?, ?, ?);
   """
 
+  queryStmtStr = """
+    SELECT """ & idColName & """, """ & dataColName & """ FROM """ & tableName &
+    """ WHERE """ & idColName & """ GLOB ?;
+  """
+
+  queryStmtIdCol = 0
+  queryStmtDataCol = 1
+
 proc checkColMetadata(s: RawStmtPtr, i: int, expectedName: string) =
   let
     colName = sqlite3_column_origin_name(s, i.cint)
@@ -140,10 +150,10 @@ proc dataCol*(
     # result code is an error code
     if blob.isNil:
       let
-        code = sqlite3_errcode(sqlite3_db_handle(s))
+        v = sqlite3_errcode(sqlite3_db_handle(s))
 
-      if not (code in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
-        raise (ref Defect)(msg: $sqlite3_errstr(code))
+      if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+        raise (ref Defect)(msg: $sqlite3_errstr(v))
 
     let
       dataLen = sqlite3_column_bytes(s, i)
@@ -339,8 +349,64 @@ method put*(
 
   return await self.put(key, data, timestamp())
 
-# method query*(
-#   self: SQLiteDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
-#
-#   return success ....some
+iterator query*(
+  self: SQLiteDatastore,
+  query: Query): Future[QueryResponse] =
+
+  let
+    queryStmt = QueryStmt.prepare(
+      self.env, queryStmtStr).expect("should not fail")
+
+    s = RawStmtPtr(queryStmt)
+
+  defer:
+    discard sqlite3_reset(s)
+    discard sqlite3_clear_bindings(s)
+    s.dispose
+
+  let
+    v = sqlite3_bind_text(s, 1.cint, query.key.id.cstring, -1.cint,
+      SQLITE_TRANSIENT_GCSAFE)
+
+  if not (v == SQLITE_OK):
+    raise (ref Defect)(msg: $sqlite3_errstr(v))
+
+  while true:
+    let
+      v = sqlite3_step(s)
+
+    case v
+    of SQLITE_ROW:
+      let
+        key = Key.init($sqlite3_column_text_not_null(
+          s, queryStmtIdCol)).expect("should not fail")
+
+        blob = sqlite3_column_blob(s, queryStmtDataCol)
+
+      # detect out-of-memory error
+      # see the conversion table and final paragraph of:
+      # https://www.sqlite.org/c3ref/column_blob.html
+      # see also https://www.sqlite.org/rescode.html
+
+      # the "data" column can be NULL so in order to detect an out-of-memory
+      # error it is necessary to check that the result is a null pointer and
+      # that the result code is an error code
+      if blob.isNil:
+        let
+          v = sqlite3_errcode(sqlite3_db_handle(s))
+
+        if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+          raise (ref Defect)(msg: $sqlite3_errstr(v))
+
+      let
+        dataLen = sqlite3_column_bytes(s, queryStmtDataCol)
+        dataBytes = cast[ptr UncheckedArray[byte]](blob)
+        data = @(toOpenArray(dataBytes, 0, dataLen - 1))
+        fut = newFuture[QueryResponse]()
+
+      fut.complete((key, data))
+      yield fut
+    of SQLITE_DONE:
+      break
+    else:
+      raise (ref Defect)(msg: $sqlite3_errstr(v))
