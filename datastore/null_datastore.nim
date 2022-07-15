@@ -40,8 +40,8 @@ method put*(
 
   return success()
 
-# method query*(
-#   self: NullDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
-#
-#   return success ....none
+iterator query*(
+  self: NullDatastore,
+  query: Query): Future[QueryResponse] =
+
+  discard

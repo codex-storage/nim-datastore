@@ -31,7 +31,14 @@ suite "NullDatastore":
       (await ds.get(key)).isOk
       (await ds.get(key)).get.isNone
 
-  # asyncTest "query":
-  #   check:
-  #     (await ds.query(...)).isOk
-  #     (await ds.query(...)).get.isNone
+  asyncTest "query":
+    var
+      x = true
+
+    for n in ds.query(Query.init(key)):
+      # `iterator query` for NullDatastore never yields so the following lines
+      # are not run (else the test would hang)
+      x = false
+      discard (await n)
+
+    check: x
