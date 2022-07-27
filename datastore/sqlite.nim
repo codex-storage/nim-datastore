@@ -88,6 +88,9 @@ template checkErr*(op: untyped) =
   if (let v = (op); v != SQLITE_OK):
     return failure $sqlite3_errstr(v)
 
+template dispose*(rawStmt: RawStmtPtr) =
+  discard sqlite3_finalize(rawStmt)
+
 template checkExec*(s: RawStmtPtr) =
   if (let x = sqlite3_step(s); x != SQLITE_DONE):
     s.dispose
@@ -95,6 +98,19 @@ template checkExec*(s: RawStmtPtr) =
 
   if (let x = sqlite3_finalize(s); x != SQLITE_OK):
     return failure $sqlite3_errstr(x)
+
+template prepare*(
+  env: SQLite,
+  q: string,
+  prepFlags: cuint = 0): RawStmtPtr =
+
+  var
+    s: RawStmtPtr
+
+  checkErr sqlite3_prepare_v3(
+    env, q.cstring, q.len.cint, prepFlags, addr s, nil)
+
+  s
 
 template checkExec*(env: SQLite, q: string) =
   let
@@ -105,11 +121,12 @@ template checkExec*(env: SQLite, q: string) =
 template dispose*(db: SQLite) =
   discard sqlite3_close(db)
 
-template dispose*(rawStmt: RawStmtPtr) =
-  discard sqlite3_finalize(rawStmt)
-
 template dispose*(sqliteStmt: SQLiteStmt) =
   discard sqlite3_finalize(RawStmtPtr(sqliteStmt))
+
+proc release*[T](x: var AutoDisposed[T]): T =
+  result = x.val
+  x.val = nil
 
 proc disposeIfUnreleased*[T](x: var AutoDisposed[T]) =
   mixin dispose
@@ -136,6 +153,24 @@ proc exec*[P](
   discard sqlite3_clear_bindings(s) # no errors possible
 
   res
+
+proc sqlite3_column_text_not_null*(
+  s: RawStmtPtr,
+  index: cint): cstring =
+
+  let
+    text = sqlite3_column_text(s, index).cstring
+
+  if text.isNil:
+    # see the conversion table and final paragraph of:
+    # https://www.sqlite.org/c3ref/column_blob.html
+    # a null pointer here implies an out-of-memory error
+    let
+      v = sqlite3_errcode(sqlite3_db_handle(s))
+
+    raise (ref Defect)(msg: $sqlite3_errstr(v))
+
+  text
 
 template journalModePragmaStmt*(env: SQLite): RawStmtPtr =
   let
@@ -178,19 +213,6 @@ proc prepare*[Params, Res](
     env, stmt.cstring, stmt.len.cint, prepFlags, addr s, nil)
 
   success T(s)
-
-template prepare*(
-  env: SQLite,
-  q: string,
-  prepFlags: cuint = 0): RawStmtPtr =
-
-  var
-    s: RawStmtPtr
-
-  checkErr sqlite3_prepare_v3(
-    env, q.cstring, q.len.cint, prepFlags, addr s, nil)
-
-  s
 
 proc query*[P](
   s: SQLiteStmt[P, void],
@@ -238,25 +260,3 @@ proc query*(
   s.dispose
 
   res
-
-proc release*[T](x: var AutoDisposed[T]): T =
-  result = x.val
-  x.val = nil
-
-proc sqlite3_column_text_not_null*(
-  s: RawStmtPtr,
-  index: cint): cstring =
-
-  let
-    text = sqlite3_column_text(s, index).cstring
-
-  if text.isNil:
-    # see the conversion table and final paragraph of:
-    # https://www.sqlite.org/c3ref/column_blob.html
-    # a null pointer here implies an out-of-memory error
-    let
-      v = sqlite3_errcode(sqlite3_db_handle(s))
-
-    raise (ref Defect)(msg: $sqlite3_errstr(v))
-
-  text
