@@ -23,6 +23,7 @@ suite "SQLiteDatastore":
   setup:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
 
   teardown:
     if not ds.isNil: ds.close
@@ -37,29 +38,28 @@ suite "SQLiteDatastore":
     # for `readOnly = true` to succeed the database file must already exist
     check: dsRes.isErr
 
+    dsRes = SQLiteDatastore.new(basePathAbs / "missing", filename)
+
+    check: dsRes.isErr
+
     dsRes = SQLiteDatastore.new(basePathAbs, filename)
 
-    assert dsRes.isOk
-    ds = dsRes.get
-
     check:
-      dirExists(basePathAbs)
+      dsRes.isOk
       fileExists(dbPathAbs)
 
-    ds.close
+    dsRes.get.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
+    createDir(basePathAbs)
 
     dsRes = SQLiteDatastore.new(basePath, filename)
 
-    assert dsRes.isOk
-    ds = dsRes.get
-
     check:
-      dirExists(basePathAbs)
+      dsRes.isOk
       fileExists(dbPathAbs)
 
-    ds.close
+    dsRes.get.close
 
     # for `readOnly = true` to succeed the database file must already exist, so
     # the existing file (per previous step) is not deleted prior to the next
@@ -67,29 +67,20 @@ suite "SQLiteDatastore":
 
     dsRes = SQLiteDatastore.new(basePath, filename, readOnly = true)
 
-    assert dsRes.isOk
-    ds = dsRes.get
+    check: dsRes.isOk
 
-    check:
-      dirExists(basePathAbs)
-      fileExists(dbPathAbs)
-
-    ds.close
+    dsRes.get.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
+    createDir(basePathAbs)
 
-    dsRes = SQLiteDatastore.new(inMemory = true)
+    dsRes = SQLiteDatastore.new(memory)
 
-    assert dsRes.isOk
-    ds = dsRes.get
+    check: dsRes.isOk
 
-    check:
-      not dirExists(basePathAbs)
-      not fileExists(dbPathAbs)
+    dsRes.get.close
 
-    ds.close
-
-    dsRes = SQLiteDatastore.new(readOnly = true, inMemory = true)
+    dsRes = SQLiteDatastore.new(memory, readOnly = true)
 
     check: dsRes.isErr
 
@@ -128,6 +119,7 @@ suite "SQLiteDatastore":
     ds.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
+    createDir(basePathAbs)
 
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
@@ -229,6 +221,7 @@ suite "SQLiteDatastore":
     ds.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
+    createDir(basePathAbs)
 
     ds = SQLiteDatastore.new(basePathAbs, filename).get
 
@@ -286,16 +279,17 @@ suite "SQLiteDatastore":
     var
       containsRes = await ds.contains(key)
 
-    assert containsRes.isOk
-
-    check: containsRes.get == true
+    check:
+      containsRes.isOk
+      containsRes.get == true
 
     key = Key.init("X/Y/Z").get
 
     containsRes = await ds.contains(key)
-    assert containsRes.isOk
 
-    check: containsRes.get == false
+    check:
+      containsRes.isOk
+      containsRes.get == false
 
   asyncTest "get":
     ds = SQLiteDatastore.new(basePathAbs, filename).get

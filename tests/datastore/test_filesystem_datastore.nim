@@ -3,8 +3,10 @@ import std/os
 
 import pkg/asynctest/unittest2
 import pkg/chronos
+import pkg/questionable
+import pkg/questionable/results
 import pkg/stew/byteutils
-import pkg/stew/results
+from pkg/stew/results as stewResults import get, isOk
 
 import ../../datastore/filesystem_datastore
 import ./templates
@@ -18,6 +20,7 @@ suite "FileSystemDatastore":
   setup:
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
+    createDir(rootAbs)
 
   teardown:
     removeDir(rootAbs)
@@ -25,25 +28,19 @@ suite "FileSystemDatastore":
 
   asyncTest "new":
     var
-      dsRes: Result[FileSystemDatastore, ref CatchableError]
-      ds: FileSystemDatastore
+      dsRes: ?!FileSystemDatastore
+
+    dsRes = FileSystemDatastore.new(rootAbs / "missing")
+
+    check: dsRes.isErr
 
     dsRes = FileSystemDatastore.new(rootAbs)
 
-    assert dsRes.isOk
-    ds = dsRes.get
-
-    check: dirExists(rootAbs)
-
-    removeDir(rootAbs)
-    assert not dirExists(rootAbs)
+    check: dsRes.isOk
 
     dsRes = FileSystemDatastore.new(root)
 
-    assert dsRes.isOk
-    ds = dsRes.get
-
-    check: dirExists(rootAbs)
+    check: dsRes.isOk
 
   asyncTest "accessors":
     let
@@ -142,18 +139,19 @@ suite "FileSystemDatastore":
     var
       containsRes = await ds.contains(key)
 
-    assert containsRes.isOk
-
-    check: containsRes.get == true
+    check:
+      containsRes.isOk
+      containsRes.get == true
 
     key = Key.init("X/Y/Z").get
     path = ds.path(key)
     assert not fileExists(path)
 
     containsRes = await ds.contains(key)
-    assert containsRes.isOk
 
-    check: containsRes.get == false
+    check:
+      containsRes.isOk
+      containsRes.get == false
 
   asyncTest "get":
     let

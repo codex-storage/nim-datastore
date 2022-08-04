@@ -58,6 +58,8 @@ const
   dataColType = "BLOB"
   timestampColType = "INTEGER"
 
+  memory* = ":memory:"
+
   # https://stackoverflow.com/a/9756276
   # EXISTS returns a boolean value represented by an integer:
   # https://sqlite.org/datatype3.html#boolean_datatype
@@ -172,10 +174,9 @@ proc timestampCol*(
 
 proc new*(
   T: type SQLiteDatastore,
-  basePath = "data",
+  basePath: string,
   filename = "store" & dbExt,
-  readOnly = false,
-  inMemory = false): ?!T =
+  readOnly = false): ?!T =
 
   # make it optional to enable WAL with it enabled being the default?
 
@@ -191,11 +192,11 @@ proc new*(
   var
     basep, fname, dbPath: string
 
-  if inMemory:
+  if basePath == memory:
     if readOnly:
       return failure "SQLiteDatastore cannot be read-only and in-memory"
     else:
-      dbPath = ":memory:"
+      dbPath = memory
   else:
     try:
       basep = normalizePathEnd(
@@ -207,8 +208,8 @@ proc new*(
 
       if readOnly and not fileExists(dbPath):
         return failure "read-only database does not exist: " & dbPath
-      else:
-        createDir(basep)
+      elif not dirExists(basep):
+        return failure "directory does not exist: " & basep
 
     except IOError as e:
       return failure e

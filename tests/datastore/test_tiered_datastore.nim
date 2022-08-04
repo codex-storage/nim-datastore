@@ -23,10 +23,11 @@ suite "TieredDatastore":
     ds2: FileSystemDatastore
 
   setup:
-    ds1 = SQLiteDatastore.new(inMemory = true).get
-    ds2 = FileSystemDatastore.new(rootAbs).get
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
+    createDir(rootAbs)
+    ds1 = SQLiteDatastore.new(memory).get
+    ds2 = FileSystemDatastore.new(rootAbs).get
 
   teardown:
     if not ds1.isNil: ds1.close
@@ -132,7 +133,7 @@ suite "TieredDatastore":
       (await ds2.get(key)).get.get == bytes
 
     ds1.close
-    ds1 = SQLiteDatastore.new(inMemory = true).get
+    ds1 = SQLiteDatastore.new(memory).get
     ds = TieredDatastore.new(ds1, ds2).get
 
     assert (await ds1.get(key)).get.isNone
