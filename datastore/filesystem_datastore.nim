@@ -21,18 +21,17 @@ const
 
 proc new*(
   T: type FileSystemDatastore,
-  root = "data"): ?!T =
+  root: string): ?!T =
 
   try:
     let
       root = if root.isAbsolute: root
              else: getCurrentDir() / root
 
-    createDir(root)
-    success T(root: root)
-
-  except IOError as e:
-    failure e
+    if not dirExists(root):
+      failure "directory does not exist: " & root
+    else:
+      success T(root: root)
 
   except OSError as e:
     failure e
