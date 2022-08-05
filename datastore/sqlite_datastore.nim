@@ -294,9 +294,10 @@ method contains*(
   let
     queryRes = self.containsStmt.query((key.id), onData)
 
-  if queryRes.isErr: return queryRes
-
-  return success exists
+  if queryRes.isErr:
+    return queryRes
+  else:
+    return success exists
 
 method delete*(
   self: SQLiteDatastore,
@@ -328,7 +329,7 @@ method get*(
     queryRes = self.getStmt.query((key.id), onData)
 
   if queryRes.isErr:
-    return failure queryRes.error.msg
+    return failure queryRes.error
   else:
     return success bytes
 

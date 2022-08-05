@@ -3,7 +3,7 @@ import std/sequtils
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-from pkg/stew/results as stewResults import get, isErr
+from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
 import ./datastore
@@ -33,11 +33,10 @@ method contains*(
   key: Key): Future[?!bool] {.async, locks: "unknown".} =
 
   for store in self.stores:
-    let
-      containsRes = await store.contains(key)
+    without contain =? await store.contains(key), error:
+      return failure error
 
-    if containsRes.isErr: return containsRes
-    if containsRes.get == true: return success true
+    if contain: return success true
 
   return success false
 
@@ -61,12 +60,15 @@ method get*(
     bytesOpt: ?seq[byte]
 
   for store in self.stores:
-    let
-      getRes = await store.get(key)
+    # the following commented line does not produce the expected result at runtime:
+    # without bytesOpt =? await store.get(key), error:
 
-    if getRes.isErr: return getRes
+    # instead we use intermediate identifier `bopt`
+    without bOpt =? await store.get(key), error:
+      return failure error
 
-    bytesOpt = getRes.get
+    # and now assign `bopt` value to `bytesOpt`
+    bytesOpt = bOpt
 
     # put found data into stores logically in front of the current store
     if bytes =? bytesOpt:
@@ -75,7 +77,7 @@ method get*(
         let
           putRes = await s.put(key, bytes)
 
-        if putRes.isErr: return failure putRes.error.msg
+        if putRes.isErr: return failure putRes.error
 
       break
 

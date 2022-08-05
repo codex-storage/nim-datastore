@@ -6,7 +6,10 @@ import std/strutils
 
 import pkg/questionable
 import pkg/questionable/results
+
+# could be removed if problems with questionable are resolved
 from pkg/stew/results as stewResults import get, isErr
+
 import pkg/upraises
 
 export hashes
@@ -156,6 +159,21 @@ proc init*(
       nss: seq[Namespace]
 
     for s in namespaces:
+      # if `, error` is used instead of `, err` then compilation fails with:
+      # Error: cannot use symbol of kind 'func' as a 'template'
+      # maybe related to `from pkg/stew/results as stewResults` at top of module,
+      # which could be removed if other problems with questionable are resolved
+
+      # but when using `, err` then compilation fails with:
+      # SIGSEGV: Illegal storage access
+
+      # but strangely the last call in the stack trace pertains to L211 below
+
+      # without ns =? Namespace.init(s), err:
+      #   return failure "namespaces contains an invalid Namespace: " & err.msg
+      #
+      # nss.add ns
+
       let
         nsRes = Namespace.init(s)
 
@@ -184,14 +202,15 @@ proc init*(
     return failure "id string must not contain only one or more separator " &
       "\"" & separator & "\""
 
-  let
-    keyRes = Key.init(nsStrs)
-
-  if keyRes.isErr:
+  # if `, error` is used instead of `, err` then compilation fails with:
+  # Error: cannot use symbol of kind 'func' as a 'template'
+  # maybe related to `from pkg/stew/results as stewResults` at top of module,
+  # which could be removed if other problems with questionable are resolved
+  without key =? Key.init(nsStrs), err:
     return failure "id string contains an invalid Namespace:" &
-      keyRes.error.msg.split(":")[1..^1].join("").replace("\"\"", "\":\"")
+      err.msg.split(":")[1..^1].join("").replace("\"\"", "\":\"")
 
-  keyRes
+  success key
 
 proc namespaces*(self: Key): seq[Namespace] =
   self.namespaces
@@ -271,8 +290,8 @@ proc instance*(
   self: Key,
   id: string): ?!Key =
 
-  without key =? Key.init(id), e:
-    return failure e
+  without key =? Key.init(id), error:
+    return failure error
 
   success self.instance(key)
 

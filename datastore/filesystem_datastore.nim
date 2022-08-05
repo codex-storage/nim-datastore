@@ -3,7 +3,6 @@ import std/os
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 import ./datastore
@@ -96,11 +95,11 @@ method get*(
 
   let
     path = self.path(key)
-    containsRes = await self.contains(key)
 
-  if containsRes.isErr: return failure containsRes.error.msg
+  without contain =? await self.contains(key), error:
+    return failure error
 
-  if containsRes.get:
+  if contain:
     var
       file: File
 
