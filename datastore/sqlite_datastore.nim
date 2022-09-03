@@ -176,13 +176,26 @@ proc new*(
   T: type SQLiteDatastore,
   basePath: string,
   filename = "store" & dbExt,
-  readOnly = false): ?!T =
+  readOnly = false,
 
-  # make it optional to enable WAL with it enabled being the default?
-
-  # make it possible to specify a custom page size?
+  # SQLite's default page_size is 4096 bytes since v3.12.0 (2016-03-29)
   # https://www.sqlite.org/pragma.html#pragma_page_size
-  # https://www.sqlite.org/intern-v-extern-blob.html
+  # see also: https://www.sqlite.org/intern-v-extern-blob.html
+  pageSize: Positive = 4096,
+
+  # SQLite's default cache_size is -2000 since v3.12.0 (2016-03-29)
+  # a negative value translates to approximately "abs(cache_size*1024) bytes of memory"
+  # a positive value translates to "cache_size*page_size bytes of memory"
+  # docs for `PRAGMA cache_size` may need some clarification
+  # https://www.sqlite.org/pragma.html#pragma_cache_size
+  # https://www.sqlite.org/pgszchng2016.html
+  # https://sqlite.org/forum/forumpost/096a95c0f9
+  # NOTE: a system build may have used nonstandard compile-time options,
+  # e.g. in recent versions of macOS the default cache_size is (positive) 2000
+  cacheSize = -2000,
+
+  # https://www.sqlite.org/pragma.html#pragma_journal_mode
+  journalMode = WAL): ?!T =
 
   var
     env: AutoDisposed[SQLite]
@@ -225,9 +238,13 @@ proc new*(
   open(dbPath, env.val, flags)
 
   let
-    pragmaStmt = journalModePragmaStmt(env.val)
+    pageSizePragmaStmt = pageSizePragmaStmt(env.val, pageSize)
+    cacheSizePragmaStmt = cacheSizePragmaStmt(env.val, cacheSize)
+    journalModePragmaStmt = journalModePragmaStmt(env.val, journalMode)
 
-  checkExec(pragmaStmt)
+  checkExec(pageSizePragmaStmt)
+  checkExec(cacheSizePragmaStmt)
+  checkExec(journalModePragmaStmt)
 
   var
     containsStmt: ContainsStmt

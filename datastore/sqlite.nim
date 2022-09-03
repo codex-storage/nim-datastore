@@ -1,3 +1,6 @@
+import std/math
+import std/unicode
+
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
@@ -19,6 +22,10 @@ type
     val*: T
 
   DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
+
+  # https://www.sqlite.org/pragma.html#pragma_journal_mode
+  JournalMode* = enum
+    DELETE, TRUNCATE, PERSIST, MEMORY, WAL, OFF
 
   NoParams* = tuple # empty tuple
 
@@ -172,9 +179,67 @@ proc sqlite3_column_text_not_null*(
 
   text
 
-template journalModePragmaStmt*(env: SQLite): RawStmtPtr =
+template pageSizePragmaStmt*(env: SQLite, pageSize: Positive): RawStmtPtr =
+  # https://www.sqlite.org/pragma.html#pragma_page_size
+  if not (isPowerOfTwo(pageSize) and pageSize >= 512 and pageSize <= 65536):
+    return failure "pageSize must be a power of two between 512 and 65536 inclusive"
+
   let
-    s = prepare(env, "PRAGMA journal_mode = WAL;")
+    s1 = prepare(env, "PRAGMA page_size = " & $pageSize & ";")
+
+  s1.dispose
+
+  let
+    s2 = prepare(env, "PRAGMA page_size;")
+
+  if (let x = sqlite3_step(s2); x != SQLITE_ROW):
+    s2.dispose
+    return failure $sqlite3_errstr(x)
+
+  if (let x = sqlite3_column_type(s2, 0); x != SQLITE_INTEGER):
+    s2.dispose
+    return failure $sqlite3_errstr(x)
+
+  let
+    x = sqlite3_column_int(s2, 0)
+
+  if x != pageSize:
+    s2.dispose
+    return failure "Unexpected page_size pragma result: " & $x
+
+  s2
+
+template cacheSizePragmaStmt*(env: SQLite, cacheSize: int): RawStmtPtr =
+  # https://www.sqlite.org/pragma.html#pragma_cache_size
+  let
+    s1 = prepare(env, "PRAGMA cache_size = " & $cacheSize & ";")
+
+  s1.dispose
+
+  let
+    s2 = prepare(env, "PRAGMA cache_size;")
+
+  if (let x = sqlite3_step(s2); x != SQLITE_ROW):
+    s2.dispose
+    return failure $sqlite3_errstr(x)
+
+  if (let x = sqlite3_column_type(s2, 0); x != SQLITE_INTEGER):
+    s2.dispose
+    return failure $sqlite3_errstr(x)
+
+  let
+    x = sqlite3_column_int(s2, 0)
+
+  if x != cacheSize:
+    s2.dispose
+    return failure "Unexpected cache_size pragma result: " & $x
+
+  s2
+
+template journalModePragmaStmt*(env: SQLite, mode: JournalMode): RawStmtPtr =
+  # https://www.sqlite.org/pragma.html#pragma_journal_mode
+  let
+    s = prepare(env, "PRAGMA journal_mode = " & $mode & ";")
 
   if (let x = sqlite3_step(s); x != SQLITE_ROW):
     s.dispose
@@ -187,9 +252,9 @@ template journalModePragmaStmt*(env: SQLite): RawStmtPtr =
   let
     x = $sqlite3_column_text_not_null(s, 0)
 
-  if not (x in ["memory", "wal"]):
+  if not (x in ["memory", ($mode).toLower]):
     s.dispose
-    return failure "Invalid pragma result: \"" & x & "\""
+    return failure "Unexpected journal_mode pragma result: \"" & x & "\""
 
   s
 

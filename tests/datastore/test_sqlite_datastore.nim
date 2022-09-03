@@ -42,7 +42,8 @@ suite "SQLiteDatastore":
 
     check: dsRes.isErr
 
-    dsRes = SQLiteDatastore.new(basePathAbs, filename)
+    dsRes = SQLiteDatastore.new(basePathAbs, filename, pageSize = 65536,
+      cacheSize = 1600, journalMode = TRUNCATE)
 
     check:
       dsRes.isOk
