@@ -28,6 +28,10 @@ proc new*(
 proc stores*(self: TieredDatastore): seq[Datastore] =
   self.stores
 
+method close*(self: TieredDatastore) {.async, locks: "unknown".} =
+  for store in self.stores:
+    await store.close
+
 method contains*(
   self: TieredDatastore,
   key: Key): Future[?!bool] {.async, locks: "unknown".} =

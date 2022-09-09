@@ -59,6 +59,9 @@ proc path*(
 
   self.root / joinPath(segments) & objExt
 
+method close*(self: FileSystemDatastore) {.async, locks: "unknown".} =
+  discard
+
 method contains*(
   self: FileSystemDatastore,
   key: Key): Future[?!bool] {.async, locks: "unknown".} =

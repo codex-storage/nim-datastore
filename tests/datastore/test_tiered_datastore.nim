@@ -30,7 +30,7 @@ suite "TieredDatastore":
     ds2 = FileSystemDatastore.new(rootAbs).get
 
   teardown:
-    if not ds1.isNil: ds1.close
+    if not ds1.isNil: await ds1.close
     ds1 = nil
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
@@ -132,7 +132,7 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.get == bytes
       (await ds2.get(key)).get.get == bytes
 
-    ds1.close
+    await ds1.close
     ds1 = SQLiteDatastore.new(memory).get
     ds = TieredDatastore.new(ds1, ds2).get
 

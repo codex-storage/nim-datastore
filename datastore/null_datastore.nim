@@ -15,6 +15,9 @@ type
 proc new*(T: type NullDatastore): T =
   T()
 
+method close*(self: NullDatastore) {.async, locks: "unknown".} =
+  discard
+
 method contains*(
   self: NullDatastore,
   key: Key): Future[?!bool] {.async, locks: "unknown".} =

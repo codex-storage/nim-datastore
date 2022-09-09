@@ -26,7 +26,7 @@ suite "SQLiteDatastore":
     createDir(basePathAbs)
 
   teardown:
-    if not ds.isNil: ds.close
+    if not ds.isNil: await ds.close
     ds = nil
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
@@ -49,7 +49,7 @@ suite "SQLiteDatastore":
       dsRes.isOk
       fileExists(dbPathAbs)
 
-    dsRes.get.close
+    await dsRes.get.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
     createDir(basePathAbs)
@@ -60,7 +60,7 @@ suite "SQLiteDatastore":
       dsRes.isOk
       fileExists(dbPathAbs)
 
-    dsRes.get.close
+    await dsRes.get.close
 
     # for `readOnly = true` to succeed the database file must already exist, so
     # the existing file (per previous step) is not deleted prior to the next
@@ -70,7 +70,7 @@ suite "SQLiteDatastore":
 
     check: dsRes.isOk
 
-    dsRes.get.close
+    await dsRes.get.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
     createDir(basePathAbs)
@@ -79,7 +79,7 @@ suite "SQLiteDatastore":
 
     check: dsRes.isOk
 
-    dsRes.get.close
+    await dsRes.get.close
 
     dsRes = SQLiteDatastore.new(memory, readOnly = true)
 
@@ -95,7 +95,7 @@ suite "SQLiteDatastore":
   asyncTest "helpers":
     ds = SQLiteDatastore.new(basePath).get
 
-    ds.close
+    await ds.close
 
     check:
       ds.env.isNil
@@ -107,7 +107,7 @@ suite "SQLiteDatastore":
 
     # for `readOnly = true` to succeed the database file must already exist
     ds = SQLiteDatastore.new(basePathAbs, filename).get
-    ds.close
+    await ds.close
     ds = SQLiteDatastore.new(basePathAbs, filename, readOnly = true).get
 
     var
@@ -117,7 +117,7 @@ suite "SQLiteDatastore":
 
     check: putRes.isErr
 
-    ds.close
+    await ds.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
     createDir(basePathAbs)
@@ -211,7 +211,7 @@ suite "SQLiteDatastore":
 
     # for `readOnly = true` to succeed the database file must already exist
     ds = SQLiteDatastore.new(basePathAbs, filename).get
-    ds.close
+    await ds.close
     ds = SQLiteDatastore.new(basePathAbs, filename, readOnly = true).get
 
     var
@@ -219,7 +219,7 @@ suite "SQLiteDatastore":
 
     check: delRes.isErr
 
-    ds.close
+    await ds.close
     removeDir(basePathAbs)
     assert not dirExists(basePathAbs)
     createDir(basePathAbs)

@@ -284,7 +284,10 @@ proc dbPath*(self: SQLiteDatastore): string =
 proc env*(self: SQLiteDatastore): SQLite =
   self.env
 
-proc close*(self: SQLiteDatastore) =
+proc timestamp*(t = epochTime()): int64 =
+  (t * 1_000_000).int64
+
+method close*(self: SQLiteDatastore) {.async, locks: "unknown".} =
   self.containsStmt.dispose
   self.getStmt.dispose
 
@@ -294,9 +297,6 @@ proc close*(self: SQLiteDatastore) =
 
   self.env.dispose
   self[] = SQLiteDatastore()[]
-
-proc timestamp*(t = epochTime()): int64 =
-  (t * 1_000_000).int64
 
 method contains*(
   self: SQLiteDatastore,
