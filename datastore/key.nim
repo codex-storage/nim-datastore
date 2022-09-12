@@ -15,11 +15,11 @@ push: {.upraises: [].}
 
 type
   Namespace* = object
-    field: ?string
-    value: string
+    field*: string
+    value*: string
 
   Key* = object
-    namespaces: seq[Namespace]
+    namespaces*: seq[Namespace]
 
 const
   delimiter = ":"
@@ -32,11 +32,8 @@ proc init*(
   T: type Namespace,
   field, value: string): ?!T =
 
-  if value == "":
-    return failure "value string must not be empty"
-
   if value.strip == "":
-    return failure "value string must not be all whitespace"
+    return failure "value string must not be all whitespace or empty"
 
   if value.contains(delimiter):
     return failure "value string must not contain delimiter \"" &
@@ -58,19 +55,11 @@ proc init*(
       return failure "field string must not contain separator \"" &
         separator & "\""
 
-    success T(field: field.some, value: value)
-  else:
-    success T(field: string.none, value: value)
+  success T(field: field, value: value)
 
-proc init*(
-  T: type Namespace,
-  id: string): ?!T =
-
-  if id == "":
-    return failure "id string must not be empty"
-
+proc init*(T: type Namespace, id: string): ?!T =
   if id.strip == "":
-    return failure "id string must not be all whitespace"
+    return failure "id string must not be all whitespace or empty"
 
   if id.contains(separator):
     return failure "id string must not contain separator \"" & separator & "\""
@@ -79,98 +68,45 @@ proc init*(
     return failure "value in id string \"[field]" & delimiter &
       "[value]\" must not be empty"
 
-  let
-    s = id.split(delimiter)
-
-  if s.len > 2:
+  if id.count(delimiter) > 1:
     return failure "id string must not contain more than one delimiter \"" &
       delimiter & "\""
 
-  var
-    field: ?string
-    value: string
+  let
+    (field, value) = block:
+      let parts = id.split(delimiter)
+      if parts.len > 1:
+        (parts[0], parts[^1])
+      else:
+        ("", parts[^1])
 
-  if s.len == 1:
-    value = s[0]
-  else:
-    value = s[1]
-
-    if value == "":
-      return failure "value in id string \"[field]" & delimiter &
-        "[value]\" must not be empty"
-
-    if value.strip == "":
-      return failure "value in id string \"[field]" & delimiter &
-        "[value]\" must not be all whitespace"
-
-    else:
-      let
-        f = s[0]
-
-      if f != "":
-        if f.strip == "":
-          return failure "field in id string \"[field]" & delimiter &
-            "[value]\" must not be all whitespace"
-
-        else:
-          field = f.some
-
-  success T(field: field, value: value)
-
-proc value*(self: Namespace): string =
-  self.value
-
-proc field*(self: Namespace): ?string =
-  self.field
-
-proc `type`*(self: Namespace): ?string =
-  self.field
-
-proc kind*(self: Namespace): ?string =
-  self.`type`
+  T.init(field, value)
 
 proc id*(self: Namespace): string =
-  if field =? self.field: field & delimiter & self.value
-  else: self.value
+  if self.field.len > 0:
+    self.field & delimiter & self.value
+  else:
+    self.value
 
 proc `$`*(namespace: Namespace): string =
   "Namespace(" & namespace.id & ")"
 
-proc init*(
-  T: type Key,
-  namespaces: varargs[Namespace]): ?!T =
-
+proc init*(T: type Key, namespaces: varargs[Namespace]): ?!T =
   if namespaces.len == 0:
     failure "namespaces must contain at least one Namespace"
   else:
     success T(namespaces: @namespaces)
 
-proc init*(
-  T: type Key,
-  namespaces: varargs[string]): ?!T =
-
+proc init*(T: type Key, namespaces: varargs[string]): ?!T =
   if namespaces.len == 0:
     failure "namespaces must contain at least one Namespace id string"
   else:
-    var
-      nss: seq[Namespace]
+    success T(
+      namespaces: namespaces.mapIt(
+        ?Namespace.init(it)
+    ))
 
-    for s in namespaces:
-      let
-        nsRes = Namespace.init(s)
-
-      if nsRes.isErr:
-        return failure "namespaces contains an invalid Namespace: " &
-          nsRes.error.msg
-
-      nss.add nsRes.get
-
-    success T(namespaces: nss)
-
-proc init*(
-  T: type Key,
-  id: string): ?!T =
-
+proc init*(T: type Key, id: string): ?!T =
   if id == "":
     return failure "id string must contain at least one Namespace"
 
@@ -184,17 +120,7 @@ proc init*(
     return failure "id string must not contain only one or more separator " &
       "\"" & separator & "\""
 
-  let
-    keyRes = Key.init(nsStrs)
-
-  if keyRes.isErr:
-    return failure "id string contains an invalid Namespace:" &
-      keyRes.error.msg.split(":")[1..^1].join("").replace("\"\"", "\":\"")
-
-  keyRes
-
-proc namespaces*(self: Key): seq[Namespace] =
-  self.namespaces
+  Key.init(nsStrs)
 
 proc list*(self: Key): seq[Namespace] =
   self.namespaces
@@ -202,22 +128,15 @@ proc list*(self: Key): seq[Namespace] =
 proc random*(T: type Key): string =
   $genOid()
 
-template `[]`*(
-  key: Key,
-  x: auto): auto =
-
+template `[]`*(key: Key, x: auto): auto =
   key.namespaces[x]
 
 proc len*(self: Key): int =
   self.namespaces.len
 
 iterator items*(key: Key): Namespace =
-  var
-    i = 0
-
-  while i < key.len:
-    yield key[i]
-    inc i
+  for k in key.namespaces:
+    yield k
 
 proc reversed*(self: Key): Key =
   Key(namespaces: self.namespaces.reversed)
@@ -226,55 +145,15 @@ proc reverse*(self: Key): Key =
   self.reversed
 
 proc name*(self: Key): string =
-  self[^1].value
+  if self.len > 0:
+    return self[^1].value
 
-proc `type`*(self: Key): ?string =
-  self[^1].field
+proc `type`*(self: Key): string =
+  if self.len > 0:
+    return self[^1].field
 
-proc kind*(self: Key): ?string =
-  self.`type`
-
-proc instance*(
-  self: Key,
-  value: Namespace): Key =
-
-  let
-    last = self[^1]
-
-    inst =
-      if last.field.isSome:
-        @[Namespace(field: last.field, value: value.value)]
-      else:
-        @[Namespace(field: last.value.some, value: value.value)]
-
-    namespaces =
-      if self.namespaces.len == 1:
-        inst
-      else:
-        self.namespaces[0..^2] & inst
-
-  Key(namespaces: namespaces)
-
-proc instance*(self, value: Key): Key =
-  self.instance(value[^1])
-
-proc instance*(self, value: Namespace): Key =
-  Key(namespaces: @[self]).instance(value)
-
-proc instance*(
-  self: Namespace,
-  value: Key): Key =
-
-  self.instance(value[^1])
-
-proc instance*(
-  self: Key,
-  id: string): ?!Key =
-
-  without key =? Key.init(id), e:
-    return failure e
-
-  success self.instance(key)
+proc id*(self: Key): string =
+  separator & self.namespaces.mapIt(it.id).join(separator)
 
 proc isTopLevel*(self: Key): bool =
   self.len == 1
@@ -285,43 +164,22 @@ proc parent*(self: Key): ?!Key =
   else:
     success Key(namespaces: self.namespaces[0..^2])
 
-proc parent*(self: ?!Key): ?!Key =
-  let
-    key = ? self
-
-  key.parent
-
 proc path*(self: Key): ?!Key =
   let
     parent = ? self.parent
 
-  without kind =? self[^1].kind:
+  if self[^1].field == "":
     return success parent
 
-  success Key(namespaces: parent.namespaces & @[Namespace(value: kind)])
+  success Key(namespaces: parent.namespaces & @[Namespace(value: self[^1].field)])
 
-proc path*(self: ?!Key): ?!Key =
-  let
-    key = ? self
-
-  key.path
-
-proc child*(
-  self: Key,
-  ns: Namespace): Key =
-
+proc child*(self: Key, ns: Namespace): Key =
   Key(namespaces: self.namespaces & @[ns])
 
-proc `/`*(
-  self: Key,
-  ns: Namespace): Key =
-
+proc `/`*(self: Key, ns: Namespace): Key =
   self.child(ns)
 
-proc child*(
-  self: Key,
-  namespaces: varargs[Namespace]): Key =
-
+proc child*(self: Key, namespaces: varargs[Namespace]): Key =
   Key(namespaces: self.namespaces & @namespaces)
 
 proc child*(self, key: Key): Key =
@@ -330,34 +188,13 @@ proc child*(self, key: Key): Key =
 proc `/`*(self, key: Key): Key =
   self.child(key)
 
-proc child*(
-  self: Key,
-  keys: varargs[Key]): Key =
-
+proc child*(self: Key, keys: varargs[Key]): Key =
   Key(namespaces: self.namespaces & concat(keys.mapIt(it.namespaces)))
 
-proc child*(
-  self: Key,
-  ids: varargs[string]): ?!Key =
+proc child*(self: Key, ids: varargs[string]): ?!Key =
+  success self.child(ids.filterIt(it != "").mapIt( ?Key.init(it) ))
 
-  let
-    ids = ids.filterIt(it != "")
-
-  var
-    keys: seq[Key]
-
-  for id in ids:
-    let
-      key = ? Key.init(id)
-
-    keys.add key
-
-  success self.child(keys)
-
-proc `/`*(
-  self: Key,
-  id: string): ?!Key =
-
+proc `/`*(self: Key, id: string): ?!Key =
   self.child(id)
 
 proc isAncestorOf*(self, other: Key): bool =
@@ -366,9 +203,6 @@ proc isAncestorOf*(self, other: Key): bool =
 
 proc isDescendantOf*(self, other: Key): bool =
   other.isAncestorOf(self)
-
-proc id*(self: Key): string =
-  separator & self.namespaces.mapIt(it.id).join(separator)
 
 proc `$`*(key: Key): string =
   "Key(" & key.id & ")"

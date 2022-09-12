@@ -1,310 +1,179 @@
 import std/options
 
-import pkg/stew/results
 import pkg/unittest2
+import pkg/questionable
+import pkg/questionable/results
 
 import ../../datastore/key
 
 suite "Namespace":
-  test "init":
-    var
-      nsRes: Result[Namespace, ref CatchableError]
+  test "init failure":
+    check:
+      Namespace.init("a", "").isFailure
+      Namespace.init("a", "   ").isFailure
+      Namespace.init("a", ":").isFailure
+      Namespace.init("a", "/").isFailure
+      Namespace.init(":", "b").isFailure
+      Namespace.init("/", "b").isFailure
+      Namespace.init("   ", "b").isFailure
+      Namespace.init("").isFailure
+      Namespace.init("   ").isFailure
+      Namespace.init("/").isFailure
+      Namespace.init(":").isFailure
+      Namespace.init("a:b:c").isFailure
+      Namespace.init("a:").isFailure
+      Namespace.init("a:   ").isFailure
+      Namespace.init("   :b").isFailure
 
-    nsRes = Namespace.init("a", "")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a", "   ")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a", ":")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a", "/")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init(":", "b")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("/", "b")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("", "b")
-
-    check: nsRes.isOk
-
-    nsRes = Namespace.init("   ", "b")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a", "b")
-
-    check: nsRes.isOk
-
-    nsRes = Namespace.init("")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("   ")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("/")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init(":")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a:b:c")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a")
-
-    check: nsRes.isOk
-
-    nsRes = Namespace.init("a:")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a:   ")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("   :b")
-
-    check: nsRes.isErr
-
-    nsRes = Namespace.init("a:b")
-
-    check: nsRes.isOk
-
-    nsRes = Namespace.init(":b")
-
-    check: nsRes.isOk
+  test "init success":
+    check:
+      Namespace.init("", "b").isSuccess
+      Namespace.init("a", "b").isSuccess
+      Namespace.init("a").isSuccess
+      Namespace.init("a:b").isSuccess
+      Namespace.init(":b").isSuccess
 
   test "accessors":
     var
       ns: Namespace
 
-    ns = Namespace.init("", "b").get
+    ns = Namespace.init("", "b").tryGet()
 
     check:
       ns.value == "b"
-      ns.field.isNone
+      ns.field == ""
 
-    ns = Namespace.init("a", "b").get
-
-    check:
-      ns.value == "b"
-      ns.field.isSome and ns.field.get == "a"
-
-    ns = Namespace.init(":b").get
+    ns = Namespace.init("a", "b").tryGet()
 
     check:
       ns.value == "b"
-      ns.field.isNone
+      ns.field != "" and ns.field == "a"
 
-    ns = Namespace.init("a:b").get
+    ns = Namespace.init(":b").tryGet()
 
     check:
       ns.value == "b"
-      ns.field.isSome and ns.field.get == "a"
+      ns.field == ""
+
+    ns = Namespace.init("a:b").tryGet()
 
     check:
-      ns.`type`.get == ns.field.get
-      ns.kind.get == ns.field.get
+      ns.value == "b"
+      ns.field == "a"
 
   test "equality":
     check:
-      Namespace.init("a").get == Namespace.init("a").get
-      Namespace.init("a").get != Namespace.init("b").get
-      Namespace.init("", "b").get == Namespace.init("", "b").get
-      Namespace.init("", "b").get == Namespace.init("b").get
-      Namespace.init(":b").get == Namespace.init("b").get
-      Namespace.init("", "b").get != Namespace.init("", "a").get
-      Namespace.init("", "b").get != Namespace.init("a").get
-      Namespace.init(":b").get != Namespace.init("a").get
-      Namespace.init("a", "b").get == Namespace.init("a", "b").get
-      Namespace.init("a", "b").get == Namespace.init("a:b").get
-      Namespace.init("a:b").get == Namespace.init("a:b").get
-      Namespace.init("a", "b").get != Namespace.init("b", "a").get
-      Namespace.init("a", "b").get != Namespace.init("b:a").get
-      Namespace.init("a:b").get != Namespace.init("b:a").get
-      Namespace.init("a").get != Namespace.init("a:b").get
+      Namespace.init("a").tryGet() == Namespace.init("a").tryGet()
+      Namespace.init("a").tryGet() != Namespace.init("b").tryGet()
+      Namespace.init("", "b").tryGet() == Namespace.init("", "b").tryGet()
+      Namespace.init("", "b").tryGet() == Namespace.init("b").tryGet()
+      Namespace.init(":b").tryGet() == Namespace.init("b").tryGet()
+      Namespace.init("", "b").tryGet() != Namespace.init("", "a").tryGet()
+      Namespace.init("", "b").tryGet() != Namespace.init("a").tryGet()
+      Namespace.init(":b").tryGet() != Namespace.init("a").tryGet()
+      Namespace.init("a", "b").tryGet() == Namespace.init("a", "b").tryGet()
+      Namespace.init("a", "b").tryGet() == Namespace.init("a:b").tryGet()
+      Namespace.init("a:b").tryGet() == Namespace.init("a:b").tryGet()
+      Namespace.init("a", "b").tryGet() != Namespace.init("b", "a").tryGet()
+      Namespace.init("a", "b").tryGet() != Namespace.init("b:a").tryGet()
+      Namespace.init("a:b").tryGet() != Namespace.init("b:a").tryGet()
+      Namespace.init("a").tryGet() != Namespace.init("a:b").tryGet()
 
   test "serialization":
     var
       ns: Namespace
 
-    ns = Namespace.init(":b").get
+    ns = Namespace.init(":b").tryGet()
 
     check:
       ns.id == "b"
       $ns == "Namespace(" & ns.id & ")"
 
-    ns = Namespace.init("a:b").get
+    ns = Namespace.init("a:b").tryGet()
 
     check:
       ns.id == "a:b"
       $ns == "Namespace(" & ns.id & ")"
 
 suite "Key":
-  test "init":
-    var
-      keyRes: Result[Key, ref CatchableError]
-      nss: seq[Namespace]
+  test "init failure":
+    check:
+      Key.init("", "").isFailure
+      Key.init(@[""]).isFailure
+      Key.init(@[":"]).isFailure
+      Key.init(@["/"]).isFailure
+      Key.init("").isFailure
+      Key.init("   ").isFailure
+      Key.init("/").isFailure
+      Key.init("///").isFailure
+      Key.init(":").isFailure
+      Key.init("::").isFailure
+      Key.init("a:").isFailure
+      Key.init("a:b/c:").isFailure
 
-    keyRes = Key.init(nss)
-
-    check: keyRes.isErr
-
-    nss = @[Namespace.init("a").get]
-
-    keyRes = Key.init(nss)
-
-    check: keyRes.isOk
-
-    var
-      nsStrs: seq[string]
-
-    keyRes = Key.init(nsStrs)
-
-    check: keyRes.isErr
-
-    nsStrs = @[":"]
-
-    keyRes = Key.init(nsStrs)
-
-    check: keyRes.isErr
-
-    nsStrs = @["/"]
-
-    keyRes = Key.init(nsStrs)
-
-    check: keyRes.isErr
-
-    nsStrs = @["a:b"]
-
-    keyRes = Key.init(nsStrs)
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("   ")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("/")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("///")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init(":")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("::")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("a:")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init("a:b/c:")
-
-    check: keyRes.isErr
-
-    keyRes = Key.init(":b")
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("a:b")
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("a:b/c")
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("a:b/:c")
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("/a:b/c/")
-
-    check: keyRes.isOk
-
-    keyRes = Key.init("///a:b///c///")
-
-    check: keyRes.isOk
+  test "init success":
+    check:
+      Key.init(Namespace.init("a").tryGet()).isSuccess
+      Key.init(@["a:b"]).isSuccess
+      Key.init(":b").isSuccess
+      Key.init("a:b").isSuccess
+      Key.init("a:b/c").isSuccess
+      Key.init("a:b/:c").isSuccess
+      Key.init("/a:b/c/").isSuccess
+      Key.init("///a:b///c///").isSuccess
 
   test "accessors":
     let
-      key = Key.init("/a:b/c/d:e").get
+      key = Key.init("/a:b/c/d:e").tryGet()
 
     check:
       key.namespaces == @[
-        Namespace.init("a:b").get,
-        Namespace.init("c").get,
-        Namespace.init("d:e").get
+        Namespace.init("a:b").tryGet(),
+        Namespace.init("c").tryGet(),
+        Namespace.init("d:e").tryGet()
       ]
 
       key.list == key.namespaces
 
   test "equality":
     check:
-      Key.init(Namespace.init("a:b").get, Namespace.init("c").get).get == Key.init("a:b/c").get
-      Key.init("a:b", "c").get == Key.init("a:b/c").get
-      Key.init("a:b/c").get == Key.init("a:b/c").get
-      Key.init(Namespace.init("a:b").get, Namespace.init("c").get).get != Key.init("c:b/a").get
-      Key.init("a:b", "c").get != Key.init("c:b/a").get
-      Key.init("a:b/c").get != Key.init("c:b/a").get
-      Key.init("a:b/c").get == Key.init("/a:b/c/").get
-      Key.init("a:b/c").get == Key.init("///a:b///c///").get
-      Key.init("a:b/c").get != Key.init("///a:b///d///").get
-      Key.init("a").get != Key.init("a:b").get
-      Key.init("a").get != Key.init("a/b").get
-      Key.init("a/b/c").get != Key.init("a/b").get
-      Key.init("a:X/b/c").get == Key.init("a:X/b/c").get
-      Key.init("a/b:X/c").get == Key.init("a/b:X/c").get
-      Key.init("a/b/c:X").get == Key.init("a/b/c:X").get
-      Key.init("a:X/b/c:X").get == Key.init("a:X/b/c:X").get
-      Key.init("a:X/b:X/c").get == Key.init("a:X/b:X/c").get
-      Key.init("a/b:X/c:X").get == Key.init("a/b:X/c:X").get
-      Key.init("a:X/b:X/c:X").get == Key.init("a:X/b:X/c:X").get
-      Key.init("a/b/c").get != Key.init("a:X/b/c").get
-      Key.init("a/b/c").get != Key.init("a/b:X/c").get
-      Key.init("a/b/c").get != Key.init("a/b/c:X").get
-      Key.init("a/b/c").get != Key.init("a:X/b/c:X").get
-      Key.init("a/b/c").get != Key.init("a:X/b:X/c").get
-      Key.init("a/b/c").get != Key.init("a/b:X/c:X").get
-      Key.init("a/b/c").get != Key.init("a:X/b:X/c:X").get
+      Key.init(Namespace.init("a:b").tryGet(), Namespace.init("c").tryGet()).tryGet() == Key.init("a:b/c").tryGet()
+      Key.init("a:b", "c").tryGet() == Key.init("a:b/c").tryGet()
+      Key.init("a:b/c").tryGet() == Key.init("a:b/c").tryGet()
+      Key.init(Namespace.init("a:b").tryGet(), Namespace.init("c").tryGet()).tryGet() != Key.init("c:b/a").tryGet()
+      Key.init("a:b", "c").tryGet() != Key.init("c:b/a").tryGet()
+      Key.init("a:b/c").tryGet() != Key.init("c:b/a").tryGet()
+      Key.init("a:b/c").tryGet() == Key.init("/a:b/c/").tryGet()
+      Key.init("a:b/c").tryGet() == Key.init("///a:b///c///").tryGet()
+      Key.init("a:b/c").tryGet() != Key.init("///a:b///d///").tryGet()
+      Key.init("a").tryGet() != Key.init("a:b").tryGet()
+      Key.init("a").tryGet() != Key.init("a/b").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a/b").tryGet()
+      Key.init("a:X/b/c").tryGet() == Key.init("a:X/b/c").tryGet()
+      Key.init("a/b:X/c").tryGet() == Key.init("a/b:X/c").tryGet()
+      Key.init("a/b/c:X").tryGet() == Key.init("a/b/c:X").tryGet()
+      Key.init("a:X/b/c:X").tryGet() == Key.init("a:X/b/c:X").tryGet()
+      Key.init("a:X/b:X/c").tryGet() == Key.init("a:X/b:X/c").tryGet()
+      Key.init("a/b:X/c:X").tryGet() == Key.init("a/b:X/c:X").tryGet()
+      Key.init("a:X/b:X/c:X").tryGet() == Key.init("a:X/b:X/c:X").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a:X/b/c").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a/b:X/c").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a/b/c:X").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a:X/b/c:X").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a:X/b:X/c").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a/b:X/c:X").tryGet()
+      Key.init("a/b/c").tryGet() != Key.init("a:X/b:X/c:X").tryGet()
 
   test "helpers":
     check: Key.random.len == 24
 
     let
-      key = Key.init("/a:b/c/d:e").get
+      key = Key.init("/a:b/c/d:e").tryGet()
 
     check:
-      key[1] == Namespace.init("c").get
-      key[1..^1] == @[Namespace.init("c").get, Namespace.init("d:e").get]
-      key[^1] == Namespace.init("d:e").get
+      key[1] == Namespace.init("c").tryGet()
+      key[1..^1] == @[Namespace.init("c").tryGet(), Namespace.init("d:e").tryGet()]
+      key[^1] == Namespace.init("d:e").tryGet()
 
     check: key.len == key.namespaces.len
 
@@ -316,16 +185,16 @@ suite "Key":
 
     check:
       nss == @[
-        Namespace.init("a:b").get,
-        Namespace.init("c").get,
-        Namespace.init("d:e").get
+        Namespace.init("a:b").tryGet(),
+        Namespace.init("c").tryGet(),
+        Namespace.init("d:e").tryGet()
       ]
 
     check:
       key.reversed.namespaces == @[
-        Namespace.init("d:e").get,
-        Namespace.init("c").get,
-        Namespace.init("a:b").get
+        Namespace.init("d:e").tryGet(),
+        Namespace.init("c").tryGet(),
+        Namespace.init("a:b").tryGet()
       ]
 
       key.reverse == key.reversed
@@ -333,95 +202,68 @@ suite "Key":
     check: key.name == "e"
 
     check:
-      key.`type` == key[^1].`type`
-      key.kind == key.`type`
+      Key.init(":b").tryGet().isTopLevel
+      not Key.init(":b/c").tryGet().isTopLevel
 
     check:
-      key.instance(Namespace.init("f:g").get) == Key.init("a:b/c/d:g").get
-      Key.init("a:b").get.instance(Namespace.init(":c").get) == Key.init("a:c").get
-      Key.init(":b").get.instance(Namespace.init(":c").get) == Key.init("b:c").get
-      Key.init(":b").get.instance(key) == Key.init("b:e").get
-      Namespace.init("a:b").get.instance(Namespace.init("c").get) == Key.init("a:c").get
-      Namespace.init(":b").get.instance(Namespace.init("c").get) == Key.init("b:c").get
-      Namespace.init("a:b").get.instance(key) == Key.init("a:e").get
-      Namespace.init(":b").get.instance(key) == Key.init("b:e").get
-      Key.init(":b").get.instance("").isErr
-      Key.init(":b").get.instance(":").isErr
-      Key.init(":b").get.instance("/").isErr
-      Key.init(":b").get.instance("//").isErr
-      Key.init(":b").get.instance("///").isErr
-      Key.init(":b").get.instance("a").get == Key.init("b:a").get
-      Key.init(":b").get.instance(":b").get == Key.init("b:b").get
-      Key.init(":b").get.instance("a:b").get == Key.init("b:b").get
-      Key.init(":b").get.instance("/a:b/c/d:e").get == Key.init("b:e").get
-      Key.init("a:b").get.instance("a").get == Key.init("a:a").get
-      Key.init("a:b").get.instance(":b").get == Key.init("a:b").get
-      Key.init("a:b").get.instance("a:b").get == Key.init("a:b").get
-      Key.init("a:b").get.instance("/a:b/c/d:e").get == Key.init("a:e").get
+      Key.init(":b").tryGet().parent.isFailure
+      Key.init(":b").tryGet().parent.isFailure
+      key.parent.tryGet() == Key.init("a:b/c").tryGet()
+      key.parent.?parent.tryGet() == Key.init("a:b").tryGet()
+      key.parent.?parent.?parent.isFailure
 
     check:
-      Key.init(":b").get.isTopLevel
-      not Key.init(":b/c").get.isTopLevel
+      key.parent.?path.tryGet() == Key.init("a:b").tryGet()
+      key.path.tryGet() == Key.init("a:b/c/d").tryGet()
+      Key.init("a:b/c").?path.tryGet() == Key.init("a:b").tryGet()
+      Key.init("a:b/c/d:e").?path.tryGet() == Key.init("a:b/c/d").tryGet()
 
-    check:
-      Key.init(":b").get.parent.isErr
-      Key.init(":b").parent.isErr
-      key.parent.get == Key.init("a:b/c").get
-      key.parent.parent.get == Key.init("a:b").get
-      key.parent.parent.parent.isErr
+    check: key.child(Namespace.init("f:g").tryGet()) == Key.init("a:b/c/d:e/f:g").tryGet()
 
-    check:
-      key.parent.get.path.get == Key.init("a:b").get
-      key.path.get == Key.init("a:b/c/d").get
-      Key.init("a:b/c").path.get == Key.init("a:b").get
-      Key.init("a:b/c/d:e").path.get == Key.init("a:b/c/d").get
-
-    check: key.child(Namespace.init("f:g").get) == Key.init("a:b/c/d:e/f:g").get
-
-    check: key / Namespace.init("f:g").get == Key.init("a:b/c/d:e/f:g").get
+    check: key / Namespace.init("f:g").tryGet() == Key.init("a:b/c/d:e/f:g").tryGet()
 
     var
       emptyNss: seq[Namespace]
 
     check:
       key.child(emptyNss) == key
-      key.child(Namespace.init("f:g").get, Namespace.init("h:i").get) ==
-        Key.init("a:b/c/d:e/f:g/h:i").get
+      key.child(Namespace.init("f:g").tryGet(), Namespace.init("h:i").tryGet()) ==
+        Key.init("a:b/c/d:e/f:g/h:i").tryGet()
 
     check:
-      key.child(Key.init("f:g").get) == Key.init("a:b/c/d:e/f:g").get
-      key / Key.init("f:g").get == Key.init("a:b/c/d:e/f:g").get
+      key.child(Key.init("f:g").tryGet()) == Key.init("a:b/c/d:e/f:g").tryGet()
+      key / Key.init("f:g").tryGet() == Key.init("a:b/c/d:e/f:g").tryGet()
 
     var
       emptyKeys: seq[Key]
 
     check:
       key.child(emptyKeys) == key
-      key.child(Key.init("f:g").get, Key.init("h:i").get) ==
-        Key.init("a:b/c/d:e/f:g/h:i").get
+      key.child(Key.init("f:g").tryGet(), Key.init("h:i").tryGet()) ==
+        Key.init("a:b/c/d:e/f:g/h:i").tryGet()
 
     check:
-      key.child("f:g", ":::").isErr
-      key.child("f:g", "h:i").get == Key.init("a:b/c/d:e/f:g/h:i").get
-      key.child("").get == key
-      key.child("", "", "").get == key
+      key.child("f:g", ":::").isFailure
+      key.child("f:g", "h:i").tryGet() == Key.init("a:b/c/d:e/f:g/h:i").tryGet()
+      key.child("").tryGet() == key
+      key.child("", "", "").tryGet() == key
 
     check:
-      (key / "").get == key
-      (key / "f:g").get == Key.init("a:b/c/d:e/f:g").get
+      (key / "").tryGet() == key
+      (key / "f:g").tryGet() == Key.init("a:b/c/d:e/f:g").tryGet()
 
     check:
-      not key.isAncestorOf(Key.init("f:g").get)
-      key.isAncestorOf(key / Key.init("f:g").get)
+      not key.isAncestorOf(Key.init("f:g").tryGet())
+      key.isAncestorOf(key / Key.init("f:g").tryGet())
 
     check:
-      key.isDescendantOf(key.parent.get)
-      not Key.init("f:g").get.isDescendantOf(key.parent.get)
+      key.isDescendantOf(key.parent.tryGet())
+      not Key.init("f:g").tryGet().isDescendantOf(key.parent.tryGet())
 
   test "serialization":
     let
       idStr = "/a:b/c/d:e"
-      key = Key.init(idStr).get
+      key = Key.init(idStr).tryGet()
 
     check:
       key.id == idStr
