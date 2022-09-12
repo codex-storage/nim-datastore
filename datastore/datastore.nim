@@ -15,26 +15,26 @@ type
 
 method contains*(
   self: Datastore,
-  key: Key): Future[?!bool] {.async, base, locks: "unknown".} =
+  key: Key): Future[?!bool] {.base, locks: "unknown".} =
 
   raiseAssert("Not implemented!")
 
 method delete*(
   self: Datastore,
-  key: Key): Future[?!void] {.async, base, locks: "unknown".} =
+  key: Key): Future[?!void] {.base, locks: "unknown".} =
 
   raiseAssert("Not implemented!")
 
 method get*(
   self: Datastore,
-  key: Key): Future[?!(?seq[byte])] {.async, base, locks: "unknown".} =
+  key: Key): Future[?!(?seq[byte])] {.base, locks: "unknown".} =
 
   raiseAssert("Not implemented!")
 
 method put*(
   self: Datastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async, base, locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.base, locks: "unknown".} =
 
   raiseAssert("Not implemented!")
 

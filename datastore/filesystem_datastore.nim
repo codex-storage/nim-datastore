@@ -1,4 +1,6 @@
 import std/os
+import std/sequtils
+import std/options
 
 import pkg/chronos
 import pkg/questionable
@@ -14,30 +16,10 @@ push: {.upraises: [].}
 
 type
   FileSystemDatastore* = ref object of Datastore
-    root: string
+    root*: string
 
 const
-  objExt* = ".dsobject"
-
-proc new*(
-  T: type FileSystemDatastore,
-  root: string): ?!T =
-
-  try:
-    let
-      root = if root.isAbsolute: root
-             else: getCurrentDir() / root
-
-    if not dirExists(root):
-      failure "directory does not exist: " & root
-    else:
-      success T(root: root)
-
-  except OSError as e:
-    failure e
-
-proc root*(self: FileSystemDatastore): string =
-  self.root
+  objExt* = ".obj"
 
 proc path*(
   self: FileSystemDatastore,
@@ -160,3 +142,18 @@ method put*(
 #   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
 #
 #   return success ....some
+
+proc new*(
+  T: type FileSystemDatastore,
+  root: string,
+  caseSensitive = true): ?!T =
+
+  let root = ? (
+    block:
+      if root.isAbsolute: root
+      else: getCurrentDir() / root).catch
+
+  if not dirExists(root):
+    failure "directory does not exist: " & root
+  else:
+    success T(root: root)

@@ -50,19 +50,19 @@ suite "FileSystemDatastore":
 
   asyncTest "helpers":
       let
-        ds = FileSystemDatastore.new(root).get
+        ds = FileSystemDatastore.new(root).tryGet()
 
       check:
         # see comment in ../../datastore/filesystem_datastore re: whether path
         # equivalence of e.g. Key(/a:b) and Key(/a/b) is problematic
-        ds.path(Key.init("a").get) == rootAbs / "a" & objExt
-        ds.path(Key.init("a:b").get) == rootAbs / "a" / "b" & objExt
-        ds.path(Key.init("a/b").get) == rootAbs / "a" / "b" & objExt
-        ds.path(Key.init("a:b/c").get) == rootAbs / "a" / "b" / "c" & objExt
-        ds.path(Key.init("a/b/c").get) == rootAbs / "a" / "b" / "c" & objExt
-        ds.path(Key.init("a:b/c:d").get) == rootAbs / "a" / "b" / "c" / "d" & objExt
-        ds.path(Key.init("a/b/c:d").get) == rootAbs / "a" / "b" / "c" / "d" & objExt
-        ds.path(Key.init("a/b/c/d").get) == rootAbs / "a" / "b" / "c" / "d" & objExt
+        ds.path(Key.init("a").tryGet()) == rootAbs / "a" & objExt
+        ds.path(Key.init("a:b").tryGet()) == rootAbs / "a" / "b" & objExt
+        ds.path(Key.init("a/b").tryGet()) == rootAbs / "a" / "b" & objExt
+        ds.path(Key.init("a:b/c").tryGet()) == rootAbs / "a" / "b" / "c" & objExt
+        ds.path(Key.init("a/b/c").tryGet()) == rootAbs / "a" / "b" / "c" & objExt
+        ds.path(Key.init("a:b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
+        ds.path(Key.init("a/b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
+        ds.path(Key.init("a/b/c/d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
 
   asyncTest "put":
     let
