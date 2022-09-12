@@ -387,19 +387,19 @@ suite "SQLiteDatastore":
     assert putRes.isOk
 
     var
-      kds: seq[QueryResponse]
+      kvs: seq[QueryResponse]
 
-    for kd in ds.query(Query.init(queryKey)):
+    var q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
     # see https://sqlite.org/lang_select.html#the_order_by_clause
     # If a SELECT statement that returns more than one row does not have an
     # ORDER BY clause, the order in which the rows are returned is undefined.
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key1, data: bytes1),
       (key: key2, data: bytes2),
       (key: key3, data: bytes3),
@@ -414,17 +414,17 @@ suite "SQLiteDatastore":
       (key: key12, data: bytes12)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("a*").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key1, data: bytes1),
       (key: key2, data: bytes2),
       (key: key3, data: bytes3),
@@ -433,17 +433,17 @@ suite "SQLiteDatastore":
       (key: key6, data: bytes6)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("A*").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key7, data: bytes7),
       (key: key8, data: bytes8),
       (key: key9, data: bytes9),
@@ -452,67 +452,67 @@ suite "SQLiteDatastore":
       (key: key12, data: bytes12)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("a/?").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key2, data: bytes2)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("A/?").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key8, data: bytes8)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("*/?").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (rkey, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (rkey, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key2, data: bytes2),
       (key: key5, data: bytes5),
       (key: key8, data: bytes8),
       (key: key11, data: bytes11)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("[Aa]/?").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (key, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (key, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key2, data: bytes2),
       (key: key8, data: bytes8)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     # SQLite's GLOB operator, akin to Unix file globbing syntax, is greedy re:
     # wildcard "*". So a pattern such as "a:*[^/]" will not restrict results to
@@ -520,33 +520,33 @@ suite "SQLiteDatastore":
 
     queryKey = Key.init("a:*[^/]").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (key, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (key, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key4, data: bytes4),
       (key: key5, data: bytes5),
       (key: key6, data: bytes6)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     queryKey = Key.init("a:*[Bb]").get
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (key, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (key, data)
 
-    check: kds.sortedByIt(it.key.id) == @[
+    check: kvs.sortedByIt(it.key.id) == @[
       (key: key4, data: bytes4)
     ].sortedByIt(it.key.id)
 
-    kds = @[]
+    kvs = @[]
 
     var
       deleteRes = await ds.delete(key1)
@@ -576,12 +576,12 @@ suite "SQLiteDatastore":
     assert deleteRes.isOk
 
     let
-      emptyKds: seq[QueryResponse] = @[]
+      emptyKvs: seq[QueryResponse] = @[]
 
-    for kd in ds.query(Query.init(queryKey)):
+    q = ds.query; for kv in q(ds, Query.init(queryKey)):
       let
-        (key, data) = await kd
+        (key, data) = await kv
 
-      kds.add (key, data)
+      kvs.add (key, data)
 
-    check: kds == emptyKds
+    check: kvs == emptyKvs

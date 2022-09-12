@@ -1,3 +1,4 @@
+import std/algorithm
 import std/options
 import std/os
 
@@ -19,21 +20,21 @@ suite "TieredDatastore":
     rootAbs = getCurrentDir() / root
 
   var
-    ds1: SQLiteDatastore
-    ds2: FileSystemDatastore
+    ds1: FileSystemDatastore
+    ds2: SQLiteDatastore
 
   setup:
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
     createDir(rootAbs)
-    ds1 = SQLiteDatastore.new(memory).get
-    ds2 = FileSystemDatastore.new(rootAbs).get
+    ds1 = FileSystemDatastore.new(rootAbs).get
+    ds2 = SQLiteDatastore.new(memory).get
 
   teardown:
-    if not ds1.isNil: await ds1.close
-    ds1 = nil
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
+    if not ds2.isNil: await ds2.close
+    ds2 = nil
 
   asyncTest "new":
     check:
@@ -132,8 +133,10 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.get == bytes
       (await ds2.get(key)).get.get == bytes
 
-    await ds1.close
-    ds1 = SQLiteDatastore.new(memory).get
+    removeDir(rootAbs)
+    assert (not dirExists(rootAbs))
+    createDir(rootAbs)
+    ds1 = FileSystemDatastore.new(rootAbs).get
     ds = TieredDatastore.new(ds1, ds2).get
 
     assert (await ds1.get(key)).get.isNone
@@ -149,6 +152,55 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.isSome
       (await ds1.get(key)).get.get == bytes
 
-  # asyncTest "query":
-  #   check:
-  #     true
+  asyncTest "query":
+    let
+      ds = TieredDatastore.new(ds1, ds2).get
+
+      key1 = Key.init("a/b").get
+      key2 = Key.init("a/b:c").get
+      key3 = Key.init("a/b:c/d").get
+
+      bytes1  = @[1.byte, 2.byte, 3.byte]
+      bytes2  = @[4.byte, 5.byte, 6.byte]
+      bytes3: seq[byte] = @[]
+
+      queryKey1 = Key.init("a/*").get
+      queryKey2 = Key.init("b/*").get
+
+    var
+      putRes = await ds.put(key1, bytes1)
+
+    assert putRes.isOk
+    putRes = await ds.put(key2, bytes2)
+    assert putRes.isOk
+    putRes = await ds.put(key3, bytes3)
+    assert putRes.isOk
+
+    var
+      kvs: seq[QueryResponse]
+
+    var q = ds.query(); for kv in q(ds, Query.init(queryKey1)):
+      let
+        (key, data) = await kv
+
+      kvs.add (key, data)
+
+    check: kvs.sortedByIt(it.key.id) == @[
+      (key: key1, data: bytes1),
+      (key: key2, data: bytes2),
+      (key: key3, data: bytes3)
+    ].sortedByIt(it.key.id)
+
+    kvs = @[]
+    q = ds.query()
+
+    let
+      emptyKvs: seq[QueryResponse] = @[]
+
+    for kv in q(ds, Query.init(queryKey2)):
+      let
+        (key, data) = await kv
+
+      kvs.add (key, data)
+
+    check: kvs == emptyKvs

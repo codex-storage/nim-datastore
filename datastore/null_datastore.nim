@@ -43,8 +43,11 @@ method put*(
 
   return success()
 
-iterator query*(
-  self: NullDatastore,
-  query: Query): Future[QueryResponse] =
+iterator queryImpl(
+  datastore: Datastore,
+  query: Query): Future[QueryResponse] {.closure.} =
 
   discard
+
+method query*(self: NullDatastore): QueryIterator {.locks: "unknown".} =
+  queryImpl

@@ -367,13 +367,14 @@ method put*(
 
   return await self.put(key, data, timestamp())
 
-iterator query*(
-  self: SQLiteDatastore,
-  query: Query): Future[QueryResponse] =
+iterator queryImpl(
+  datastore: Datastore,
+  query: Query): Future[QueryResponse] {.closure.} =
 
   let
+    datastore = SQLiteDatastore(datastore)
     queryStmt = QueryStmt.prepare(
-      self.env, queryStmtStr).expect("should not fail")
+      datastore.env, queryStmtStr).expect("should not fail")
 
     s = RawStmtPtr(queryStmt)
 
@@ -428,3 +429,6 @@ iterator query*(
       break
     else:
       raise (ref Defect)(msg: $sqlite3_errstr(v))
+
+method query*(self: SQLiteDatastore): QueryIterator {.locks: "unknown".} =
+  queryImpl

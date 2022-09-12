@@ -13,6 +13,10 @@ push: {.upraises: [].}
 type
   Datastore* = ref object of RootObj
 
+  QueryIterator* = iterator (
+    datastore: Datastore,
+    query: Query): Future[QueryResponse] {.closure, gcsafe.}
+
 method close*(self: Datastore): Future[void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
@@ -41,8 +45,5 @@ method put*(
 
   raiseAssert("Not implemented!")
 
-iterator query*(
-  self: Datastore,
-  query: Query): Future[QueryResponse] =
-
+method query*(self: Datastore): QueryIterator {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")

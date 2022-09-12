@@ -25,5 +25,4 @@ suite "Datastore (base)":
     expect Defect: discard ds.get(key)
 
   asyncTest "query":
-    expect Defect:
-      for n in ds.query(Query.init(key)): discard
+    expect Defect: discard ds.query

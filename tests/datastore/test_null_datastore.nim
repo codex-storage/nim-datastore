@@ -35,7 +35,7 @@ suite "NullDatastore":
     var
       x = true
 
-    for n in ds.query(Query.init(key)):
+    let q = ds.query; for n in q(ds, Query.init(key)):
       # `iterator query` for NullDatastore never yields so the following lines
       # are not run (else the test would hang)
       x = false

@@ -190,7 +190,3 @@ suite "FileSystemDatastore":
     getOpt = getRes.get
 
     check: getOpt.isNone
-
-  # asyncTest "query":
-  #   check:
-  #     true

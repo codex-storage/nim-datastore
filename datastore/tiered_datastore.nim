@@ -53,7 +53,10 @@ method delete*(
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    let
+      delRes = await fut
+
+    if delRes.isErr: return delRes
 
   return success()
 
@@ -94,12 +97,26 @@ method put*(
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    let
+      putRes = await fut
+
+    if putRes.isErr: return putRes
 
   return success()
 
-# method query*(
-#   self: TieredDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
-#
-#   return success ....some
+iterator queryImpl(
+  datastore: Datastore,
+  query: Query): Future[QueryResponse] {.closure.} =
+
+  let
+    datastore = TieredDatastore(datastore)
+    # https://github.com/datastore/datastore/blob/7ccf0cd4748001d3dbf5e6dda369b0f63e0269d3/datastore/core/basic.py#L1027-L1035
+    bottom = datastore.stores[^1]
+
+  try:
+    let q = bottom.query(); for kv in q(bottom, query): yield kv
+  except Exception as e:
+    raise (ref Defect)(msg: e.msg)
+
+method query*(self: TieredDatastore): QueryIterator {.locks: "unknown".} =
+  queryImpl

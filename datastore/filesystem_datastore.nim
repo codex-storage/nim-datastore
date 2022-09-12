@@ -157,9 +157,3 @@ method put*(
 
   except OSError as e:
     return failure e
-
-# method query*(
-#   self: FileSystemDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
-#
-#   return success ....some
