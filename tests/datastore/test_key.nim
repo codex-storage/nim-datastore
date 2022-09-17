@@ -202,12 +202,12 @@ suite "Key":
     check: key.name == "e"
 
     check:
-      Key.init(":b").tryGet().isTopLevel
-      not Key.init(":b/c").tryGet().isTopLevel
+      Key.init(":b").tryGet().root
+      not Key.init(":b/c").tryGet().root
 
     check:
-      Key.init(":b").tryGet().parent.isFailure
-      Key.init(":b").tryGet().parent.isFailure
+      Key.init(":b").?parent.isFailure
+      Key.init(":b").?parent.isFailure
       key.parent.tryGet() == Key.init("a:b/c").tryGet()
       key.parent.?parent.tryGet() == Key.init("a:b").tryGet()
       key.parent.?parent.?parent.isFailure
@@ -253,12 +253,12 @@ suite "Key":
       (key / "f:g").tryGet() == Key.init("a:b/c/d:e/f:g").tryGet()
 
     check:
-      not key.isAncestorOf(Key.init("f:g").tryGet())
-      key.isAncestorOf(key / Key.init("f:g").tryGet())
+      not key.ancestor(Key.init("f:g").tryGet())
+      key.ancestor(key / Key.init("f:g").tryGet())
 
     check:
-      key.isDescendantOf(key.parent.tryGet())
-      not Key.init("f:g").tryGet().isDescendantOf(key.parent.tryGet())
+      key.descendant(key.parent.tryGet())
+      not Key.init("f:g").tryGet().descendant(key.parent.tryGet())
 
   test "serialization":
     let
