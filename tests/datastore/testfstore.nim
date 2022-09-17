@@ -8,10 +8,10 @@ import pkg/questionable/results
 import pkg/stew/byteutils
 from pkg/stew/results as stewResults import get, isOk
 
-import ../../datastore/filesystem_datastore
+import ../../datastore/fsstore
 import ./templates
 
-suite "FileSystemDatastore":
+suite "FSDatastore":
   # assumes tests/test_all is run from project root, e.g. with `nimble test`
   let
     root = "tests" / "test_data"
@@ -28,45 +28,45 @@ suite "FileSystemDatastore":
 
   asyncTest "new":
     var
-      dsRes: ?!FileSystemDatastore
+      dsRes: ?!FSDatastore
 
-    dsRes = FileSystemDatastore.new(rootAbs / "missing")
+    dsRes = FSDatastore.new(rootAbs / "missing")
 
     check: dsRes.isErr
 
-    dsRes = FileSystemDatastore.new(rootAbs)
+    dsRes = FSDatastore.new(rootAbs)
 
     check: dsRes.isOk
 
-    dsRes = FileSystemDatastore.new(root)
+    dsRes = FSDatastore.new(root)
 
     check: dsRes.isOk
 
   asyncTest "accessors":
     let
-      ds = FileSystemDatastore.new(root).get
+      ds = FSDatastore.new(root).get
 
     check: ds.root == rootAbs
 
   asyncTest "helpers":
       let
-        ds = FileSystemDatastore.new(root).tryGet()
+        ds = FSDatastore.new(root).tryGet()
 
       check:
         # see comment in ../../datastore/filesystem_datastore re: whether path
         # equivalence of e.g. Key(/a:b) and Key(/a/b) is problematic
-        ds.path(Key.init("a").tryGet()) == rootAbs / "a" & objExt
-        ds.path(Key.init("a:b").tryGet()) == rootAbs / "a" / "b" & objExt
-        ds.path(Key.init("a/b").tryGet()) == rootAbs / "a" / "b" & objExt
-        ds.path(Key.init("a:b/c").tryGet()) == rootAbs / "a" / "b" / "c" & objExt
-        ds.path(Key.init("a/b/c").tryGet()) == rootAbs / "a" / "b" / "c" & objExt
-        ds.path(Key.init("a:b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
-        ds.path(Key.init("a/b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
-        ds.path(Key.init("a/b/c/d").tryGet()) == rootAbs / "a" / "b" / "c" / "d" & objExt
+        ds.path(Key.init("a").tryGet()) == rootAbs / "a"
+        ds.path(Key.init("a:b").tryGet()) == rootAbs / "a" / "b"
+        ds.path(Key.init("a/b").tryGet()) == rootAbs / "a" / "b"
+        ds.path(Key.init("a:b/c").tryGet()) == rootAbs / "a" / "b" / "c"
+        ds.path(Key.init("a/b/c").tryGet()) == rootAbs / "a" / "b" / "c"
+        ds.path(Key.init("a:b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d"
+        ds.path(Key.init("a/b/c:d").tryGet()) == rootAbs / "a" / "b" / "c" / "d"
+        ds.path(Key.init("a/b/c/d").tryGet()) == rootAbs / "a" / "b" / "c" / "d"
 
   asyncTest "put":
     let
-      ds = FileSystemDatastore.new(root).get
+      ds = FSDatastore.new(root).get
       key = Key.init("a:b/c/d:e").get
       path = ds.path(key)
 
@@ -97,7 +97,7 @@ suite "FileSystemDatastore":
   asyncTest "delete":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
-      ds = FileSystemDatastore.new(root).get
+      ds = FSDatastore.new(root).get
 
     var
       key = Key.init("a:b/c/d:e").get
@@ -127,7 +127,7 @@ suite "FileSystemDatastore":
   asyncTest "contains":
     let
       bytes = @[1.byte, 2.byte, 3.byte]
-      ds = FileSystemDatastore.new(root).get
+      ds = FSDatastore.new(root).get
 
     var
       key = Key.init("a:b/c/d:e").get
@@ -155,7 +155,7 @@ suite "FileSystemDatastore":
 
   asyncTest "get":
     let
-      ds = FileSystemDatastore.new(root).get
+      ds = FSDatastore.new(root).get
 
     var
       bytes: seq[byte]
