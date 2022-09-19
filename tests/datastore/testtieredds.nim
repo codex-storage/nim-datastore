@@ -4,10 +4,42 @@ import std/os
 import pkg/asynctest
 import pkg/chronos
 import pkg/stew/results
+import pkg/stew/byteutils
 
 import pkg/datastore/fsds
 import pkg/datastore/sql
 import pkg/datastore/tieredds
+
+import ./basictests
+
+suite "Test Basic FSDatastore":
+  let
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+    key = Key.init("a:b/c/d:e").get
+    root = "tests" / "test_data"
+    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    rootAbs = path.parentDir / root
+
+  var
+    ds1: SQLiteDatastore
+    ds2: FSDatastore
+    tiredDs: TieredDatastore
+
+  setupAll:
+    removeDir(rootAbs)
+    require(not dirExists(rootAbs))
+    createDir(rootAbs)
+
+    ds1 = SQLiteDatastore.new(Memory).tryGet
+    ds2 = FSDatastore.new(rootAbs, depth = 5).tryGet
+    tiredDs = TieredDatastore.new(@[ds1, ds2]).tryGet
+
+  teardownAll:
+    removeDir(rootAbs)
+    require(not dirExists(rootAbs))
+
+  basicStoreTests(tiredDs, key, bytes, otherBytes)
 
 suite "TieredDatastore":
   # assumes tests/test_all is run from project root, e.g. with `nimble test`
