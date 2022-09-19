@@ -25,4 +25,5 @@ suite "Datastore (base)":
 
   test "query":
     expect Defect:
-      for n in ds.query(Query.init(key)): discard
+      let iter = await ds.query(Query.init(key))
+      for n in iter: discard
