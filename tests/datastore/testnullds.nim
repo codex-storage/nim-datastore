@@ -4,34 +4,33 @@ import pkg/asynctest/unittest2
 import pkg/chronos
 import pkg/stew/results
 
-import ../../datastore/null_datastore
-import ./templates
+import pkg/datastore/nullds
 
 suite "NullDatastore":
   let
     key = Key.init("a").get
     ds = NullDatastore.new()
 
-  asyncTest "new":
+  test "new":
     check: not ds.isNil
 
-  asyncTest "put":
+  test "put":
     check: (await ds.put(key, @[1.byte])).isOk
 
-  asyncTest "delete":
+  test "delete":
     check: (await ds.delete(key)).isOk
 
-  asyncTest "contains":
+  test "contains":
     check:
       (await ds.contains(key)).isOk
       (await ds.contains(key)).get == false
 
-  asyncTest "get":
+  test "get":
     check:
       (await ds.get(key)).isOk
       (await ds.get(key)).get.isNone
 
-  asyncTest "query":
+  test "query":
     var
       x = true
 

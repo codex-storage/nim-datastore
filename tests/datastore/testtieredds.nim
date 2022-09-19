@@ -5,10 +5,9 @@ import pkg/asynctest/unittest2
 import pkg/chronos
 import pkg/stew/results
 
-import ../../datastore/filesystem_datastore
-import ../../datastore/sqlite_datastore
-import ../../datastore/tiered_datastore
-import ./templates
+import ../../datastore/fsds
+import ../../datastore/sql
+import ../../datastore/tieredds
 
 suite "TieredDatastore":
   # assumes tests/test_all is run from project root, e.g. with `nimble test`
@@ -35,7 +34,7 @@ suite "TieredDatastore":
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
 
-  asyncTest "new":
+  test "new":
     check:
       TieredDatastore.new().isErr
       TieredDatastore.new([]).isErr
@@ -44,7 +43,7 @@ suite "TieredDatastore":
       TieredDatastore.new([ds1, ds2]).isOk
       TieredDatastore.new(@[ds1, ds2]).isOk
 
-  asyncTest "accessors":
+  test "accessors":
     let
       stores = @[ds1, ds2]
 
@@ -53,7 +52,7 @@ suite "TieredDatastore":
       TieredDatastore.new([ds1, ds2]).get.stores == stores
       TieredDatastore.new(@[ds1, ds2]).get.stores == stores
 
-  asyncTest "put":
+  test "put":
     let
       ds = TieredDatastore.new(ds1, ds2).get
 
@@ -68,7 +67,7 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.get == bytes
       (await ds2.get(key)).get.get == bytes
 
-  asyncTest "delete":
+  test "delete":
     let
       ds = TieredDatastore.new(ds1, ds2).get
       putRes = await ds.put(key, bytes)
@@ -85,7 +84,7 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.isNone
       (await ds2.get(key)).get.isNone
 
-  asyncTest "contains":
+  test "contains":
     let
       ds = TieredDatastore.new(ds1, ds2).get
 
@@ -106,7 +105,7 @@ suite "TieredDatastore":
       (await ds1.contains(key)).get
       (await ds2.contains(key)).get
 
-  asyncTest "get":
+  test "get":
     var
       ds = TieredDatastore.new(ds1, ds2).get
 
@@ -149,6 +148,6 @@ suite "TieredDatastore":
       (await ds1.get(key)).get.isSome
       (await ds1.get(key)).get.get == bytes
 
-  # asyncTest "query":
+  # test "query":
   #   check:
   #     true
