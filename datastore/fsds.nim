@@ -1,5 +1,6 @@
 import std/os
 import std/sequtils
+import std/strutils
 import std/options
 
 import pkg/chronos
@@ -20,23 +21,27 @@ const
   # Paths should be matched exactly, i.e.
   # we're forbidding this dirs from being
   # touched directly, but subdirectories
-  # can still be touched
-  ProtectedPaths = [
+  # can still be touched/created
+  ProtectedPaths* = [
     "/",
     "/usr",
     "/etc",
     "/home",
     "/Users"]
 
+  Allowed* =
+    toSeq('A'..'Z') &
+    toSeq('a'..'z') &
+    toSeq('0'..'9') &
+    toSeq(['/', '_', '-'])
+
 type
   FSDatastore* = ref object of Datastore
     root*: string
     ignoreProtected: bool
+    depth: int
 
-func checkProtected(dir: string): bool =
-  dir in ProtectedPaths
-
-proc path*(self: FSDatastore, key: Key): string =
+template path*(self: FSDatastore, key: Key): string =
   var
     segments: seq[string]
 
@@ -45,21 +50,52 @@ proc path*(self: FSDatastore, key: Key): string =
       segments.add ns.value
       continue
 
+    # `:` are replaced with `/`
     segments.add(ns.field / ns.value)
 
-  # is it problematic that per this logic Key(/a:b) evaluates to the same path
-  # as Key(/a/b)? may need to check if/how other Datastore implementations
-  # distinguish them
+  self.root / segments.joinPath()
 
-  self.root / joinPath(segments)
+template checkProtected*(path: string): bool =
+  path in ProtectedPaths
+
+template allowed*(path: string): bool =
+  var notfound = true
+  for s in path:
+    if s.char notin Allowed:
+      notfound = false
+      break
+
+  notfound
+
+template validDepth*(self: FSDatastore, key: Key): bool =
+  key.len <= self.depth
 
 method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
-  return success fileExists(self.path(key))
 
-method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
 
   let
     path = self.path(key)
+
+  if not path.allowed:
+    return failure "Path is contains invalid characters!"
+
+  if checkProtected(path):
+    return failure "Path is protected!"
+
+  return success fileExists(path)
+
+method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
+
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
+
+  let
+    path = self.path(key)
+
+  if not path.allowed:
+    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -84,8 +120,14 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   # calling the former after allocating a seq with size automatically
   # determined via `getFileSize`
 
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
+
   let
     path = self.path(key)
+
+  if not path.allowed:
+    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -119,7 +161,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
     return success bytes
 
-  except IOError as e:
+  except CatchableError as e:
     return failure e
 
 method put*(
@@ -127,8 +169,14 @@ method put*(
   key: Key,
   data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
+
   let
     path = self.path(key)
+
+  if not path.allowed:
+    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -136,9 +184,7 @@ method put*(
   try:
     createDir(parentDir(path))
     writeFile(path, data)
-  except IOError as e:
-    return failure e
-  except OSError as e:
+  except CatchableError as e:
     return failure e
 
   return success()
@@ -152,6 +198,7 @@ method put*(
 proc new*(
   T: type FSDatastore,
   root: string,
+  depth = 2,
   caseSensitive = true,
   ignoreProtected = false): ?!T =
 
@@ -165,4 +212,5 @@ proc new*(
 
   success T(
     root: root,
-    ignoreProtected: ignoreProtected)
+    ignoreProtected: ignoreProtected,
+    depth: depth)
