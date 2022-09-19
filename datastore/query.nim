@@ -1,3 +1,6 @@
+import pkg/upraises
+import pkg/chronos
+
 import ./key
 
 type
@@ -13,7 +16,15 @@ type
     sort*: SortOrder
 
   QueryResponse* = tuple[key: Key, data: seq[byte]]
-  QueryIter* = iterator(): QueryResponse {.closure.}
+
+  GetNext* = proc(): Future[QueryResponse] {.upraises: [], gcsafe, closure.}
+  QueryIter* = object
+    finished: bool
+    next*: GetNext
+
+iterator items*(q: QueryIter): Future[QueryResponse] =
+  while not q.finished:
+    yield q.next()
 
 proc init*(
   T: type Query,
