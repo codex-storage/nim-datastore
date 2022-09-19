@@ -29,11 +29,11 @@ method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, locks: "unkn
 method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method close*(self: Datastore): Future[?!void] {.base, locks: "unknown".} =
-  raiseAssert("Not implemented!")
+method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
+  return success()
 
 method query*(
   self: Datastore,
-  query: Query): Future[QueryIter] =
+  query: Query): Future[QueryIter] {.gcsafe.} =
 
   raiseAssert("Not implemented!")
