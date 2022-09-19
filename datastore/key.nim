@@ -22,8 +22,8 @@ type
     namespaces*: seq[Namespace]
 
 const
-  delimiter = ":"
-  separator = "/"
+  Delimiter* = ":"
+  Separator* = "/"
 
 # TODO: operator/s for combining string|Namespace,string|Namespace
 # TODO: lifting from ?![Namespace|Key] for various ops
@@ -35,25 +35,25 @@ func init*(
   if value.strip == "":
     return failure "value string must not be all whitespace or empty"
 
-  if value.contains(delimiter):
-    return failure "value string must not contain delimiter \"" &
-      delimiter & "\""
+  if value.contains(Delimiter):
+    return failure "value string must not contain Delimiter \"" &
+      Delimiter & "\""
 
-  if value.contains(separator):
-    return failure "value string must not contain separator \"" &
-      separator & "\""
+  if value.contains(Separator):
+    return failure "value string must not contain Separator \"" &
+      Separator & "\""
 
   if field != "":
     if field.strip == "":
       return failure "field string must not be all whitespace"
 
-    if field.contains(delimiter):
-      return failure "field string must not contain delimiter \"" &
-        delimiter & "\""
+    if field.contains(Delimiter):
+      return failure "field string must not contain Delimiter \"" &
+        Delimiter & "\""
 
-    if field.contains(separator):
-      return failure "field string must not contain separator \"" &
-        separator & "\""
+    if field.contains(Separator):
+      return failure "field string must not contain Separator \"" &
+        Separator & "\""
 
   success T(field: field, value: value)
 
@@ -61,20 +61,20 @@ func init*(T: type Namespace, id: string): ?!T =
   if id.strip == "":
     return failure "id string must not be all whitespace or empty"
 
-  if id.contains(separator):
-    return failure "id string must not contain separator \"" & separator & "\""
+  if id.contains(Separator):
+    return failure "id string must not contain Separator \"" & Separator & "\""
 
-  if id == delimiter:
-    return failure "value in id string \"[field]" & delimiter &
+  if id == Delimiter:
+    return failure "value in id string \"[field]" & Delimiter &
       "[value]\" must not be empty"
 
-  if id.count(delimiter) > 1:
-    return failure "id string must not contain more than one delimiter \"" &
-      delimiter & "\""
+  if id.count(Delimiter) > 1:
+    return failure "id string must not contain more than one Delimiter \"" &
+      Delimiter & "\""
 
   let
     (field, value) = block:
-      let parts = id.split(delimiter)
+      let parts = id.split(Delimiter)
       if parts.len > 1:
         (parts[0], parts[^1])
       else:
@@ -84,7 +84,7 @@ func init*(T: type Namespace, id: string): ?!T =
 
 func id*(self: Namespace): string =
   if self.field.len > 0:
-    self.field & delimiter & self.value
+    self.field & Delimiter & self.value
   else:
     self.value
 
@@ -117,11 +117,11 @@ func init*(T: type Key, id: string): ?!T =
     return failure "id string must not be all whitespace"
 
   let
-    nsStrs = id.split(separator).filterIt(it != "")
+    nsStrs = id.split(Separator).filterIt(it != "")
 
   if nsStrs.len == 0:
-    return failure "id string must not contain only one or more separator " &
-      "\"" & separator & "\""
+    return failure "id string must not contain more than one Separator " &
+      "\"" & Separator & "\""
 
   Key.init(nsStrs)
 
@@ -156,7 +156,7 @@ func `type`*(self: Key): string =
     return self[^1].field
 
 func id*(self: Key): string =
-  separator & self.namespaces.mapIt(it.id).join(separator)
+  Separator & self.namespaces.mapIt(it.id).join(Separator)
 
 func root*(self: Key): bool =
   self.len == 1
