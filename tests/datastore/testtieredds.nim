@@ -1,13 +1,13 @@
 import std/options
 import std/os
 
-import pkg/asynctest/unittest2
+import pkg/asynctest
 import pkg/chronos
 import pkg/stew/results
 
-import ../../datastore/fsds
-import ../../datastore/sql
-import ../../datastore/tieredds
+import pkg/datastore/fsds
+import pkg/datastore/sql
+import pkg/datastore/tieredds
 
 suite "TieredDatastore":
   # assumes tests/test_all is run from project root, e.g. with `nimble test`
@@ -15,22 +15,26 @@ suite "TieredDatastore":
     bytes = @[1.byte, 2.byte, 3.byte]
     key = Key.init("a:b/c/d:e").get
     root = "tests" / "test_data"
-    rootAbs = getCurrentDir() / root
+    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    rootAbs = path.parentDir / root
 
   var
     ds1: SQLiteDatastore
-    ds2: FileSystemDatastore
+    ds2: FSDatastore
 
   setup:
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
     createDir(rootAbs)
-    ds1 = SQLiteDatastore.new(memory).get
-    ds2 = FileSystemDatastore.new(rootAbs).get
+    ds1 = SQLiteDatastore.new(Memory).get
+    ds2 = FSDatastore.new(rootAbs, depth = 5).get
 
   teardown:
-    if not ds1.isNil: ds1.close
+    if not ds1.isNil:
+      discard await ds1.close
+
     ds1 = nil
+
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
 
@@ -48,106 +52,76 @@ suite "TieredDatastore":
       stores = @[ds1, ds2]
 
     check:
-      TieredDatastore.new(ds1, ds2).get.stores == stores
-      TieredDatastore.new([ds1, ds2]).get.stores == stores
-      TieredDatastore.new(@[ds1, ds2]).get.stores == stores
+      TieredDatastore.new(ds1, ds2).tryGet.stores == stores
+      TieredDatastore.new([ds1, ds2]).tryGet.stores == stores
+      TieredDatastore.new(@[ds1, ds2]).tryGet.stores == stores
 
   test "put":
     let
       ds = TieredDatastore.new(ds1, ds2).get
-
-    assert (await ds1.get(key)).get.isNone
-    assert (await ds2.get(key)).get.isNone
-
-    let
       putRes = await ds.put(key, bytes)
 
     check:
       putRes.isOk
-      (await ds1.get(key)).get.get == bytes
-      (await ds2.get(key)).get.get == bytes
+      (await ds1.get(key)).tryGet == bytes
+      (await ds2.get(key)).tryGet == bytes
 
   test "delete":
     let
       ds = TieredDatastore.new(ds1, ds2).get
-      putRes = await ds.put(key, bytes)
 
-    assert putRes.isOk
-    assert (await ds1.get(key)).get.get == bytes
-    assert (await ds2.get(key)).get.get == bytes
-
-    let
-      delRes = await ds.delete(key)
+    (await ds.put(key, bytes)).tryGet
+    (await ds.delete(key)).tryGet
 
     check:
-      delRes.isOk
-      (await ds1.get(key)).get.isNone
-      (await ds2.get(key)).get.isNone
+      (await ds1.get(key)).tryGet.len == 0
+
+    expect DatastoreKeyNotFound:
+      discard (await ds2.get(key)).tryGet
 
   test "contains":
     let
-      ds = TieredDatastore.new(ds1, ds2).get
-
-    assert not (await ds1.contains(key)).get
-    assert not (await ds2.contains(key)).get
-
-    let
-      putRes = await ds.put(key, bytes)
-
-    assert putRes.isOk
-
-    let
-      containsRes = await ds.contains(key)
+      ds = TieredDatastore.new(ds1, ds2).tryGet
 
     check:
-      containsRes.isOk
-      containsRes.get
-      (await ds1.contains(key)).get
-      (await ds2.contains(key)).get
+      not (await ds1.contains(key)).tryGet
+      not (await ds2.contains(key)).tryGet
+
+    (await ds.put(key, bytes)).tryGet
+
+    check:
+      (await ds.contains(key)).tryGet
+      (await ds1.contains(key)).tryGet
+      (await ds2.contains(key)).tryGet
 
   test "get":
     var
-      ds = TieredDatastore.new(ds1, ds2).get
-
-    assert (await ds1.get(key)).get.isNone
-    assert (await ds2.get(key)).get.isNone
-
-    check: (await ds.get(key)).get.isNone
-
-    let
-      putRes = await ds.put(key, bytes)
-
-    assert putRes.isOk
-
-    var
-      getRes = await ds.get(key)
+      ds = TieredDatastore.new(ds1, ds2).tryGet
 
     check:
-      getRes.isOk
-      getRes.get.isSome
-      getRes.get.get == bytes
-      (await ds1.get(key)).get.isSome
-      (await ds2.get(key)).get.isSome
-      (await ds1.get(key)).get.get == bytes
-      (await ds2.get(key)).get.get == bytes
+      not (await ds1.contains(key)).tryGet
+      not (await ds2.contains(key)).tryGet
+      not (await ds.contains(key)).tryGet
 
-    ds1.close
-    ds1 = SQLiteDatastore.new(memory).get
-    ds = TieredDatastore.new(ds1, ds2).get
-
-    assert (await ds1.get(key)).get.isNone
-    assert (await ds2.get(key)).get.isSome
-    assert (await ds2.get(key)).get.get == bytes
-
-    getRes = await ds.get(key)
+    (await ds.put(key, bytes)).tryGet
 
     check:
-      getRes.isOk
-      getRes.get.isSome
-      getRes.get.get == bytes
-      (await ds1.get(key)).get.isSome
-      (await ds1.get(key)).get.get == bytes
+      (await ds.get(key)).tryGet == bytes
+      (await ds1.get(key)).tryGet == bytes
+      (await ds2.get(key)).tryGet == bytes
 
-  # test "query":
-  #   check:
-  #     true
+    (await ds1.close()).tryGet
+    ds1 = nil
+
+    ds1 = SQLiteDatastore.new(Memory).tryGet
+    ds = TieredDatastore.new(ds1, ds2).tryGet
+
+    check:
+      not (await ds1.contains(key)).tryGet
+      (await ds2.get(key)).tryGet == bytes
+      (await ds.get(key)).tryGet == bytes
+      (await ds1.get(key)).tryGet == bytes
+
+  # # test "query":
+  # #   check:
+  # #     true
