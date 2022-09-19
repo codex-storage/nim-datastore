@@ -133,7 +133,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
     return failure "Path is protected!"
 
   if not fileExists(path):
-    return success(newSeq[byte]())
+    return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
   var
     file: File
