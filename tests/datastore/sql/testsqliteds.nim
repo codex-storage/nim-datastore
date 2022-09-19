@@ -9,7 +9,9 @@ import pkg/stew/byteutils
 
 import pkg/datastore/sql/sqliteds
 
-suite "SQLiteDatastore":
+import ../basictests
+
+suite "Test Basic SQLiteDatastore":
   let
     (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
     basePath = "tests_data"
@@ -19,6 +21,32 @@ suite "SQLiteDatastore":
     key = Key.init("a:b/c/d:e").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
+
+  var
+    dsDb: SQLiteDatastore
+
+  setupAll:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
+
+    dsDb = SQLiteDatastore.new(path = dbPathAbs).tryGet()
+
+  teardownAll:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+
+  basicStoreTests(dsDb, key, bytes, otherBytes)
+
+suite "Test Read Only SQLiteDatastore":
+  let
+    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    filename = "test_store" & DbExt
+    dbPathAbs = basePathAbs / filename
+    key = Key.init("a:b/c/d:e").tryGet()
+    bytes = "some bytes".toBytes
 
   var
     dsDb: SQLiteDatastore
@@ -46,17 +74,6 @@ suite "SQLiteDatastore":
     check:
       (await readOnlyDb.get(key)).tryGet() == bytes
       (await dsDb.get(key)).tryGet() == bytes
-
-  test "put update":
-    check:
-      (await readOnlyDb.put(key, otherBytes)).isErr
-
-    (await dsDb.put(key, otherBytes)).tryGet()
-
-  test "get updated":
-    check:
-      (await readOnlyDb.get(key)).tryGet() == otherBytes
-      (await dsDb.get(key)).tryGet() == otherBytes
 
   test "delete":
     check:
