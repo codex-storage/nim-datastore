@@ -29,11 +29,11 @@ const
     "/home",
     "/Users"]
 
-  Allowed* =
-    toSeq('A'..'Z') &
-    toSeq('a'..'z') &
-    toSeq('0'..'9') &
-    toSeq(['/', '_', '-'])
+  Allowed* = {
+    'a'..'z',
+    'A'..'Z',
+    DirSep, AltSep,
+    '_', '-'}
 
 type
   FSDatastore* = ref object of Datastore
