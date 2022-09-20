@@ -1,4 +1,3 @@
-import std/algorithm
 import std/options
 import std/os
 

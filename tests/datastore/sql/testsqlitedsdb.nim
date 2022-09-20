@@ -101,6 +101,9 @@ suite "Test SQLite Datastore DB operations":
       flags = SQLITE_OPEN_READONLY).tryGet()
 
   teardownAll:
+    dsDb.close()
+    readOnlyDb.close()
+
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 

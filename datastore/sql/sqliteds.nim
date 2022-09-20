@@ -1,11 +1,9 @@
-import std/os
 import std/times
 
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
-import pkg/stew/byteutils
 from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 

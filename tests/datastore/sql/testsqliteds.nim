@@ -1,4 +1,3 @@
-import std/algorithm
 import std/options
 import std/os
 
@@ -33,9 +32,10 @@ suite "Test Basic SQLiteDatastore":
     dsDb = SQLiteDatastore.new(path = dbPathAbs).tryGet()
 
   teardownAll:
+    (await dsDb.close()).tryGet()
+
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
-    (await dsDb.close()).tryGet()
 
   basicStoreTests(dsDb, key, bytes, otherBytes)
 
@@ -62,9 +62,11 @@ suite "Test Read Only SQLiteDatastore":
     readOnlyDb = SQLiteDatastore.new(path = dbPathAbs, readOnly = true).tryGet()
 
   teardownAll:
+    (await dsDb.close()).tryGet()
+    (await readOnlyDb.close()).tryGet()
+
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
-    (await dsDb.close()).tryGet()
 
   test "put":
     check:

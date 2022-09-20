@@ -1,6 +1,4 @@
 import std/os
-import std/sequtils
-import std/strutils
 import std/options
 
 import pkg/chronos
@@ -14,27 +12,6 @@ import ./datastore
 export datastore
 
 push: {.upraises: [].}
-
-const
-  # TODO: Add more dirs from relevant OSs
-
-  # Paths should be matched exactly, i.e.
-  # we're forbidding this dirs from being
-  # touched directly, but subdirectories
-  # can still be touched/created
-  ProtectedPaths* =
-    when doslikeFileSystem:
-      [
-        "\\System32",
-        "\\System",
-        "\\Start Menu\\Programs"]
-    else:
-      [
-        "/",
-        "/usr",
-        "/etc",
-        "/home",
-        "/Users"]
 
 type
   FSDatastore* = ref object of Datastore
