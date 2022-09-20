@@ -32,6 +32,7 @@ const
   Allowed* = {
     'a'..'z',
     'A'..'Z',
+    '0'..'9',
     DirSep, AltSep,
     '_', '-'}
 
