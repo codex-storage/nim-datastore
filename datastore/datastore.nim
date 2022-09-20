@@ -24,7 +24,7 @@ method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, 
   raiseAssert("Not implemented!")
 
 method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
-  return success()
+  raiseAssert("Not implemented!")
 
 method query*(
   self: Datastore,
