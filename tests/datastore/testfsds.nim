@@ -86,6 +86,34 @@ suite "Test Misc FSDatastore":
       (await fs.delete(key)).isOk
       (await fs.contains(key)).isOk
 
+  test "Test key cannot write outside of root":
+    let
+      fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+      key = Key.init("/a/../../c").tryGet()
+
+    check:
+      (await fs.put(key, bytes)).isErr
+      (await fs.get(key)).isErr
+      (await fs.delete(key)).isErr
+      (await fs.contains(key)).isErr
+
+  test "Test key cannot convert to invalid path":
+    let
+      fs = FSDatastore.new(root = basePathAbs).tryGet()
+
+    for c in invalidFilenameChars:
+      if c == ':': continue
+      if c == '/': continue
+
+      let
+        key = Key.init("/" & c).tryGet()
+
+      check:
+        (await fs.put(key, bytes)).isErr
+        (await fs.get(key)).isErr
+        (await fs.delete(key)).isErr
+        (await fs.contains(key)).isErr
+
 suite "Test Query":
   let
     (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name

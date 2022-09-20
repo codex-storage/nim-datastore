@@ -37,6 +37,9 @@ template path*(self: FSDatastore, key: Key): string =
 template validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
 
+template isRootSubdir*(self: FSDatastore, path: string): bool =
+  path.startsWith(self.root)
+
 method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
 
   if not self.validDepth(key):
@@ -44,6 +47,12 @@ method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
 
   let
     path = self.path(key).addFileExt(FileExt)
+
+  if not self.isRootSubdir(path):
+    return failure "Path is outside of `root` directory!"
+
+  if not path.extractFilename.isValidFilename:
+    return failure "Filename contains invalid chars!"
 
   return success fileExists(path)
 
@@ -57,6 +66,12 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   if not path.fileExists():
     return failure newException(DatastoreKeyNotFound, "Key not found!")
+
+  if not self.isRootSubdir(path):
+    return failure "Path is outside of `root` directory!"
+
+  if not path.extractFilename.isValidFilename:
+    return failure "Filename contains invalid chars!"
 
   try:
     removeFile(path)
@@ -125,6 +140,12 @@ method put*(
 
   let
     path = self.path(key)
+
+  if not self.isRootSubdir(path):
+    return failure "Path is outside of `root` directory!"
+
+  if not path.extractFilename.isValidFilename:
+    return failure "Filename contains invalid chars!"
 
   try:
     createDir(parentDir(path))
