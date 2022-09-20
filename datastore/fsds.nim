@@ -22,12 +22,16 @@ const
   # we're forbidding this dirs from being
   # touched directly, but subdirectories
   # can still be touched/created
-  ProtectedPaths* = [
-    "/",
-    "/usr",
-    "/etc",
-    "/home",
-    "/Users"]
+  ProtectedPaths* =
+    when doslikeFileSystem:
+      []
+    else:
+    [
+      "/",
+      "/usr",
+      "/etc",
+      "/home",
+      "/Users"]
 
 type
   FSDatastore* = ref object of Datastore
@@ -50,7 +54,6 @@ template path*(self: FSDatastore, key: Key): string =
   self.root / segments.joinPath()
 
 template checkProtected*(path: string): bool =
-  echo "PATH ", path
   path in ProtectedPaths
 
 template validDepth*(self: FSDatastore, key: Key): bool =
