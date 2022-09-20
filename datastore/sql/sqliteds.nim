@@ -14,9 +14,6 @@ export datastore, sqlitedsdb
 
 push: {.upraises: [].}
 
-const
-  EmptyBytes = newSeq[byte](0)
-
 type
   SQLiteDatastore* = ref object of Datastore
     readOnly: bool
@@ -71,6 +68,7 @@ method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.
 
 method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
   self.db.close()
+
   return success()
 
 method query*(

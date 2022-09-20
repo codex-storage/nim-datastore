@@ -1,5 +1,6 @@
 import std/os
 import std/options
+import std/strutils
 
 import pkg/chronos
 import pkg/questionable
@@ -31,7 +32,7 @@ template path*(self: FSDatastore, key: Key): string =
     # `:` are replaced with `/`
     segments.add(ns.field / ns.value)
 
-  self.root / segments.joinPath()
+  (self.root / segments.joinPath()).absolutePath()
 
 template validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
@@ -42,7 +43,7 @@ method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
     return failure "Path has invalid depth!"
 
   let
-    path = self.path(key)
+    path = self.path(key).addFileExt(FileExt)
 
   return success fileExists(path)
 
@@ -52,7 +53,10 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
     return failure "Path has invalid depth!"
 
   let
-    path = self.path(key)
+    path = self.path(key).addFileExt(FileExt)
+
+  if not path.fileExists():
+    return failure newException(DatastoreKeyNotFound, "Key not found!")
 
   try:
     removeFile(path)
@@ -61,24 +65,7 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
   except OSError as e:
     return failure e
 
-method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
-
-  # to support finer control of memory allocation, maybe could/should change
-  # the signature of `get` so that it has a 3rd parameter
-  # `bytes: var openArray[byte]` and return type `?!bool`; this variant with
-  # return type `?!(?seq[byte])` would be a special case (convenience method)
-  # calling the former after allocating a seq with size automatically
-  # determined via `getFileSize`
-
-  if not self.validDepth(key):
-    return failure "Path has invalid depth!"
-
-  let
-    path = self.path(key)
-
-  if not fileExists(path):
-    return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
-
+proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   var
     file: File
 
@@ -86,7 +73,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
     file.close
 
   if not file.open(path):
-    return failure "unable to open file: " & path
+    return failure newException(DatastoreKeyNotFound, "Key not found!")
 
   try:
     let
@@ -108,6 +95,26 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   except CatchableError as e:
     return failure e
 
+method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+
+  # to support finer control of memory allocation, maybe could/should change
+  # the signature of `get` so that it has a 3rd parameter
+  # `bytes: var openArray[byte]` and return type `?!bool`; this variant with
+  # return type `?!(?seq[byte])` would be a special case (convenience method)
+  # calling the former after allocating a seq with size automatically
+  # determined via `getFileSize`
+
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
+
+  let
+    path = self.path(key).addFileExt(FileExt)
+
+  if not path.fileExists():
+    return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
+
+  return self.readFile(path)
+
 method put*(
   self: FSDatastore,
   key: Key,
@@ -121,17 +128,52 @@ method put*(
 
   try:
     createDir(parentDir(path))
-    writeFile(path, data)
+    writeFile(path.addFileExt(FileExt), data)
   except CatchableError as e:
     return failure e
 
   return success()
 
-# method query*(
-#   self: FSDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
-#
-#   return success ....some
+proc dirWalker(path: string): iterator: string {.gcsafe.} =
+  return iterator(): string =
+    try:
+      for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
+        yield p
+    except CatchableError as exc:
+      raise newException(Defect, exc.msg)
+
+method query*(
+  self: FSDatastore,
+  query: Query): Future[?!QueryIter] {.async.} =
+  var
+    iter = QueryIter.new()
+
+  let
+    basePath = self.path(query.key).parentDir
+    walker = dirWalker(basePath)
+
+  proc next(): Future[?!QueryResponse] {.async.} =
+    let
+      path = walker()
+
+    if finished(walker):
+      iter.finished = true
+      return success (Key.none, EmptyBytes)
+
+    without data =? self.readFile((basePath / path).absolutePath), err:
+      return failure err
+
+    var
+      keyPath = basePath
+
+    keyPath.removePrefix(self.root)
+    let
+      key = Key.init(keyPath / path.changeFileExt("")).expect("should not fail")
+
+    return success (key.some, data)
+
+  iter.next = next
+  return success iter
 
 proc new*(
   T: type FSDatastore,
