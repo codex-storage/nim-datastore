@@ -1,5 +1,7 @@
 import std/options
+import std/sequtils
 import std/os
+from std/algorithm import sort, reversed
 
 import pkg/asynctest/unittest2
 import pkg/chronos
@@ -8,7 +10,8 @@ import pkg/stew/byteutils
 
 import pkg/datastore/fsds
 
-import ./basictests
+import ./dscommontests
+import ./querycommontests
 
 suite "Test Basic FSDatastore":
   let
@@ -42,12 +45,12 @@ suite "Test Misc FSDatastore":
     basePathAbs = path.parentDir / basePath
     bytes = "some bytes".toBytes
 
-  setupAll:
+  setup:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
     createDir(basePathAbs)
 
-  teardownAll:
+  teardown:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 
@@ -82,3 +85,27 @@ suite "Test Misc FSDatastore":
       (await fs.get(key)).isOk
       (await fs.delete(key)).isOk
       (await fs.contains(key)).isOk
+
+suite "Test Query":
+  let
+    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    bytes = "some bytes".toBytes
+
+  var
+    ds: FSDatastore
+
+  setup:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
+
+    ds = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
+
+  teardown:
+
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+
+  queryTests(ds, false)
