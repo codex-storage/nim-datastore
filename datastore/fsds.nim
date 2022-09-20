@@ -63,6 +63,7 @@ template allowed*(path: string): bool =
   var notfound = true
   for s in path:
     if s.char notin Allowed:
+      echo "INVALID CHAR ", s
       notfound = false
       break
 
