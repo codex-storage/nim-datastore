@@ -71,7 +71,8 @@ method get*(
     for s in self.stores:
       if s == store: break
       if(
-        let res = await s.put(key, bytes); res.isErr):
+        let res = (await s.put(key, bytes));
+        res.isErr):
         return failure res.error
 
     return success bytes
