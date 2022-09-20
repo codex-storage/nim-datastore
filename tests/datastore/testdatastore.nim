@@ -4,7 +4,7 @@ import pkg/asynctest/unittest2
 import pkg/chronos
 import pkg/stew/results
 
-import ../../datastore
+import pkg/datastore
 
 suite "Datastore (base)":
   let
@@ -25,5 +25,5 @@ suite "Datastore (base)":
 
   test "query":
     expect Defect:
-      let iter = await ds.query(Query.init(key))
+      let iter = (await ds.query(Query.init(key))).tryGet
       for n in iter: discard

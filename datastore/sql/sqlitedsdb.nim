@@ -60,7 +60,7 @@ const
     SELECT EXISTS(
       SELECT 1 FROM """ & TableName & """
       WHERE """ & IdColName & """ = ?
-    );
+    )
   """
 
   ContainsStmtExistsCol* = 0
@@ -75,12 +75,12 @@ const
 
   DeleteStmtStr* = """
     DELETE FROM """ & TableName & """
-    WHERE """ & IdColName & """ = ?;
+    WHERE """ & IdColName & """ = ?
   """
 
   GetStmtStr* = """
     SELECT """ & DataColName & """ FROM """ & TableName & """
-    WHERE """ & IdColName & """ = ?;
+    WHERE """ & IdColName & """ = ?
   """
 
   GetStmtDataCol* = 0
@@ -90,12 +90,28 @@ const
       """ & IdColName & """,
       """ & DataColName & """,
       """ & TimestampColName & """
-    ) VALUES (?, ?, ?);
+    ) VALUES (?, ?, ?)
   """
 
   QueryStmtStr* = """
     SELECT """ & IdColName & """, """ & DataColName & """ FROM """ & TableName &
-    """ WHERE """ & IdColName & """ GLOB ?;
+        """ WHERE """ & IdColName & """ GLOB ?
+  """
+
+  QueryStmtOffset* = """
+    OFFSET ?
+  """
+
+  QueryStmtLimit* = """
+    LIMIT ?
+  """
+
+  QueryStmtOrderAscending* = """
+    ORDER BY """ & IdColName & """ ASC
+  """
+
+  QueryStmtOrderDescending* = """
+    ORDER BY """ & IdColName & """ DESC
   """
 
   QueryStmtIdCol* = 0

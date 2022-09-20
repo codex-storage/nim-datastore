@@ -5,17 +5,11 @@ import pkg/upraises
 
 import ./key
 import ./query
+import ./types
 
-export key, query
+export key, query, types
 
 push: {.upraises: [].}
-
-type
-  DatastoreError* = object of CatchableError
-  DatastoreKeyNotFound* = object of DatastoreError
-
-  CodexResult*[T] = Result[T, ref DatastoreError]
-  Datastore* = ref object of RootObj
 
 method contains*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
@@ -30,10 +24,10 @@ method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, 
   raiseAssert("Not implemented!")
 
 method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
-  return success()
+  raiseAssert("Not implemented!")
 
 method query*(
   self: Datastore,
-  query: Query): Future[QueryIter] {.gcsafe.} =
+  query: Query): Future[?!QueryIter] {.gcsafe.} =
 
   raiseAssert("Not implemented!")
