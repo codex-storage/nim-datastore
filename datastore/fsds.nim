@@ -167,8 +167,11 @@ method query*(
       keyPath = basePath
 
     keyPath.removePrefix(self.root)
+    keyPath = keyPath / path.changeFileExt("")
+    keyPath = keyPath.replace("\\", "/")
+
     let
-      key = Key.init(keyPath / path.changeFileExt("")).expect("should not fail")
+      key = Key.init(keyPath).expect("should not fail")
 
     return success (key.some, data)
 
