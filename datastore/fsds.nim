@@ -34,7 +34,7 @@ const
     'A'..'Z',
     '0'..'9',
     DirSep, AltSep,
-    '_', '-'}
+    '_', '-', '.'}
 
 type
   FSDatastore* = ref object of Datastore
