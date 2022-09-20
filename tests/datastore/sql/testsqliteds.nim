@@ -14,32 +14,15 @@ import ../basictests
 
 suite "Test Basic SQLiteDatastore":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
-    basePath = "tests_data"
-    basePathAbs = path.parentDir / basePath
-    filename = "test_store" & DbExt
-    dbPathAbs = basePathAbs / filename
+    ds = SQLiteDatastore.new(Memory).tryGet()
     key = Key.init("a:b/c/d:e").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
-  var
-    dsDb: SQLiteDatastore
+  teardown:
+    (await ds.close()).tryGet()
 
-  setupAll:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
-
-    dsDb = SQLiteDatastore.new(path = dbPathAbs).tryGet()
-
-  teardownAll:
-    (await dsDb.close()).tryGet()
-
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-
-  basicStoreTests(dsDb, key, bytes, otherBytes)
+  basicStoreTests(ds, key, bytes, otherBytes)
 
 suite "Test Read Only SQLiteDatastore":
   let

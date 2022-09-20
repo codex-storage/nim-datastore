@@ -69,6 +69,10 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
   return self.db.putStmt.exec((key.id, data, timestamp()))
 
+method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
+  self.db.close()
+  return success()
+
 method query*(
   self: SQLiteDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
