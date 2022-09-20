@@ -6,11 +6,11 @@ import pkg/stew/results
 
 import pkg/datastore
 
-proc basicStoreTests*(
+template basicStoreTests*(
   ds: Datastore,
   key: Key,
   bytes: seq[byte],
-  otherBytes: seq[byte]) =
+  otherBytes: seq[byte]) {.dirty.} =
 
   test "put":
     (await ds.put(key, bytes)).tryGet()
