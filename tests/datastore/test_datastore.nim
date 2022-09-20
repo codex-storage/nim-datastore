@@ -5,25 +5,25 @@ import pkg/chronos
 import pkg/stew/results
 
 import ../../datastore
+import ./templates
 
 suite "Datastore (base)":
   let
     key = Key.init("a").get
     ds = Datastore()
 
-  test "put":
+  asyncTest "put":
     expect Defect: discard ds.put(key, @[1.byte])
 
-  test "delete":
+  asyncTest "delete":
     expect Defect: discard ds.delete(key)
 
-  test "contains":
+  asyncTest "contains":
     expect Defect: discard ds.contains(key)
 
-  test "get":
+  asyncTest "get":
     expect Defect: discard ds.get(key)
 
-  test "query":
+  asyncTest "query":
     expect Defect:
-      let iter = await ds.query(Query.init(key))
-      for n in iter: discard
+      for n in ds.query(Query.init(key)): discard

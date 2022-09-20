@@ -3,8 +3,6 @@ import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/upraises
 
-export sqlite3_abi
-
 # Adapted from:
 # https://github.com/status-im/nwaku/blob/master/waku/v2/node/storage/sqlite.nim
 
@@ -76,7 +74,9 @@ template bindParams(
 
   when params is tuple:
     when params isnot NoParams:
-      var i = 1
+      var
+        i = 1
+
       for param in fields(params):
         checkErr bindParam(s, i, param)
         inc i
