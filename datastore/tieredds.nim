@@ -55,31 +55,27 @@ method delete*(
 
 method get*(
   self: TieredDatastore,
-  key: Key): Future[?!(?seq[byte])] {.async, locks: "unknown".} =
+  key: Key): Future[?!seq[byte]] {.async, locks: "unknown".} =
 
   var
-    bytesOpt: ?seq[byte]
+    bytes: seq[byte]
 
   for store in self.stores:
-    let
-      getRes = await store.get(key)
+    without bytes =? (await store.get(key)):
+      continue
 
-    if getRes.isErr: return getRes
-
-    bytesOpt = getRes.get
+    if bytes.len <= 0:
+      continue
 
     # put found data into stores logically in front of the current store
-    if bytes =? bytesOpt:
-      for s in self.stores:
-        if s == store: break
-        let
-          putRes = await s.put(key, bytes)
+    for s in self.stores:
+      if s == store: break
+      if(
+        let res = (await s.put(key, bytes));
+        res.isErr):
+        return failure res.error
 
-        if putRes.isErr: return failure putRes.error.msg
-
-      break
-
-  return success bytesOpt
+    return success bytes
 
 method put*(
   self: TieredDatastore,

@@ -11,35 +11,29 @@ export key, query
 push: {.upraises: [].}
 
 type
+  DatastoreError* = object of CatchableError
+  DatastoreKeyNotFound* = object of DatastoreError
+
+  CodexResult*[T] = Result[T, ref DatastoreError]
   Datastore* = ref object of RootObj
 
-method contains*(
-  self: Datastore,
-  key: Key): Future[?!bool] {.async, base, locks: "unknown".} =
-
+method contains*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method delete*(
-  self: Datastore,
-  key: Key): Future[?!void] {.async, base, locks: "unknown".} =
-
+method delete*(self: Datastore, key: Key): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method get*(
-  self: Datastore,
-  key: Key): Future[?!(?seq[byte])] {.async, base, locks: "unknown".} =
-
+method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method put*(
-  self: Datastore,
-  key: Key,
-  data: seq[byte]): Future[?!void] {.async, base, locks: "unknown".} =
-
+method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-iterator query*(
+method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
+  return success()
+
+method query*(
   self: Datastore,
-  query: Query): Future[QueryResponse] =
+  query: Query): Future[QueryIter] {.gcsafe.} =
 
   raiseAssert("Not implemented!")

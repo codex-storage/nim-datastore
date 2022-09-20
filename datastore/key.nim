@@ -22,59 +22,59 @@ type
     namespaces*: seq[Namespace]
 
 const
-  delimiter = ":"
-  separator = "/"
+  Delimiter* = ":"
+  Separator* = "/"
 
 # TODO: operator/s for combining string|Namespace,string|Namespace
 # TODO: lifting from ?![Namespace|Key] for various ops
 
-proc init*(
+func init*(
   T: type Namespace,
   field, value: string): ?!T =
 
   if value.strip == "":
     return failure "value string must not be all whitespace or empty"
 
-  if value.contains(delimiter):
-    return failure "value string must not contain delimiter \"" &
-      delimiter & "\""
+  if value.contains(Delimiter):
+    return failure "value string must not contain Delimiter \"" &
+      Delimiter & "\""
 
-  if value.contains(separator):
-    return failure "value string must not contain separator \"" &
-      separator & "\""
+  if value.contains(Separator):
+    return failure "value string must not contain Separator \"" &
+      Separator & "\""
 
   if field != "":
     if field.strip == "":
       return failure "field string must not be all whitespace"
 
-    if field.contains(delimiter):
-      return failure "field string must not contain delimiter \"" &
-        delimiter & "\""
+    if field.contains(Delimiter):
+      return failure "field string must not contain Delimiter \"" &
+        Delimiter & "\""
 
-    if field.contains(separator):
-      return failure "field string must not contain separator \"" &
-        separator & "\""
+    if field.contains(Separator):
+      return failure "field string must not contain Separator \"" &
+        Separator & "\""
 
   success T(field: field, value: value)
 
-proc init*(T: type Namespace, id: string): ?!T =
+func init*(T: type Namespace, id: string): ?!T =
   if id.strip == "":
     return failure "id string must not be all whitespace or empty"
 
-  if id.contains(separator):
-    return failure "id string must not contain separator \"" & separator & "\""
+  if id.contains(Separator):
+    return failure "id string must not contain Separator \"" & Separator & "\""
 
-  if id == delimiter:
-    return failure "value in id string \"[field]" & delimiter &
+  if id == Delimiter:
+    return failure "value in id string \"[field]" & Delimiter &
       "[value]\" must not be empty"
 
-  if id.count(delimiter) > 1:
-    return failure "id string must not contain more than one delimiter \"" &
-      delimiter & "\""
+  if id.count(Delimiter) > 1:
+    return failure "id string must not contain more than one Delimiter \"" &
+      Delimiter & "\""
 
   let
     (field, value) = block:
-      let parts = id.split(delimiter)
+      let parts = id.split(Delimiter)
       if parts.len > 1:
         (parts[0], parts[^1])
       else:
@@ -82,22 +82,25 @@ proc init*(T: type Namespace, id: string): ?!T =
 
   T.init(field, value)
 
-proc id*(self: Namespace): string =
+func id*(self: Namespace): string =
   if self.field.len > 0:
-    self.field & delimiter & self.value
+    self.field & Delimiter & self.value
   else:
     self.value
 
-proc `$`*(namespace: Namespace): string =
+func hash*(namespace: Namespace): Hash =
+  hash(namespace.id)
+
+func `$`*(namespace: Namespace): string =
   "Namespace(" & namespace.id & ")"
 
-proc init*(T: type Key, namespaces: varargs[Namespace]): ?!T =
+func init*(T: type Key, namespaces: varargs[Namespace]): ?!T =
   if namespaces.len == 0:
     failure "namespaces must contain at least one Namespace"
   else:
     success T(namespaces: @namespaces)
 
-proc init*(T: type Key, namespaces: varargs[string]): ?!T =
+func init*(T: type Key, namespaces: varargs[string]): ?!T =
   if namespaces.len == 0:
     failure "namespaces must contain at least one Namespace id string"
   else:
@@ -106,7 +109,7 @@ proc init*(T: type Key, namespaces: varargs[string]): ?!T =
         ?Namespace.init(it)
     ))
 
-proc init*(T: type Key, id: string): ?!T =
+func init*(T: type Key, id: string): ?!T =
   if id == "":
     return failure "id string must contain at least one Namespace"
 
@@ -114,15 +117,15 @@ proc init*(T: type Key, id: string): ?!T =
     return failure "id string must not be all whitespace"
 
   let
-    nsStrs = id.split(separator).filterIt(it != "")
+    nsStrs = id.split(Separator).filterIt(it != "")
 
   if nsStrs.len == 0:
-    return failure "id string must not contain only one or more separator " &
-      "\"" & separator & "\""
+    return failure "id string must not contain more than one Separator " &
+      "\"" & Separator & "\""
 
   Key.init(nsStrs)
 
-proc list*(self: Key): seq[Namespace] =
+func list*(self: Key): seq[Namespace] =
   self.namespaces
 
 proc random*(T: type Key): string =
@@ -131,78 +134,91 @@ proc random*(T: type Key): string =
 template `[]`*(key: Key, x: auto): auto =
   key.namespaces[x]
 
-proc len*(self: Key): int =
+func len*(self: Key): int =
   self.namespaces.len
 
 iterator items*(key: Key): Namespace =
   for k in key.namespaces:
     yield k
 
-proc reversed*(self: Key): Key =
+func reversed*(self: Key): Key =
   Key(namespaces: self.namespaces.reversed)
 
-proc reverse*(self: Key): Key =
+func reverse*(self: Key): Key =
   self.reversed
 
-proc name*(self: Key): string =
+func name*(self: Key): string =
   if self.len > 0:
     return self[^1].value
 
-proc `type`*(self: Key): string =
+func `type`*(self: Key): string =
   if self.len > 0:
     return self[^1].field
 
-proc id*(self: Key): string =
-  separator & self.namespaces.mapIt(it.id).join(separator)
+func id*(self: Key): string =
+  Separator & self.namespaces.mapIt(it.id).join(Separator)
 
-proc isTopLevel*(self: Key): bool =
+func root*(self: Key): bool =
   self.len == 1
 
-proc parent*(self: Key): ?!Key =
-  if self.isTopLevel:
+func parent*(self: Key): ?!Key =
+  if self.root:
     failure "key has no parent"
   else:
     success Key(namespaces: self.namespaces[0..^2])
 
-proc path*(self: Key): ?!Key =
+func path*(self: Key): ?!Key =
   let
-    parent = ? self.parent
+    parent = ?self.parent
 
   if self[^1].field == "":
     return success parent
 
-  success Key(namespaces: parent.namespaces & @[Namespace(value: self[^1].field)])
+  let ns = parent.namespaces & @[Namespace(value: self[^1].field)]
+  success Key(namespaces: ns)
 
-proc child*(self: Key, ns: Namespace): Key =
+func child*(self: Key, ns: Namespace): Key =
   Key(namespaces: self.namespaces & @[ns])
 
-proc `/`*(self: Key, ns: Namespace): Key =
+func `/`*(self: Key, ns: Namespace): Key =
   self.child(ns)
 
-proc child*(self: Key, namespaces: varargs[Namespace]): Key =
+func child*(self: Key, namespaces: varargs[Namespace]): Key =
   Key(namespaces: self.namespaces & @namespaces)
 
-proc child*(self, key: Key): Key =
+func child*(self, key: Key): Key =
   Key(namespaces: self.namespaces & key.namespaces)
 
-proc `/`*(self, key: Key): Key =
+func `/`*(self, key: Key): Key =
   self.child(key)
 
-proc child*(self: Key, keys: varargs[Key]): Key =
+func child*(self: Key, keys: varargs[Key]): Key =
   Key(namespaces: self.namespaces & concat(keys.mapIt(it.namespaces)))
 
-proc child*(self: Key, ids: varargs[string]): ?!Key =
+func child*(self: Key, ids: varargs[string]): ?!Key =
   success self.child(ids.filterIt(it != "").mapIt( ?Key.init(it) ))
 
-proc `/`*(self: Key, id: string): ?!Key =
+func relative*(self: Key, parent: Key): ?!Key =
+  ## Get a key relative to parent from current key
+  ##
+
+  if self.len < parent.len:
+    return failure "Not a parent of this key!"
+
+  Key.init(self.namespaces[parent.namespaces.high..self.namespaces.high])
+
+func `/`*(self: Key, id: string): ?!Key =
   self.child(id)
 
-proc isAncestorOf*(self, other: Key): bool =
+func ancestor*(self, other: Key): bool =
   if other.len <= self.len: false
   else: other.namespaces[0..<self.len] == self.namespaces
 
-proc isDescendantOf*(self, other: Key): bool =
-  other.isAncestorOf(self)
+func descendant*(self, other: Key): bool =
+  other.ancestor(self)
 
-proc `$`*(key: Key): string =
+func hash*(key: Key): Hash {.inline.} =
+  hash(key.id)
+
+func `$`*(key: Key): string =
   "Key(" & key.id & ")"
