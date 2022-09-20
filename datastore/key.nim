@@ -96,18 +96,25 @@ func `$`*(namespace: Namespace): string =
 
 func init*(T: type Key, namespaces: varargs[Namespace]): ?!T =
   if namespaces.len == 0:
-    failure "namespaces must contain at least one Namespace"
-  else:
-    success T(namespaces: @namespaces)
+    return failure "namespaces must contain at least one Namespace"
+
+  success T(namespaces: @namespaces)
 
 func init*(T: type Key, namespaces: varargs[string]): ?!T =
   if namespaces.len == 0:
-    failure "namespaces must contain at least one Namespace id string"
-  else:
-    success T(
-      namespaces: namespaces.mapIt(
-        ?Namespace.init(it)
-    ))
+    return failure "namespaces must contain at least one Namespace id string"
+
+  success T(
+    namespaces: namespaces.mapIt(
+      ?Namespace.init(it)
+  ))
+
+func init*(T: type Key, keys: varargs[Key]): ?!T =
+  if keys.len == 0:
+    return failure "No keys provided"
+
+  success T(
+    namespaces: keys.mapIt(it.namespaces).mapIt(it).concat)
 
 func init*(T: type Key, id: string): ?!T =
   if id == "":

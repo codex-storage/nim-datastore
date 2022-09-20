@@ -58,10 +58,6 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
     removeFile(path)
     return success()
 
-    # removing an empty directory might lead to surprising behavior depending
-    # on what the user specified as the `root` of the FSDatastore, so
-    # until further consideration, empty directories will be left in place
-
   except OSError as e:
     return failure e
 

@@ -1,5 +1,7 @@
 import std/options
 import std/os
+import std/sequtils
+from std/algorithm import sort, reversed
 
 import pkg/asynctest/unittest2
 import pkg/chronos
@@ -90,261 +92,163 @@ suite "Test Read Only SQLiteDatastore":
       not (await readOnlyDb.contains(key)).tryGet()
       not (await dsDb.contains(key)).tryGet()
 
-  # test "query":
-  #   ds = SQLiteDatastore.new(basePathAbs, filename).get
+suite "Test Query":
+  var
+    ds: SQLiteDatastore
 
-  #   var
-  #     key1 = Key.init("a").get
-  #     key2 = Key.init("a/b").get
-  #     key3 = Key.init("a/b:c").get
-  #     key4 = Key.init("a:b").get
-  #     key5 = Key.init("a:b/c").get
-  #     key6 = Key.init("a:b/c:d").get
-  #     key7 = Key.init("A").get
-  #     key8 = Key.init("A/B").get
-  #     key9 = Key.init("A/B:C").get
-  #     key10 = Key.init("A:B").get
-  #     key11 = Key.init("A:B/C").get
-  #     key12 = Key.init("A:B/C:D").get
+  setup:
+    ds = SQLiteDatastore.new(Memory).tryGet()
 
-  #     bytes1  = @[1.byte, 2.byte, 3.byte]
-  #     bytes2  = @[4.byte, 5.byte, 6.byte]
-  #     bytes3: seq[byte] = @[]
-  #     bytes4  = bytes1
-  #     bytes5  = bytes2
-  #     bytes6  = bytes3
-  #     bytes7  = bytes1
-  #     bytes8  = bytes2
-  #     bytes9  = bytes3
-  #     bytes10  = bytes1
-  #     bytes11  = bytes2
-  #     bytes12  = bytes3
+  test "Key should query all key and all it's children":
+    let
+      key1 = Key.init("/a").tryGet
+      key2 = Key.init("/a/b").tryGet
+      key3 = Key.init("/a/b/c").tryGet
+      val1 = "value for 1".toBytes
+      val2 = "value for 2".toBytes
+      val3 = "value for 3".toBytes
 
-  #     queryKey = Key.init("*").get
+      q = Query.init(key1)
 
-  #   var
-  #     putRes = await ds.put(key1, bytes1)
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key2, bytes2)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key3, bytes3)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key4, bytes4)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key5, bytes5)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key6, bytes6)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key7, bytes7)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key8, bytes8)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key9, bytes9)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key10, bytes10)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key11, bytes11)
-  #   assert putRes.isOk
-  #   putRes = await ds.put(key12, bytes12)
-  #   assert putRes.isOk
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #   var
-  #     kds: seq[QueryResponse]
+    check:
+      res.len == 4
+      res[0].read.tryGet.key.get == key1
+      res[0].read.tryGet.data == val1
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+      res[1].read.tryGet.key.get == key2
+      res[1].read.tryGet.data == val2
 
-  #     kds.add (key, data)
+      res[2].read.tryGet.key.get == key3
+      res[2].read.tryGet.data == val3
 
-  #   # see https://sqlite.org/lang_select.html#the_order_by_clause
-  #   # If a SELECT statement that returns more than one row does not have an
-  #   # ORDER BY clause, the order in which the rows are returned is undefined.
+    (await iter.dispose()).tryGet
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key1, data: bytes1),
-  #     (key: key2, data: bytes2),
-  #     (key: key3, data: bytes3),
-  #     (key: key4, data: bytes4),
-  #     (key: key5, data: bytes5),
-  #     (key: key6, data: bytes6),
-  #     (key: key7, data: bytes7),
-  #     (key: key8, data: bytes8),
-  #     (key: key9, data: bytes9),
-  #     (key: key10, data: bytes10),
-  #     (key: key11, data: bytes11),
-  #     (key: key12, data: bytes12)
-  #   ].sortedByIt(it.key.id)
+  test "Key should not query parent":
+    let
+      key1 = Key.init("/a").tryGet
+      key2 = Key.init("/a/b").tryGet
+      key3 = Key.init("/a/b/c").tryGet
+      val1 = "value for 1".toBytes
+      val2 = "value for 2".toBytes
+      val3 = "value for 3".toBytes
 
-  #   kds = @[]
+      q = Query.init(key2)
 
-  #   queryKey = Key.init("a*").get
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #     kds.add (key, data)
+    check:
+      res.len == 3
+      res[0].read.tryGet.key.get == key2
+      res[0].read.tryGet.data == val2
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key1, data: bytes1),
-  #     (key: key2, data: bytes2),
-  #     (key: key3, data: bytes3),
-  #     (key: key4, data: bytes4),
-  #     (key: key5, data: bytes5),
-  #     (key: key6, data: bytes6)
-  #   ].sortedByIt(it.key.id)
+      res[1].read.tryGet.key.get == key3
+      res[1].read.tryGet.data == val3
 
-  #   kds = @[]
+    (await iter.dispose()).tryGet
 
-  #   queryKey = Key.init("A*").get
+  test "Should apply limit":
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+    let
+      key = Key.init("/a").tryGet
+      q = Query.init(key, limit = 10)
 
-  #     kds.add (key, data)
+    for i in 0..<100:
+      (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key7, data: bytes7),
-  #     (key: key8, data: bytes8),
-  #     (key: key9, data: bytes9),
-  #     (key: key10, data: bytes10),
-  #     (key: key11, data: bytes11),
-  #     (key: key12, data: bytes12)
-  #   ].sortedByIt(it.key.id)
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #   kds = @[]
+    check:
+      res.len == 11
 
-  #   queryKey = Key.init("a/?").get
+    (await iter.dispose()).tryGet
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+  test "Should not apply offset":
+    let
+      key = Key.init("/a").tryGet
+      q = Query.init(key, offset = 90)
 
-  #     kds.add (key, data)
+    for i in 0..<100:
+      (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key2, data: bytes2)
-  #   ].sortedByIt(it.key.id)
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #   kds = @[]
+    check:
+      res.len == 11
 
-  #   queryKey = Key.init("A/?").get
+    (await iter.dispose()).tryGet
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+  test "Should not apply offset and limit":
+    let
+      key = Key.init("/a").tryGet
+      q = Query.init(key, offset = 95, limit = 5)
 
-  #     kds.add (key, data)
+    for i in 0..<100:
+      (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key8, data: bytes8)
-  #   ].sortedByIt(it.key.id)
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #   kds = @[]
+    check:
+      res.len == 6
 
-  #   queryKey = Key.init("*/?").get
+    for i in 0..<res.high:
+      let
+        val = ("val " & $(i + 95)).toBytes
+        key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+      check:
+        res[i].read.tryGet.key.get == key
+        res[i].read.tryGet.data == val
 
-  #     kds.add (key, data)
+    (await iter.dispose()).tryGet
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key2, data: bytes2),
-  #     (key: key5, data: bytes5),
-  #     (key: key8, data: bytes8),
-  #     (key: key11, data: bytes11)
-  #   ].sortedByIt(it.key.id)
+  test "Should apply sort order - descending":
+    let
+      key = Key.init("/a").tryGet
+      q = Query.init(key, sort = SortOrder.Descending)
 
-  #   kds = @[]
+    var kvs: seq[QueryResponse]
+    for i in 0..<100:
+      let
+        k = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+        val = ("val " & $i).toBytes
 
-  #   queryKey = Key.init("[Aa]/?").get
+      kvs.add((k.some, val))
+      (await ds.put(k, val)).tryGet
 
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
+    kvs.sort do (a, b: QueryResponse) -> int:
+      cmp(a.key.get.id, b.key.get.id)
 
-  #     kds.add (key, data)
+    kvs = kvs.reversed
+    let
+      iter = (await ds.query(q)).tryGet
+      res = await allFinished(toSeq(iter))
 
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key2, data: bytes2),
-  #     (key: key8, data: bytes8)
-  #   ].sortedByIt(it.key.id)
+    check:
+      res.len == 101
 
-  #   kds = @[]
+    for i, r in res[1..^1]:
+      check:
+        res[i].read.tryGet.key.get == kvs[i].key.get
+        res[i].read.tryGet.data == kvs[i].data
 
-  #   # SQLite's GLOB operator, akin to Unix file globbing syntax, is greedy re:
-  #   # wildcard "*". So a pattern such as "a:*[^/]" will not restrict results to
-  #   # "/a:b", i.e. it will match on "/a:b", "/a:b/c" and "/a:b/c:d".
-
-  #   queryKey = Key.init("a:*[^/]").get
-
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
-
-  #     kds.add (key, data)
-
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key4, data: bytes4),
-  #     (key: key5, data: bytes5),
-  #     (key: key6, data: bytes6)
-  #   ].sortedByIt(it.key.id)
-
-  #   kds = @[]
-
-  #   queryKey = Key.init("a:*[Bb]").get
-
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
-
-  #     kds.add (key, data)
-
-  #   check: kds.sortedByIt(it.key.id) == @[
-  #     (key: key4, data: bytes4)
-  #   ].sortedByIt(it.key.id)
-
-  #   kds = @[]
-
-  #   var
-  #     deleteRes = await ds.delete(key1)
-
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key2)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key3)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key4)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key5)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key6)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key7)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key8)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key9)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key10)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key11)
-  #   assert deleteRes.isOk
-  #   deleteRes = await ds.delete(key12)
-  #   assert deleteRes.isOk
-
-  #   let
-  #     emptyKds: seq[QueryResponse] = @[]
-
-  #   for kd in ds.query(Query.init(queryKey)):
-  #     let
-  #       (key, data) = await kd
-
-  #     kds.add (key, data)
-
-  #   check: kds == emptyKds
+    (await iter.dispose()).tryGet
