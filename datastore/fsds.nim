@@ -24,14 +24,17 @@ const
   # can still be touched/created
   ProtectedPaths* =
     when doslikeFileSystem:
-      []
+      [
+        "\\System32",
+        "\\System",
+        "\\Start Menu\\Programs"]
     else:
-    [
-      "/",
-      "/usr",
-      "/etc",
-      "/home",
-      "/Users"]
+      [
+        "/",
+        "/usr",
+        "/etc",
+        "/home",
+        "/Users"]
 
 type
   FSDatastore* = ref object of Datastore
@@ -53,9 +56,6 @@ template path*(self: FSDatastore, key: Key): string =
 
   self.root / segments.joinPath()
 
-template checkProtected*(path: string): bool =
-  path in ProtectedPaths
-
 template validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
 
@@ -67,9 +67,6 @@ method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
   let
     path = self.path(key)
 
-  if checkProtected(path):
-    return failure "Path is protected!"
-
   return success fileExists(path)
 
 method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
@@ -79,9 +76,6 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   let
     path = self.path(key)
-
-  if checkProtected(path):
-    return failure "Path is protected!"
 
   try:
     removeFile(path)
@@ -108,9 +102,6 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   let
     path = self.path(key)
-
-  if checkProtected(path):
-    return failure "Path is protected!"
 
   if not fileExists(path):
     return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
@@ -154,9 +145,6 @@ method put*(
 
   let
     path = self.path(key)
-
-  if checkProtected(path):
-    return failure "Path is protected!"
 
   try:
     createDir(parentDir(path))

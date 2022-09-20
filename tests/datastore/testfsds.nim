@@ -52,33 +52,6 @@ suite "Test Misc FSDatastore":
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 
-  test "Test checkProtected()":
-    let
-      fs = FSDatastore.new(root = "/").tryGet()
-
-    for p in ProtectedPaths:
-      if p == "/": continue
-      let
-        key = Key.init(p).tryGet()
-
-      check:
-        fs.path(key).checkProtected()
-
-  test "Test protected paths":
-    let
-      fs = FSDatastore.new(root = "/").tryGet()
-
-    for p in ProtectedPaths:
-      if p == "/": continue
-      let
-        key = Key.init(p).tryGet()
-
-      check:
-        (await fs.put(key, bytes)).isErr
-        (await fs.get(key)).isErr
-        (await fs.delete(key)).isErr
-        (await fs.contains(key)).isErr
-
   test "Test validDepth()":
     let
       fs = FSDatastore.new(root = "/", depth = 3).tryGet()
