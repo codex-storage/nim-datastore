@@ -29,13 +29,6 @@ const
     "/home",
     "/Users"]
 
-  Allowed* = {
-    'a'..'z',
-    'A'..'Z',
-    '0'..'9',
-    DirSep, AltSep,
-    '_', '-', '.'}
-
 type
   FSDatastore* = ref object of Datastore
     root*: string
@@ -59,16 +52,6 @@ template path*(self: FSDatastore, key: Key): string =
 template checkProtected*(path: string): bool =
   path in ProtectedPaths
 
-template allowed*(path: string): bool =
-  var notfound = true
-  for s in path:
-    if s.char notin Allowed:
-      echo "INVALID CHAR ", s
-      notfound = false
-      break
-
-  notfound
-
 template validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
 
@@ -79,9 +62,6 @@ method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
 
   let
     path = self.path(key)
-
-  if not path.allowed:
-    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -95,9 +75,6 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   let
     path = self.path(key)
-
-  if not path.allowed:
-    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -127,9 +104,6 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   let
     path = self.path(key)
-
-  if not path.allowed:
-    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"
@@ -176,9 +150,6 @@ method put*(
 
   let
     path = self.path(key)
-
-  if not path.allowed:
-    return failure "Path is contains invalid characters!"
 
   if checkProtected(path):
     return failure "Path is protected!"

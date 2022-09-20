@@ -79,35 +79,6 @@ suite "Test Misc FSDatastore":
         (await fs.delete(key)).isErr
         (await fs.contains(key)).isErr
 
-  test "Test allowed()":
-    let
-      chars = [
-        "/a*", "/a/b*", "/a/b$", "/a/b()",
-        "/a/b+", "/a/b$", "/d%", "/A/b@",
-        "/A!", "/b#/##"]
-
-    for c in chars:
-      check not c.allowed
-
-  test "Test valid key (path) names":
-    let
-      fs = FSDatastore.new(root = basePathAbs).tryGet()
-      bytes = "some bytes".toBytes
-      chars =
-        ["/a*", "/a/b*", "/a/b$", "/a/b()",
-          "/a/b+", "/a/b$", "/d%", "/A/b@",
-          "/A!", "/b#/##"]
-
-    for c in chars:
-      let
-        key = Key.init(c).tryGet()
-
-      check:
-        (await fs.put(key, bytes)).isErr
-        (await fs.get(key)).isErr
-        (await fs.delete(key)).isErr
-        (await fs.contains(key)).isErr
-
   test "Test validDepth()":
     let
       fs = FSDatastore.new(root = "/", depth = 3).tryGet()
