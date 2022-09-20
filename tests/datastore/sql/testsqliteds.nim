@@ -35,6 +35,7 @@ suite "Test Basic SQLiteDatastore":
   teardownAll:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
+    (await dsDb.close()).tryGet()
 
   basicStoreTests(dsDb, key, bytes, otherBytes)
 
@@ -63,6 +64,7 @@ suite "Test Read Only SQLiteDatastore":
   teardownAll:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
+    (await dsDb.close()).tryGet()
 
   test "put":
     check:
