@@ -27,18 +27,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = await allFinished(toSeq(iter))
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
 
     check:
-      res.len == 4
-      res[0].read.tryGet.key.get == key1
-      res[0].read.tryGet.data == val1
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-      res[1].read.tryGet.key.get == key2
-      res[1].read.tryGet.data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-      res[2].read.tryGet.key.get == key3
-      res[2].read.tryGet.data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
     (await iter.dispose()).tryGet
 
@@ -59,15 +61,57 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = await allFinished(toSeq(iter))
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
+
+    check:
+      res.len == 2
+      res[0].key.get == key2
+      res[0].data == val2
+
+      res[1].key.get == key3
+      res[1].data == val3
+
+    (await iter.dispose()).tryGet
+
+  test "Key should all list all keys at the same level":
+    let
+      queryKey = Key.init("/a").tryGet
+      key1 = Key.init("/a/1").tryGet
+      key2 = Key.init("/a/2").tryGet
+      key3 = Key.init("/a/3").tryGet
+      val1 = "value for 1".toBytes
+      val2 = "value for 2".toBytes
+      val3 = "value for 3".toBytes
+
+      q = Query.init(queryKey)
+
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
+
+    let
+      iter = (await ds.query(q)).tryGet
+
+    var
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
+
+    res.sort do (a, b: QueryResponse) -> int:
+      cmp(a.key.get.id, b.key.get.id)
 
     check:
       res.len == 3
-      res[0].read.tryGet.key.get == key2
-      res[0].read.tryGet.data == val2
+      res[0].key.get == key1
+      res[0].data == val1
 
-      res[1].read.tryGet.key.get == key3
-      res[1].read.tryGet.data == val3
+      res[1].key.get == key2
+      res[1].data == val2
+
+      res[2].key.get == key3
+      res[2].data == val3
 
     (await iter.dispose()).tryGet
 
@@ -83,10 +127,12 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = await allFinished(toSeq(iter))
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
 
       check:
-        res.len == 11
+        res.len == 10
 
       (await iter.dispose()).tryGet
 
@@ -100,10 +146,12 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = await allFinished(toSeq(iter))
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
 
       check:
-        res.len == 11
+        res.len == 10
 
       (await iter.dispose()).tryGet
 
@@ -117,10 +165,12 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = await allFinished(toSeq(iter))
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
 
       check:
-        res.len == 6
+        res.len == 5
 
       for i in 0..<res.high:
         let
@@ -128,8 +178,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
           key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
         check:
-          res[i].read.tryGet.key.get == key
-          res[i].read.tryGet.data == val
+          res[i].key.get == key
+          res[i].data == val
 
       (await iter.dispose()).tryGet
 
@@ -147,20 +197,23 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         kvs.add((k.some, val))
         (await ds.put(k, val)).tryGet
 
+      # lexicographic sort, as it comes from the backend
       kvs.sort do (a, b: QueryResponse) -> int:
         cmp(a.key.get.id, b.key.get.id)
 
       kvs = kvs.reversed
       let
         iter = (await ds.query(q)).tryGet
-        res = await allFinished(toSeq(iter))
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
 
       check:
-        res.len == 101
+        res.len == 100
 
       for i, r in res[1..^1]:
         check:
-          res[i].read.tryGet.key.get == kvs[i].key.get
-          res[i].read.tryGet.data == kvs[i].data
+          res[i].key.get == kvs[i].key.get
+          res[i].data == kvs[i].data
 
       (await iter.dispose()).tryGet
