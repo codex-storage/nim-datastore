@@ -20,8 +20,8 @@ suite "Test Basic Mounted Datastore":
     rootAbs = path.parentDir / root
 
     key = Key.init("a:b/c/d:e").get
-    sqlKey = Key.init("/sql").tryGet
-    fsKey = Key.init("/fs").tryGet
+    sqlKey = Key.init("/root/sql").tryGet
+    fsKey = Key.init("/root/fs").tryGet
 
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
@@ -125,3 +125,19 @@ suite "Test Mounted Datastore":
 
       store2.key == key2
       store2.store == ds2
+
+  test "Should find with field:value key":
+    let
+      ds = SQLiteDatastore.new(Memory).tryGet
+      key = Key.init("/sql").tryGet
+      findKey1 = Key.init("/sql:name1").tryGet
+      findKey2 = Key.init("/sql:name2").tryGet
+      mounted = MountedDatastore.new({key: Datastore(ds)}.toTable).tryGet
+
+    for k in @[findKey1, findKey2]:
+      let
+        store = mounted.findStore(k).tryGet
+
+      check:
+        store.key == key
+        store.store == ds
