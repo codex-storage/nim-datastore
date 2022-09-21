@@ -1,5 +1,4 @@
 import pkg/chronos
-import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 
@@ -28,6 +27,6 @@ method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".}
 
 method query*(
   self: Datastore,
-  query: Query): Future[?!QueryIter] {.gcsafe.} =
+  query: Query): Future[?!QueryIter] {.base, gcsafe.} =
 
   raiseAssert("Not implemented!")
