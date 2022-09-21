@@ -54,7 +54,7 @@ method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
   if not path.extractFilename.isValidFilename:
     return failure "Filename contains invalid chars!"
 
-  return success fileExists(path)
+  return success path.fileExists()
 
 method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
@@ -64,19 +64,18 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
   let
     path = self.path(key).addFileExt(FileExt)
 
-  if not path.fileExists():
-    return failure newException(DatastoreKeyNotFound, "Key not found!")
-
   if not self.isRootSubdir(path):
     return failure "Path is outside of `root` directory!"
 
   if not path.extractFilename.isValidFilename:
     return failure "Filename contains invalid chars!"
 
+  if not path.fileExists():
+    return failure newException(DatastoreKeyNotFound, "Key not found!")
+
   try:
     removeFile(path)
     return success()
-
   except OSError as e:
     return failure e
 
@@ -88,7 +87,7 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
     file.close
 
   if not file.open(path):
-    return failure newException(DatastoreKeyNotFound, "Key not found!")
+    return failure "unable to open file!"
 
   try:
     let
@@ -112,18 +111,14 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
 
 method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
-  # to support finer control of memory allocation, maybe could/should change
-  # the signature of `get` so that it has a 3rd parameter
-  # `bytes: var openArray[byte]` and return type `?!bool`; this variant with
-  # return type `?!(?seq[byte])` would be a special case (convenience method)
-  # calling the former after allocating a seq with size automatically
-  # determined via `getFileSize`
-
   if not self.validDepth(key):
     return failure "Path has invalid depth!"
 
   let
     path = self.path(key).addFileExt(FileExt)
+
+  if not self.isRootSubdir(path):
+    return failure "Path is outside of `root` directory!"
 
   if not path.fileExists():
     return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
