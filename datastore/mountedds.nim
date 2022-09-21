@@ -41,7 +41,7 @@ func findStore*(self: MountedDatastore, key: Key): ?!MountedStore =
       mounted = key
 
     while mounted.len > 0:
-      if k == mounted:
+      if ?k.path == ?mounted.path:
         return success v
 
       if mounted.parent.isErr:
@@ -105,6 +105,6 @@ func new*(
 
   var self = T()
   for (k, v) in stores.pairs:
-    self.stores.add(k, MountedStore(store: v, key: k))
+    self.stores.add(?k.path, MountedStore(store: v, key: k))
 
   success self
