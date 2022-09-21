@@ -32,6 +32,12 @@ iterator items*(q: QueryIter): Future[?!QueryResponse] =
   while not q.finished:
     yield q.next()
 
+proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
+  return success()
+
+proc new*(T: type QueryIter): T =
+  QueryIter(dispose: defaultDispose)
+
 proc init*(
   T: type Query,
   key: Key,

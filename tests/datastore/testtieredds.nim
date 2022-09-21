@@ -10,7 +10,7 @@ import pkg/datastore/fsds
 import pkg/datastore/sql
 import pkg/datastore/tieredds
 
-import ./basictests
+import ./dscommontests
 
 suite "Test Basic FSDatastore":
   let
