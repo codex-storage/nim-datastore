@@ -4,4 +4,4 @@ import ./datastore/sql
 import ./datastore/mounted
 import ./datastore/tiered
 
-export datastore, fsds, mounted, tiered
+export datastore, fsds, mounted, tiered, sql
