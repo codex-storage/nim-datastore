@@ -3,6 +3,7 @@ import
   ./datastore/testdatastore,
   ./datastore/testfsds,
   ./datastore/testsql,
-  ./datastore/testtieredds
+  ./datastore/testtieredds,
+  ./datastore/testmountedds
 
 {.warning[UnusedImport]: off.}
