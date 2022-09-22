@@ -12,7 +12,7 @@ import pkg/datastore/tieredds
 
 import ./dscommontests
 
-suite "Test Basic FSDatastore":
+suite "Test Basic Tired Datastore":
   let
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
