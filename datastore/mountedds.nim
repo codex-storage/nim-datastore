@@ -80,6 +80,16 @@ method delete*(
 
   return (await mounted.store.store.delete(mounted.relative))
 
+method delete*(
+  self: MountedDatastore,
+  keys: seq[Key]): Future[?!void] {.async.} =
+
+  for key in keys:
+    if err =? (await self.delete(key)).errorOption:
+      return failure err
+
+  return success()
+
 method get*(
   self: MountedDatastore,
   key: Key): Future[?!seq[byte]] {.async.} =
@@ -98,6 +108,16 @@ method put*(
     return failure(error)
 
   return (await mounted.store.store.put(mounted.relative, data))
+
+method put*(
+  self: MountedDatastore,
+  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+
+  for entry in batch:
+    if err =? (await self.put(entry.key, entry.data)).errorOption:
+      return failure err
+
+  return success()
 
 func new*(
   T: type MountedDatastore,

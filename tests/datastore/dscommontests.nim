@@ -38,7 +38,7 @@ proc basicStoreTests*(
       batch: seq[BatchEntry]
 
     for k in 0..<100:
-      batch.add((Key.init("/key/" & $k).tryGet, @[k.byte]))
+      batch.add((Key.init(key.id, $k).tryGet, @[k.byte]))
 
     (await ds.put(batch)).tryGet
 
@@ -50,7 +50,7 @@ proc basicStoreTests*(
       batch: seq[Key]
 
     for k in 0..<100:
-      batch.add(Key.init("/key/" & $k).tryGet)
+      batch.add(Key.init(key.id, $k).tryGet)
 
     (await ds.delete(batch)).tryGet
 

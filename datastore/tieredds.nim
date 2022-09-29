@@ -53,6 +53,19 @@ method delete*(
 
   return success()
 
+method delete*(
+  self: TieredDatastore,
+  keys: seq[Key]): Future[?!void] {.async, locks: "unknown".} =
+
+  for key in keys:
+    let
+      pending = await allFinished(self.stores.mapIt(it.delete(key)))
+
+    for fut in pending:
+      if fut.read().isErr: return fut.read()
+
+  return success()
+
 method get*(
   self: TieredDatastore,
   key: Key): Future[?!seq[byte]] {.async, locks: "unknown".} =
@@ -87,6 +100,19 @@ method put*(
 
   for fut in pending:
     if fut.read().isErr: return fut.read()
+
+  return success()
+
+method put*(
+  self: TieredDatastore,
+  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+
+  for entry in batch:
+    let
+      pending = await allFinished(self.stores.mapIt(it.put(entry.key, entry.data)))
+
+    for fut in pending:
+      if fut.read().isErr: return fut.read()
 
   return success()
 

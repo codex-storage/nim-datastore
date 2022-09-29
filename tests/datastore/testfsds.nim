@@ -30,7 +30,7 @@ suite "Test Basic FSDatastore":
     require(not dirExists(basePathAbs))
     createDir(basePathAbs)
 
-    fsStore = FSDatastore.new(root = basePathAbs).tryGet()
+    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
 
   teardownAll:
     removeDir(basePathAbs)
