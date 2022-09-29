@@ -20,40 +20,51 @@ type
     ignoreProtected: bool
     depth: int
 
-template path*(self: FSDatastore, key: Key): string =
+proc validDepth*(self: FSDatastore, key: Key): bool =
+  key.len <= self.depth
+
+proc isRootSubdir*(self: FSDatastore, path: string): bool =
+  path.startsWith(self.root)
+
+proc path*(self: FSDatastore, key: Key): ?!string =
+  ## Return filename corresponding to the key
+  ## or failure if the key doesn't correspond to a valid filename
+
+  if not self.validDepth(key):
+    return failure "Path has invalid depth!"
+
   var
     segments: seq[string]
 
   for ns in key:
+    let basename = ns.value.extractFilename
+    if basename=="" or not basename.isValidFilename:
+      return failure "Filename contains invalid chars!"
+
     if ns.field == "":
-      segments.add ns.value
-      continue
+      segments.add(ns.value)
+    else:
+      let basename = ns.field.extractFilename
+      if basename=="" or not basename.isValidFilename:
+        return failure "Filename contains invalid chars!"
 
-    # `:` are replaced with `/`
-    segments.add(ns.field / ns.value)
+      # `:` are replaced with `/`
+      segments.add(ns.field / ns.value)
 
-  (self.root / segments.joinPath()).absolutePath()
+  let
+    fullname = (self.root / segments.joinPath()).absolutePath().catch().get().addFileExt(FileExt)
 
-template validDepth*(self: FSDatastore, key: Key): bool =
-  key.len <= self.depth
+  if not self.isRootSubdir(fullname):
+    return failure "Path is outside of `root` directory!"
+
+  return success fullname
 
 method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
-
-  if not self.validDepth(key):
-    return failure "Path has invalid depth!"
-
-  let
-    path = self.path(key).addFileExt(FileExt)
-
-  return success fileExists(path)
+  return self.path(key).?fileExists()
 
 method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
-
-  if not self.validDepth(key):
-    return failure "Path has invalid depth!"
-
-  let
-    path = self.path(key).addFileExt(FileExt)
+  without path =? self.path(key), error:
+    return failure error
 
   if not path.fileExists():
     return failure newException(DatastoreKeyNotFound, "Key not found!")
@@ -61,7 +72,6 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
   try:
     removeFile(path)
     return success()
-
   except OSError as e:
     return failure e
 
@@ -73,7 +83,7 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
     file.close
 
   if not file.open(path):
-    return failure newException(DatastoreKeyNotFound, "Key not found!")
+    return failure "unable to open file!"
 
   try:
     let
@@ -96,19 +106,8 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
     return failure e
 
 method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
-
-  # to support finer control of memory allocation, maybe could/should change
-  # the signature of `get` so that it has a 3rd parameter
-  # `bytes: var openArray[byte]` and return type `?!bool`; this variant with
-  # return type `?!(?seq[byte])` would be a special case (convenience method)
-  # calling the former after allocating a seq with size automatically
-  # determined via `getFileSize`
-
-  if not self.validDepth(key):
-    return failure "Path has invalid depth!"
-
-  let
-    path = self.path(key).addFileExt(FileExt)
+  without path =? self.path(key), error:
+    return failure error
 
   if not path.fileExists():
     return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
@@ -120,15 +119,12 @@ method put*(
   key: Key,
   data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
 
-  if not self.validDepth(key):
-    return failure "Path has invalid depth!"
-
-  let
-    path = self.path(key)
+  without path =? self.path(key), error:
+    return failure error
 
   try:
     createDir(parentDir(path))
-    writeFile(path.addFileExt(FileExt), data)
+    writeFile(path, data)
   except CatchableError as e:
     return failure e
 
@@ -145,12 +141,14 @@ proc dirWalker(path: string): iterator: string {.gcsafe.} =
 method query*(
   self: FSDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
+
+  without basePath =? self.path(query.key).?parentDir, error:
+    return failure error
+  let
+    walker = dirWalker(basePath)
+
   var
     iter = QueryIter.new()
-
-  let
-    basePath = self.path(query.key).parentDir
-    walker = dirWalker(basePath)
 
   proc next(): Future[?!QueryResponse] {.async.} =
     let
