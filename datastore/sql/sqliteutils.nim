@@ -132,9 +132,7 @@ proc disposeIfUnreleased*[T](x: var AutoDisposed[T]) =
   mixin dispose
   if x.val != nil: dispose(x.release)
 
-proc exec*[P](
-  s: SQLiteStmt[P, void],
-  params: P): ?!void =
+proc exec*[P](s: SQLiteStmt[P, void], params: P = ()): ?!void =
 
   let
     s = RawStmtPtr(s)
@@ -148,7 +146,7 @@ proc exec*[P](
       else:
         success()
 
-  # release implict transaction
+  # release implicit transaction
   discard sqlite3_reset(s) # same return information as step
   discard sqlite3_clear_bindings(s) # no errors possible
 

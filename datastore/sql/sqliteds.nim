@@ -45,6 +45,22 @@ method contains*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
 method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
   return self.db.deleteStmt.exec((key.id))
 
+method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+  if err =? self.db.beginStmt.exec().errorOption:
+    return failure err.msg
+
+  for key in keys:
+    if err =? self.db.deleteStmt.exec((key.id)).errorOption:
+      if err =? self.db.rollbackStmt.exec().errorOption:
+        return failure err.msg
+
+      return failure err.msg
+
+  if err =? self.db.endStmt.exec().errorOption:
+    return failure err.msg
+
+  return success()
+
 method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `method get`, could apply here as well if bytes were read
@@ -65,6 +81,22 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
 method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
   return self.db.putStmt.exec((key.id, data, timestamp()))
+
+method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  if err =? self.db.beginStmt.exec().errorOption:
+    return failure err
+
+  for entry in batch:
+    if err =? self.db.putStmt.exec((entry.key.id, entry.data, timestamp())).errorOption:
+      if err =? self.db.rollbackStmt.exec().errorOption:
+        return failure err
+
+      return failure err
+
+  if err =? self.db.endStmt.exec().errorOption:
+    return failure err
+
+  return success()
 
 method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
   self.db.close()

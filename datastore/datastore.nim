@@ -11,12 +11,15 @@ export key, query, types
 push: {.upraises: [].}
 
 type
-  BatchEntry = tuple[key: Key, data: seq[byte]]
+  BatchEntry* = tuple[key: Key, data: seq[byte]]
 
 method contains*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 method delete*(self: Datastore, key: Key): Future[?!void] {.base, locks: "unknown".} =
+  raiseAssert("Not implemented!")
+
+method delete*(self: Datastore, key: seq[Key]): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, locks: "unknown".} =
