@@ -125,6 +125,6 @@ func new*(
 
   var self = T()
   for (k, v) in stores.pairs:
-    self.stores.add(?k.path, MountedStore(store: v, key: k))
+    self.stores[?k.path] = MountedStore(store: v, key: k)
 
   success self
