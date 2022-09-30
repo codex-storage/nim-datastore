@@ -35,8 +35,8 @@ suite "Test Open SQLite Datastore DB":
     defer:
       dsDb.close()
 
-    check:
-      fileExists(dbPathAbs)
+      check:
+        fileExists(dbPathAbs)
 
   test "Should open existing DB":
     let
@@ -47,8 +47,8 @@ suite "Test Open SQLite Datastore DB":
     defer:
       dsDb.close()
 
-    check:
-      fileExists(dbPathAbs)
+      check:
+        fileExists(dbPathAbs)
 
   test "Should open existing DB in read only mode":
     check:
@@ -62,10 +62,7 @@ suite "Test Open SQLite Datastore DB":
     defer:
       dsDb.close()
 
-    check:
-      fileExists(dbPathAbs)
-
-  test "Should fail open existing DB in read only mode":
+  test "Should fail open non existent DB in read only mode":
     removeDir(basePathAbs)
     check:
       not fileExists(dbPathAbs)
