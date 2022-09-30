@@ -19,7 +19,7 @@ method contains*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unkn
 method delete*(self: Datastore, key: Key): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method delete*(self: Datastore, key: seq[Key]): Future[?!void] {.base, locks: "unknown".} =
+method delete*(self: Datastore, keys: seq[Key]): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, locks: "unknown".} =
