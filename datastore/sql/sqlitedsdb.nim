@@ -209,6 +209,9 @@ proc getDBFilePath*(path: string): ?!string =
 proc close*(self: SQLiteDsDb) =
   self.containsStmt.dispose
   self.getStmt.dispose
+  self.beginStmt.dispose
+  self.endStmt.dispose
+  self.rollbackStmt.dispose
 
   if not RawStmtPtr(self.deleteStmt).isNil:
     self.deleteStmt.dispose
