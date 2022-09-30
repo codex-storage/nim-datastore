@@ -57,7 +57,7 @@ suite "Test Open SQLite Datastore DB":
     let
       dsDb = SQLiteDsDb.open(
         path = dbPathAbs,
-        flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
+        flags = SQLITE_OPEN_READONLY).tryGet()
 
     defer:
       dsDb.close()
