@@ -30,7 +30,7 @@ suite "Test Basic FSDatastore":
     require(not dirExists(basePathAbs))
     createDir(basePathAbs)
 
-    fsStore = FSDatastore.new(root = basePathAbs).tryGet()
+    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
 
   teardownAll:
     removeDir(basePathAbs)
@@ -119,7 +119,6 @@ suite "Test Query":
     (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
-    bytes = "some bytes".toBytes
 
   var
     ds: FSDatastore

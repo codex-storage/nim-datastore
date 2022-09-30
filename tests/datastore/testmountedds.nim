@@ -48,10 +48,12 @@ suite "Test Basic Mounted Datastore":
     require(not dirExists(rootAbs))
 
   suite "Mounted sql":
-    basicStoreTests(mountedDs, Key.init(sqlKey, key).tryGet, bytes, otherBytes)
+    let namespace = Key.init(sqlKey, key).tryGet
+    basicStoreTests(mountedDs, namespace, bytes, otherBytes)
 
   suite "Mounted fs":
-    basicStoreTests(mountedDs, Key.init(fsKey, key).tryGet, bytes, otherBytes)
+    let namespace = Key.init(fsKey, key).tryGet
+    basicStoreTests(mountedDs, namespace, bytes, otherBytes)
 
 suite "Test Mounted Datastore":
 

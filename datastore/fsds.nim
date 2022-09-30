@@ -75,6 +75,13 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
   except OSError as e:
     return failure e
 
+method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+  for key in keys:
+    if err =? (await self.delete(key)).errorOption:
+      return failure err
+
+  return success()
+
 proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   var
     file: File
@@ -127,6 +134,16 @@ method put*(
     writeFile(path, data)
   except CatchableError as e:
     return failure e
+
+  return success()
+
+method put*(
+  self: FSDatastore,
+  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+
+  for entry in batch:
+    if err =? (await self.put(entry.key, entry.data)).errorOption:
+      return failure err
 
   return success()
 

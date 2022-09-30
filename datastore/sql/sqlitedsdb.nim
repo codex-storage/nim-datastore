@@ -10,23 +10,20 @@ export sqliteutils
 
 type
   BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
-
   BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
-
   BoundTimestampCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
 
   # feels odd to use `void` for prepared statements corresponding to SELECT
   # queries but it fits with the rest of the SQLite wrapper adapted from
   # status-im/nwaku, at least in its current form in ./sqlite
   ContainsStmt* = SQLiteStmt[(string), void]
-
   DeleteStmt* = SQLiteStmt[(string), void]
-
   GetStmt* = SQLiteStmt[(string), void]
-
   PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
-
   QueryStmt* = SQLiteStmt[(string), void]
+  BeginStmt* = NoParamsStmt
+  EndStmt* = NoParamsStmt
+  RollbackStmt* = NoParamsStmt
 
   SQLiteDsDb* = object
     readOnly*: bool
@@ -37,6 +34,9 @@ type
     getDataCol*: BoundDataCol
     getStmt*: GetStmt
     putStmt*: PutStmt
+    beginStmt*: BeginStmt
+    endStmt*: EndStmt
+    rollbackStmt*: RollbackStmt
 
 const
   DbExt* = ".sqlite3"
@@ -112,6 +112,18 @@ const
 
   QueryStmtOrderDescending* = """
     ORDER BY """ & IdColName & """ DESC
+  """
+
+  BeginTransactionStr* = """
+    BEGIN;
+  """
+
+  EndTransactionStr* = """
+    END;
+  """
+
+  RollbackTransactionStr* = """
+    ROLLBACK;
   """
 
   QueryStmtIdCol* = 0
@@ -197,6 +209,9 @@ proc getDBFilePath*(path: string): ?!string =
 proc close*(self: SQLiteDsDb) =
   self.containsStmt.dispose
   self.getStmt.dispose
+  self.beginStmt.dispose
+  self.endStmt.dispose
+  self.rollbackStmt.dispose
 
   if not RawStmtPtr(self.deleteStmt).isNil:
     self.deleteStmt.dispose
@@ -246,6 +261,9 @@ proc open*(
     deleteStmt: DeleteStmt
     getStmt: GetStmt
     putStmt: PutStmt
+    beginStmt: BeginStmt
+    endStmt: EndStmt
+    rollbackStmt: RollbackStmt
 
   if not readOnly:
     checkExec(env.val, CreateStmtStr)
@@ -255,6 +273,15 @@ proc open*(
 
     putStmt = ? PutStmt.prepare(
       env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+  beginStmt = ? BeginStmt.prepare(
+    env.val, BeginTransactionStr, SQLITE_PREPARE_PERSISTENT)
+
+  endStmt = ? EndStmt.prepare(
+    env.val, EndTransactionStr, SQLITE_PREPARE_PERSISTENT)
+
+  rollbackStmt = ? RollbackStmt.prepare(
+    env.val, RollbackTransactionStr, SQLITE_PREPARE_PERSISTENT)
 
   containsStmt = ? ContainsStmt.prepare(
     env.val, ContainsStmtStr, SQLITE_PREPARE_PERSISTENT)
@@ -277,4 +304,7 @@ proc open*(
     env: env.release,
     getStmt: getStmt,
     getDataCol: getDataCol,
-    putStmt: putStmt)
+    putStmt: putStmt,
+    beginStmt: beginStmt,
+    endStmt: endStmt,
+    rollbackStmt: rollbackStmt)
