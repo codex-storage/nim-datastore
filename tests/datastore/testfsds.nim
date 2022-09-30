@@ -119,7 +119,6 @@ suite "Test Query":
     (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
-    bytes = "some bytes".toBytes
 
   var
     ds: FSDatastore
