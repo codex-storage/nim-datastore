@@ -52,7 +52,11 @@ proc path*(self: FSDatastore, key: Key): ?!string =
       segments.add(ns.field / ns.value)
 
   let
-    fullname = (self.root / segments.joinPath()).absolutePath().catch().get().addFileExt(FileExt)
+    fullname = (self.root / segments.joinPath())
+      .absolutePath()
+      .catch()
+      .get()
+      .addFileExt(FileExt)
 
   if not self.isRootSubdir(fullname):
     return failure "Path is outside of `root` directory!"
@@ -117,7 +121,8 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
     return failure error
 
   if not path.fileExists():
-    return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
+    return failure(
+      newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
   return self.readFile(path)
 
@@ -161,6 +166,7 @@ method query*(
 
   without basePath =? self.path(query.key).?parentDir, error:
     return failure error
+
   let
     walker = dirWalker(basePath)
 
