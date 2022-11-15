@@ -153,7 +153,3 @@ suite "TieredDatastore":
       (await ds2.get(key)).tryGet == bytes
       (await ds.get(key)).tryGet == bytes
       (await ds1.get(key)).tryGet == bytes
-
-  # # test "query":
-  # #   check:
-  # #     true
