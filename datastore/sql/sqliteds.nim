@@ -48,7 +48,7 @@ method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
 
 method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   if err =? self.db.beginStmt.exec().errorOption:
-    return failure err.msg
+    return failure(err)
 
   for key in keys:
     if err =? self.db.deleteStmt.exec((key.id)).errorOption:
@@ -73,10 +73,12 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   proc onData(s: RawStmtPtr) =
     bytes = self.db.getDataCol()
 
-  if (
-    let res = self.db.getStmt.query((key.id), onData);
-    res.isErr):
-    return failure res.error.msg
+  if err =? self.db.getStmt.query((key.id), onData).errorOption:
+    return failure(err)
+
+  if bytes.len <= 0:
+    return failure(
+      newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
   return success bytes
 
