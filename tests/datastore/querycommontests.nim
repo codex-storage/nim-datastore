@@ -139,7 +139,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
   if extended:
     test "Should apply limit":
-
       let
         key = Key.init("/a").tryGet
         q = Query.init(key, limit = 10)

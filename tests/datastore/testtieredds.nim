@@ -18,7 +18,7 @@ suite "Test Basic Tired Datastore":
     otherBytes = "some other bytes".toBytes
     key = Key.init("a:b/c/d:e").get
     root = "tests" / "test_data"
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     rootAbs = path.parentDir / root
 
   var
@@ -47,7 +47,7 @@ suite "TieredDatastore":
     bytes = @[1.byte, 2.byte, 3.byte]
     key = Key.init("a:b/c/d:e").get
     root = "tests" / "test_data"
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     rootAbs = path.parentDir / root
 
   var
