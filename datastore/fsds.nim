@@ -194,13 +194,12 @@ method query*(
 
     let
       key = Key.init(keyPath).expect("should not fail")
-
-    let data =
-      if query.value:
-        self.readFile((basePath / path).absolutePath)
-          .expect("Should read file")
-      else:
-        @[]
+      data =
+        if query.value:
+          self.readFile((basePath / path).absolutePath)
+            .expect("Should read file")
+        else:
+          @[]
 
     return success (key.some, data)
 
