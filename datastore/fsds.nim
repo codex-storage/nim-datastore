@@ -172,13 +172,14 @@ method query*(
     return failure error
 
   let basePath =
-    # it there is a file in the directory with the same name
-    # then list the contents of the directory, otherwise recurse
+    # it there is a file in the directory
+    # with the same name then list the contents
+    # of the directory, otherwise recurse
     # into subdirectories
     if path.fileExists:
       path.parentDir
     else:
-      path
+      path.changeFileExt("")
 
   let
     walker = dirWalker(basePath)
