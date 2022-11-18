@@ -72,13 +72,14 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
     return failure error
 
   if not path.fileExists():
-    return failure newException(DatastoreKeyNotFound, "Key not found!")
+    return success()
 
   try:
     removeFile(path)
-    return success()
   except OSError as e:
     return failure e
+
+  return success()
 
 method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   for key in keys:
