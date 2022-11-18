@@ -105,8 +105,8 @@ suite "TieredDatastore":
     (await ds.put(key, bytes)).tryGet
     (await ds.delete(key)).tryGet
 
-    check:
-      (await ds1.get(key)).tryGet.len == 0
+    expect DatastoreKeyNotFound:
+      discard (await ds1.get(key)).tryGet
 
     expect DatastoreKeyNotFound:
       discard (await ds2.get(key)).tryGet
