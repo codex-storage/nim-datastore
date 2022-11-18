@@ -168,8 +168,17 @@ method query*(
   self: FSDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
 
-  without basePath =? self.path(query.key).?parentDir, error:
+  without path =? self.path(query.key), error:
     return failure error
+
+  let basePath =
+    # it there is a file in the directory with the same name
+    # then list the contents of the directory, otherwise recurse
+    # into subdirectories
+    if path.fileExists:
+      path.parentDir
+    else:
+      path
 
   let
     walker = dirWalker(basePath)
