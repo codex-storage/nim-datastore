@@ -35,8 +35,8 @@ iterator items*(q: QueryIter): Future[?!QueryResponse] =
 proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
   return success()
 
-proc new*(T: type QueryIter): T =
-  QueryIter(dispose: defaultDispose)
+proc new*(T: type QueryIter, dispose = defaultDispose): T =
+  QueryIter(dispose: dispose)
 
 proc init*(
   T: type Query,
