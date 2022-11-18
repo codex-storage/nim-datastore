@@ -29,6 +29,7 @@ proc isRootSubdir*(self: FSDatastore, path: string): bool =
 proc path*(self: FSDatastore, key: Key): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
+  ##
 
   if not self.validDepth(key):
     return failure "Path has invalid depth!"
@@ -38,14 +39,14 @@ proc path*(self: FSDatastore, key: Key): ?!string =
 
   for ns in key:
     let basename = ns.value.extractFilename
-    if basename=="" or not basename.isValidFilename:
+    if basename == "" or not basename.isValidFilename:
       return failure "Filename contains invalid chars!"
 
     if ns.field == "":
       segments.add(ns.value)
     else:
       let basename = ns.field.extractFilename
-      if basename=="" or not basename.isValidFilename:
+      if basename == "" or not basename.isValidFilename:
         return failure "Filename contains invalid chars!"
 
       # `:` are replaced with `/`
@@ -129,7 +130,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 method put*(
   self: FSDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async.} =
 
   without path =? self.path(key), error:
     return failure error
@@ -144,7 +145,7 @@ method put*(
 
 method put*(
   self: FSDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+  batch: seq[BatchEntry]): Future[?!void] {.async.} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
@@ -159,6 +160,9 @@ proc dirWalker(path: string): iterator: string {.gcsafe.} =
         yield p
     except CatchableError as exc:
       raise newException(Defect, exc.msg)
+
+method close*(self: FSDatastore): Future[?!void] {.async.} =
+  return success()
 
 method query*(
   self: FSDatastore,
@@ -181,9 +185,6 @@ method query*(
       iter.finished = true
       return success (Key.none, EmptyBytes)
 
-    without data =? self.readFile((basePath / path).absolutePath), err:
-      return failure err
-
     var
       keyPath = basePath
 
@@ -193,6 +194,13 @@ method query*(
 
     let
       key = Key.init(keyPath).expect("should not fail")
+
+    let data =
+      if query.value:
+        self.readFile((basePath / path).absolutePath)
+          .expect("Should read file")
+      else:
+        @[]
 
     return success (key.some, data)
 

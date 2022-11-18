@@ -93,7 +93,12 @@ const
     ) VALUES (?, ?, ?)
   """
 
-  QueryStmtStr* = """
+  QueryStmtIdStr* = """
+    SELECT """ & IdColName & """ FROM """ & TableName &
+        """ WHERE """ & IdColName & """ GLOB ?
+  """
+
+  QueryStmtDataIdStr* = """
     SELECT """ & IdColName & """, """ & DataColName & """ FROM """ & TableName &
         """ WHERE """ & IdColName & """ GLOB ?
   """

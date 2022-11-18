@@ -12,11 +12,11 @@ type
     Descending
 
   Query* = object
-    key*: Key
-    value*: bool
-    limit*: int
-    offset*: int
-    sort*: SortOrder
+    key*: Key         # Key to be queried
+    value*: bool      # Flag to indicate if data should be returned
+    limit*: int       # Max items to return - not available in all backends
+    offset*: int      # Offset from which to start querying - not available in all backends
+    sort*: SortOrder  # Sort order - not available in all backends
 
   QueryResponse* = tuple[key: ?Key, data: seq[byte]]
   QueryEndedError* = object of DatastoreError
@@ -41,7 +41,7 @@ proc new*(T: type QueryIter): T =
 proc init*(
   T: type Query,
   key: Key,
-  value = false,
+  value = true,
   sort = SortOrder.Assending,
   offset = 0,
   limit = -1): T =
