@@ -119,6 +119,13 @@ method put*(
 
   return success()
 
+method close*(self: MountedDatastore): Future[?!void] {.async.} =
+  for s in self.stores.values:
+    discard await s.store.close()
+
+  # TODO: how to handle failed close?
+  return success()
+
 func new*(
   T: type MountedDatastore,
   stores: Table[Key, Datastore] = initTable[Key, Datastore]()): ?!T =
