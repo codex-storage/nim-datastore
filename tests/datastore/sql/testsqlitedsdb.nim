@@ -11,7 +11,7 @@ import pkg/datastore/sql/sqliteds
 
 suite "Test Open SQLite Datastore DB":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
     filename = "test_store" & DbExt
@@ -70,7 +70,7 @@ suite "Test Open SQLite Datastore DB":
 
 suite "Test SQLite Datastore DB operations":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
     filename = "test_store" & DbExt

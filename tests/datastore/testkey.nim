@@ -145,10 +145,16 @@ suite "Key":
 
   test "should equal":
     check:
-      Key.init(Namespace.init("a:b").tryGet(), Namespace.init("c").tryGet()).tryGet() == Key.init("a:b/c").tryGet()
+      Key.init(
+        Namespace.init("a:b").tryGet(),
+        Namespace.init("c").tryGet()).tryGet() == Key.init("a:b/c").tryGet()
+
       Key.init("a:b", "c").tryGet() == Key.init("a:b/c").tryGet()
       Key.init("a:b/c").tryGet() == Key.init("a:b/c").tryGet()
-      Key.init(Namespace.init("a:b").tryGet(), Namespace.init("c").tryGet()).tryGet() != Key.init("c:b/a").tryGet()
+      Key.init(
+        Namespace.init("a:b").tryGet(),
+        Namespace.init("c").tryGet()).tryGet() != Key.init("c:b/a").tryGet()
+
       Key.init("a:b/c").tryGet() == Key.init("/a:b/c/").tryGet()
       Key.init("a:b/c").tryGet() == Key.init("///a:b///c///").tryGet()
       Key.init("a:X/b/c").tryGet() == Key.init("a:X/b/c").tryGet()

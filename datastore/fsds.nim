@@ -29,6 +29,7 @@ proc isRootSubdir*(self: FSDatastore, path: string): bool =
 proc path*(self: FSDatastore, key: Key): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
+  ##
 
   if not self.validDepth(key):
     return failure "Path has invalid depth!"
@@ -38,21 +39,25 @@ proc path*(self: FSDatastore, key: Key): ?!string =
 
   for ns in key:
     let basename = ns.value.extractFilename
-    if basename=="" or not basename.isValidFilename:
+    if basename == "" or not basename.isValidFilename:
       return failure "Filename contains invalid chars!"
 
     if ns.field == "":
       segments.add(ns.value)
     else:
       let basename = ns.field.extractFilename
-      if basename=="" or not basename.isValidFilename:
+      if basename == "" or not basename.isValidFilename:
         return failure "Filename contains invalid chars!"
 
       # `:` are replaced with `/`
       segments.add(ns.field / ns.value)
 
   let
-    fullname = (self.root / segments.joinPath()).absolutePath().catch().get().addFileExt(FileExt)
+    fullname = (self.root / segments.joinPath())
+      .absolutePath()
+      .catch()
+      .get()
+      .addFileExt(FileExt)
 
   if not self.isRootSubdir(fullname):
     return failure "Path is outside of `root` directory!"
@@ -67,13 +72,14 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
     return failure error
 
   if not path.fileExists():
-    return failure newException(DatastoreKeyNotFound, "Key not found!")
+    return success()
 
   try:
     removeFile(path)
-    return success()
   except OSError as e:
     return failure e
+
+  return success()
 
 method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   for key in keys:
@@ -117,14 +123,15 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
     return failure error
 
   if not path.fileExists():
-    return failure(newException(DatastoreKeyNotFound, "Key doesn't exist"))
+    return failure(
+      newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
   return self.readFile(path)
 
 method put*(
   self: FSDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async.} =
 
   without path =? self.path(key), error:
     return failure error
@@ -139,7 +146,7 @@ method put*(
 
 method put*(
   self: FSDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+  batch: seq[BatchEntry]): Future[?!void] {.async.} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
@@ -155,12 +162,26 @@ proc dirWalker(path: string): iterator: string {.gcsafe.} =
     except CatchableError as exc:
       raise newException(Defect, exc.msg)
 
+method close*(self: FSDatastore): Future[?!void] {.async.} =
+  return success()
+
 method query*(
   self: FSDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
 
-  without basePath =? self.path(query.key).?parentDir, error:
+  without path =? self.path(query.key), error:
     return failure error
+
+  let basePath =
+    # it there is a file in the directory
+    # with the same name then list the contents
+    # of the directory, otherwise recurse
+    # into subdirectories
+    if path.fileExists:
+      path.parentDir
+    else:
+      path.changeFileExt("")
+
   let
     walker = dirWalker(basePath)
 
@@ -175,9 +196,6 @@ method query*(
       iter.finished = true
       return success (Key.none, EmptyBytes)
 
-    without data =? self.readFile((basePath / path).absolutePath), err:
-      return failure err
-
     var
       keyPath = basePath
 
@@ -187,6 +205,12 @@ method query*(
 
     let
       key = Key.init(keyPath).expect("should not fail")
+      data =
+        if query.value:
+          self.readFile((basePath / path).absolutePath)
+            .expect("Should read file")
+        else:
+          @[]
 
     return success (key.some, data)
 

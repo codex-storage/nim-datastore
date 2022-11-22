@@ -15,7 +15,7 @@ import ./querycommontests
 
 suite "Test Basic FSDatastore":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
     key = Key.init("/a/b").tryGet()
@@ -40,7 +40,7 @@ suite "Test Basic FSDatastore":
 
 suite "Test Misc FSDatastore":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
     bytes = "some bytes".toBytes
@@ -116,7 +116,7 @@ suite "Test Misc FSDatastore":
 
 suite "Test Query":
   let
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
 

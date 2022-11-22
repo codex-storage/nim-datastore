@@ -16,7 +16,7 @@ import ./dscommontests
 suite "Test Basic Mounted Datastore":
   let
     root = "tests" / "test_data"
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     rootAbs = path.parentDir / root
 
     key = Key.init("a:b/c/d:e").get

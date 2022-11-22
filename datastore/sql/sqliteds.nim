@@ -1,4 +1,5 @@
 import std/times
+import std/options
 
 import pkg/chronos
 import pkg/questionable
@@ -47,7 +48,7 @@ method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
 
 method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   if err =? self.db.beginStmt.exec().errorOption:
-    return failure err.msg
+    return failure(err)
 
   for key in keys:
     if err =? self.db.deleteStmt.exec((key.id)).errorOption:
@@ -72,10 +73,12 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   proc onData(s: RawStmtPtr) =
     bytes = self.db.getDataCol()
 
-  if (
-    let res = self.db.getStmt.query((key.id), onData);
-    res.isErr):
-    return failure res.error.msg
+  if err =? self.db.getStmt.query((key.id), onData).errorOption:
+    return failure(err)
+
+  if bytes.len <= 0:
+    return failure(
+      newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
   return success bytes
 
@@ -109,7 +112,10 @@ method query*(
 
   var
     iter = QueryIter()
-    queryStr = QueryStmtStr
+    queryStr = if query.value:
+        QueryStmtDataIdStr
+      else:
+        QueryStmtIdStr
 
   if query.sort == SortOrder.Descending:
     queryStr &= QueryStmtOrderDescending
@@ -158,10 +164,14 @@ method query*(
     of SQLITE_ROW:
       let
         key = Key.init(
-          $sqlite3_column_text_not_null(s,QueryStmtIdCol))
+          $sqlite3_column_text_not_null(s, QueryStmtIdCol))
           .expect("should not fail")
 
-        blob = sqlite3_column_blob(s, QueryStmtDataCol)
+        blob: ?pointer =
+          if query.value:
+              sqlite3_column_blob(s, QueryStmtDataCol).some
+            else:
+              pointer.none
 
       # detect out-of-memory error
       # see the conversion table and final paragraph of:
@@ -171,7 +181,7 @@ method query*(
       # the "data" column can be NULL so in order to detect an out-of-memory
       # error it is necessary to check that the result is a null pointer and
       # that the result code is an error code
-      if blob.isNil:
+      if blob.isSome and blob.get().isNil:
         let
           v = sqlite3_errcode(sqlite3_db_handle(s))
 
@@ -181,8 +191,13 @@ method query*(
 
       let
         dataLen = sqlite3_column_bytes(s, QueryStmtDataCol)
-        dataBytes = cast[ptr UncheckedArray[byte]](blob)
-        data = @(toOpenArray(dataBytes, 0, dataLen - 1))
+        data = if blob.isSome:
+            @(
+              toOpenArray(cast[ptr UncheckedArray[byte]](blob.get),
+              0,
+              dataLen - 1))
+          else:
+            @[]
 
       return success (key.some, data)
     of SQLITE_DONE:

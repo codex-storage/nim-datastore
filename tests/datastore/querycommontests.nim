@@ -10,15 +10,24 @@ import pkg/stew/byteutils
 import pkg/datastore
 
 template queryTests*(ds: Datastore, extended = true) {.dirty.} =
-  test "Key should query all key and all it's children":
-    let
-      key1 = Key.init("/a").tryGet
-      key2 = Key.init("/a/b").tryGet
-      key3 = Key.init("/a/b/c").tryGet
-      val1 = "value for 1".toBytes
-      val2 = "value for 2".toBytes
-      val3 = "value for 3".toBytes
+  var
+    key1: Key
+    key2: Key
+    key3: Key
+    val1: seq[byte]
+    val2: seq[byte]
+    val3: seq[byte]
 
+  setupAll:
+    key1 = Key.init("/a").tryGet
+    key2 = Key.init("/a/b").tryGet
+    key3 = Key.init("/a/b/c").tryGet
+    val1 = "value for 1".toBytes
+    val2 = "value for 2".toBytes
+    val3 = "value for 3".toBytes
+
+  test "Key should query all keys and all it's children":
+    let
       q = Query.init(key1)
 
     (await ds.put(key1, val1)).tryGet
@@ -44,15 +53,35 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     (await iter.dispose()).tryGet
 
+  test "Key should query all keys without values":
+    let
+      q = Query.init(key1, value = false)
+
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
+
+    let
+      iter = (await ds.query(q)).tryGet
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
+
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data.len == 0
+
+      res[1].key.get == key2
+      res[1].data.len == 0
+
+      res[2].key.get == key3
+      res[2].data.len == 0
+
+    (await iter.dispose()).tryGet
+
   test "Key should not query parent":
     let
-      key1 = Key.init("/a").tryGet
-      key2 = Key.init("/a/b").tryGet
-      key3 = Key.init("/a/b/c").tryGet
-      val1 = "value for 1".toBytes
-      val2 = "value for 2".toBytes
-      val3 = "value for 3".toBytes
-
       q = Query.init(key2)
 
     (await ds.put(key1, val1)).tryGet
@@ -78,13 +107,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
   test "Key should all list all keys at the same level":
     let
       queryKey = Key.init("/a").tryGet
-      key1 = Key.init("/a/1").tryGet
-      key2 = Key.init("/a/2").tryGet
-      key3 = Key.init("/a/3").tryGet
-      val1 = "value for 1".toBytes
-      val2 = "value for 2".toBytes
-      val3 = "value for 3".toBytes
-
       q = Query.init(queryKey)
 
     (await ds.put(key1, val1)).tryGet
@@ -117,13 +139,16 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
   if extended:
     test "Should apply limit":
-
       let
         key = Key.init("/a").tryGet
         q = Query.init(key, limit = 10)
 
       for i in 0..<100:
-        (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
+
+        (await ds.put(key, val)).tryGet
 
       let
         iter = (await ds.query(q)).tryGet
@@ -142,7 +167,11 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         q = Query.init(key, offset = 90)
 
       for i in 0..<100:
-        (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
+
+        (await ds.put(key, val)).tryGet
 
       let
         iter = (await ds.query(q)).tryGet
@@ -161,7 +190,11 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         q = Query.init(key, offset = 95, limit = 5)
 
       for i in 0..<100:
-        (await ds.put(Key.init(key, Key.init("/" & $i).tryGet).tryGet, ("val " & $i).toBytes)).tryGet
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
+
+        (await ds.put(key, val)).tryGet
 
       let
         iter = (await ds.query(q)).tryGet

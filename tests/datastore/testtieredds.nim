@@ -18,7 +18,7 @@ suite "Test Basic Tired Datastore":
     otherBytes = "some other bytes".toBytes
     key = Key.init("a:b/c/d:e").get
     root = "tests" / "test_data"
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     rootAbs = path.parentDir / root
 
   var
@@ -47,7 +47,7 @@ suite "TieredDatastore":
     bytes = @[1.byte, 2.byte, 3.byte]
     key = Key.init("a:b/c/d:e").get
     root = "tests" / "test_data"
-    (path, _, _) = instantiationInfo(-1, fullPaths = true) # get this file's name
+    path = currentSourcePath() # get this file's name
     rootAbs = path.parentDir / root
 
   var
@@ -105,8 +105,8 @@ suite "TieredDatastore":
     (await ds.put(key, bytes)).tryGet
     (await ds.delete(key)).tryGet
 
-    check:
-      (await ds1.get(key)).tryGet.len == 0
+    expect DatastoreKeyNotFound:
+      discard (await ds1.get(key)).tryGet
 
     expect DatastoreKeyNotFound:
       discard (await ds2.get(key)).tryGet
@@ -153,7 +153,3 @@ suite "TieredDatastore":
       (await ds2.get(key)).tryGet == bytes
       (await ds.get(key)).tryGet == bytes
       (await ds1.get(key)).tryGet == bytes
-
-  # # test "query":
-  # #   check:
-  # #     true
