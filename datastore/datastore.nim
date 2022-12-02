@@ -13,7 +13,7 @@ push: {.upraises: [].}
 type
   BatchEntry* = tuple[key: Key, data: seq[byte]]
 
-method contains*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unknown".} =
+method has*(self: Datastore, key: Key): Future[?!bool] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 method delete*(self: Datastore, key: Key): Future[?!void] {.base, locks: "unknown".} =
@@ -39,3 +39,6 @@ method query*(
   query: Query): Future[?!QueryIter] {.base, gcsafe.} =
 
   raiseAssert("Not implemented!")
+
+proc contains*(self: Datastore, key: Key): Future[bool] {.async.} =
+  return (await self.has(key)) |? false

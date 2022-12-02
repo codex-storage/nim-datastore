@@ -73,7 +73,7 @@ suite "Test Misc FSDatastore":
       (await fs.put(key, bytes)).isErr
       (await fs.get(key)).isErr
       (await fs.delete(key)).isErr
-      (await fs.contains(key)).isErr
+      (await fs.has(key)).isErr
 
   test "Test valid key (path) depth":
     let
@@ -84,7 +84,7 @@ suite "Test Misc FSDatastore":
       (await fs.put(key, bytes)).isOk
       (await fs.get(key)).isOk
       (await fs.delete(key)).isOk
-      (await fs.contains(key)).isOk
+      (await fs.has(key)).isOk
 
   test "Test key cannot write outside of root":
     let
@@ -95,7 +95,7 @@ suite "Test Misc FSDatastore":
       (await fs.put(key, bytes)).isErr
       (await fs.get(key)).isErr
       (await fs.delete(key)).isErr
-      (await fs.contains(key)).isErr
+      (await fs.has(key)).isErr
 
   test "Test key cannot convert to invalid path":
     let
@@ -112,7 +112,7 @@ suite "Test Misc FSDatastore":
         (await fs.put(key, bytes)).isErr
         (await fs.get(key)).isErr
         (await fs.delete(key)).isErr
-        (await fs.contains(key)).isErr
+        (await fs.has(key)).isErr
 
 suite "Test Query":
   let

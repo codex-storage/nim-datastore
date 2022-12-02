@@ -18,7 +18,7 @@ suite "Datastore (base)":
     expect Defect: discard ds.delete(key)
 
   test "contains":
-    expect Defect: discard ds.contains(key)
+    expect Defect: discard ds.has(key)
 
   test "get":
     expect Defect: discard ds.get(key)

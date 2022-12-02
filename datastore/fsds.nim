@@ -64,7 +64,7 @@ proc path*(self: FSDatastore, key: Key): ?!string =
 
   return success fullname
 
-method contains*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
   return self.path(key).?fileExists()
 
 method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =

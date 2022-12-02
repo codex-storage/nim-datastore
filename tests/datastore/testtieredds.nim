@@ -116,24 +116,24 @@ suite "TieredDatastore":
       ds = TieredDatastore.new(ds1, ds2).tryGet
 
     check:
-      not (await ds1.contains(key)).tryGet
-      not (await ds2.contains(key)).tryGet
+      not (await ds1.has(key)).tryGet
+      not (await ds2.has(key)).tryGet
 
     (await ds.put(key, bytes)).tryGet
 
     check:
-      (await ds.contains(key)).tryGet
-      (await ds1.contains(key)).tryGet
-      (await ds2.contains(key)).tryGet
+      (await ds.has(key)).tryGet
+      (await ds1.has(key)).tryGet
+      (await ds2.has(key)).tryGet
 
   test "get":
     var
       ds = TieredDatastore.new(ds1, ds2).tryGet
 
     check:
-      not (await ds1.contains(key)).tryGet
-      not (await ds2.contains(key)).tryGet
-      not (await ds.contains(key)).tryGet
+      not (await ds1.has(key)).tryGet
+      not (await ds2.has(key)).tryGet
+      not (await ds.has(key)).tryGet
 
     (await ds.put(key, bytes)).tryGet
 
@@ -149,7 +149,7 @@ suite "TieredDatastore":
     ds = TieredDatastore.new(ds1, ds2).tryGet
 
     check:
-      not (await ds1.contains(key)).tryGet
+      not (await ds1.has(key)).tryGet
       (await ds2.get(key)).tryGet == bytes
       (await ds.get(key)).tryGet == bytes
       (await ds1.get(key)).tryGet == bytes
