@@ -28,22 +28,22 @@ proc new*(
 proc stores*(self: TieredDatastore): seq[Datastore] =
   self.stores
 
-method contains*(
+method has*(
   self: TieredDatastore,
-  key: Key): Future[?!bool] {.async, locks: "unknown".} =
+  key: Key): Future[?!bool] {.async.} =
 
   for store in self.stores:
-    let
-      containsRes = await store.contains(key)
+    without res =? (await store.has(key)), err:
+      return failure(err)
 
-    if containsRes.isErr: return containsRes
-    if containsRes.get == true: return success true
+    if res:
+      return success true
 
   return success false
 
 method delete*(
   self: TieredDatastore,
-  key: Key): Future[?!void] {.async, locks: "unknown".} =
+  key: Key): Future[?!void] {.async.} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
@@ -55,7 +55,7 @@ method delete*(
 
 method delete*(
   self: TieredDatastore,
-  keys: seq[Key]): Future[?!void] {.async, locks: "unknown".} =
+  keys: seq[Key]): Future[?!void] {.async.} =
 
   for key in keys:
     let
@@ -68,7 +68,7 @@ method delete*(
 
 method get*(
   self: TieredDatastore,
-  key: Key): Future[?!seq[byte]] {.async, locks: "unknown".} =
+  key: Key): Future[?!seq[byte]] {.async.} =
 
   var
     bytes: seq[byte]
@@ -93,7 +93,7 @@ method get*(
 method put*(
   self: TieredDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
+  data: seq[byte]): Future[?!void] {.async.} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
@@ -105,7 +105,7 @@ method put*(
 
 method put*(
   self: TieredDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+  batch: seq[BatchEntry]): Future[?!void] {.async.} =
 
   for entry in batch:
     let
@@ -118,6 +118,6 @@ method put*(
 
 # method query*(
 #   self: TieredDatastore,
-#   query: ...): Future[?!(?...)] {.async, locks: "unknown".} =
+#   query: ...): Future[?!(?...)] {.async.} =
 #
 #   return success ....some

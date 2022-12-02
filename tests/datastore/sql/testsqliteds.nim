@@ -73,8 +73,8 @@ suite "Test Read Only SQLiteDatastore":
 
   test "contains":
     check:
-      not (await readOnlyDb.contains(key)).tryGet()
-      not (await dsDb.contains(key)).tryGet()
+      not (await readOnlyDb.has(key)).tryGet()
+      not (await dsDb.has(key)).tryGet()
 
 suite "Test Query":
   var

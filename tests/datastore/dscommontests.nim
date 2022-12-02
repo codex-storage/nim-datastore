@@ -31,7 +31,7 @@ proc basicStoreTests*(
 
   test "contains":
     check:
-      not (await ds.contains(key)).tryGet()
+      not await (key in ds)
 
   test "put batch":
     var
@@ -43,7 +43,7 @@ proc basicStoreTests*(
     (await ds.put(batch)).tryGet
 
     for k in batch:
-      check: (await ds.contains(k.key)).tryGet
+      check: (await ds.has(k.key)).tryGet
 
   test "delete batch":
     var
@@ -55,4 +55,4 @@ proc basicStoreTests*(
     (await ds.delete(batch)).tryGet
 
     for k in batch:
-      check: not (await ds.contains(k)).tryGet
+      check: not (await ds.has(k)).tryGet

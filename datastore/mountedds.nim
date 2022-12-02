@@ -62,14 +62,14 @@ proc dispatch(
 
   return success (store: mounted, relative: ?key.relative(mounted.key))
 
-method contains*(
+method has*(
   self: MountedDatastore,
   key: Key): Future[?!bool] {.async.} =
 
   without mounted =? self.dispatch(key):
     return failure "No mounted datastore found"
 
-  return (await mounted.store.store.contains(mounted.relative))
+  return (await mounted.store.store.has(mounted.relative))
 
 method delete*(
   self: MountedDatastore,
@@ -111,7 +111,7 @@ method put*(
 
 method put*(
   self: MountedDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+  batch: seq[BatchEntry]): Future[?!void] {.async.} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:

@@ -29,17 +29,15 @@ proc `readOnly=`*(self: SQLiteDatastore): bool
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-method contains*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
   var
     exists = false
 
   proc onData(s: RawStmtPtr) =
     exists = sqlite3_column_int64(s, ContainsStmtExistsCol.cint).bool
 
-  if (
-    let res = self.db.containsStmt.query((key.id), onData);
-    res.isErr):
-    return failure res.error.msg
+  if err =? self.db.containsStmt.query((key.id), onData).errorOption:
+    return failure err
 
   return success exists
 
