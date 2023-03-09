@@ -12,7 +12,7 @@ export sqlite3_abi
 # can pass `--forceBuild:on` to the Nim compiler if a SQLite build without
 # `-DSQLITE_ENABLE_COLUMN_METADATA` option is stuck in the build cache,
 # e.g. `nimble test --forceBuild:on`
-{.passC: "-DSQLITE_ENABLE_COLUMN_METADATA".}
+{.passc: "-DSQLITE_ENABLE_COLUMN_METADATA".}
 
 push: {.upraises: [].}
 
@@ -44,7 +44,7 @@ proc bindParam(
   n: int,
   val: auto): cint =
 
-  when val is openarray[byte]|seq[byte]:
+  when val is openArray[byte]|seq[byte]:
     if val.len > 0:
       # `SQLITE_TRANSIENT` "indicate[s] that the object is to be copied prior
       # to the return from sqlite3_bind_*(). The object and pointer to it

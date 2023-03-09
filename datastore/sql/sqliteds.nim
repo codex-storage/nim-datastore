@@ -18,7 +18,7 @@ push: {.upraises: [].}
 type
   SQLiteDatastore* = ref object of Datastore
     readOnly: bool
-    db: SQLiteDsDB
+    db: SQLiteDsDb
 
 proc path*(self: SQLiteDatastore): string =
   self.db.dbPath
@@ -225,12 +225,12 @@ proc new*(
       else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
   success T(
-    db: ? SQLIteDsDb.open(path, flags),
+    db: ? SQLiteDsDb.open(path, flags),
     readOnly: readOnly)
 
 proc new*(
   T: type SQLiteDatastore,
-  db: SQLIteDsDb): ?!T =
+  db: SQLiteDsDb): ?!T =
 
   success T(
     db: db,
