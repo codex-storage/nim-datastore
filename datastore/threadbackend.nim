@@ -5,40 +5,51 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 import pkg/taskpools
-import pkg/patty
 
 import ./key
 import ./query
 import ./datastore
 import ./databuffer
 
+import fsds
+
 export key, query
 
 push: {.upraises: [].}
 
-variant Shape:
-  Circle(r: float)
-  Rectangle(w: float, h: float)
-
 type
-  DatastoreBackend* {.pure.} = enum
-    FileSystem
-    SQlite
+  ThreadBackendKind* {.pure.} = enum
+    FSBackend
+    SQliteBackend
+
+  ThreadBackend* = object
+    case kind*: ThreadBackendKind
+    of FSBackend:
+      root: StringBuffer
+      depth: int
+      caseSensitive: bool
+      ignoreProtected: bool
+    of SQliteBackend:
+      discard
 
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
 
 var backendDatastore {.threadvar.}: ref Datastore
 
-proc startupDatastore(backend: DatastoreBackend): bool =
-
-  case backend:
-  of FileSystem:
-    backendDatastore = FSDatastore.new(
-      root: string,
-      depth = 2,
-      caseSensitive = true,
-      ignoreProtected = false
+proc startupDatastore(backend: ThreadBackend): bool =
+  ## starts up a FS instance on a give thread
+  case backend.kind:
+  of FSBackend:
+    let res = FSDatastore.new(
+      root = backend.root.toString(),
+      depth = backend.depth,
+      caseSensitive = backend.caseSensitive,
+      ignoreProtected = backend.ignoreProtected)
+    if res.isOk:
+      backendDatastore = res.get()
+  else:
+    discard
 
 proc has*(
   self: ThreadDatastore,

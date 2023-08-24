@@ -16,6 +16,7 @@ type
   
   KeyBuffer* = DataBuffer
   ValueBuffer* = DataBuffer
+  StringBuffer* = DataBuffer
 
 proc `$`*(data: DataBuffer): string =
   if data.buf.isNil:
@@ -62,10 +63,6 @@ proc unsafeGetAtomicCount*(a: DataBuffer): int =
 
 proc len*(a: DataBuffer): int = a.size
 
-proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
-  result = newSeq[T](a.len)
-  copyMem(addr result[0], unsafeAddr a.buf[0], a.len)
-
 proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   let cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   cnt[] = 1
@@ -81,3 +78,12 @@ proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuf
   result = DataBuffer.new(data.len)
   if data.len() > 0:
     copyMem(result.buf, unsafeAddr data[0], data.len)
+
+proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
+  result = newSeq[T](a.len)
+  copyMem(addr result[0], unsafeAddr a.buf[0], a.len)
+
+proc toString*(data: StringBuffer): string =
+  result = newString(data.len())
+  if data.len() > 0:
+    copyMem(addr result[0], unsafeAddr data.buf[0], data.len)
