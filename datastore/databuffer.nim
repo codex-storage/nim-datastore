@@ -13,6 +13,9 @@ type
     cnt: ptr int
     buf: ptr UncheckedArray[byte]
     size: int
+  
+  KeyBuffer* = DataBuffer
+  ValueBuffer* = DataBuffer
 
 proc `$`*(data: DataBuffer): string =
   if data.buf.isNil:
