@@ -4,6 +4,8 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
+import pkg/taskpools
+import pkg/patty
 
 import ./key
 import ./query
@@ -14,9 +16,29 @@ export key, query
 
 push: {.upraises: [].}
 
+variant Shape:
+  Circle(r: float)
+  Rectangle(w: float, h: float)
+
 type
+  DatastoreBackend* {.pure.} = enum
+    FileSystem
+    SQlite
+
   ThreadDatastore* = ref object of Datastore
-    # stores*: Table[KeyBuffer, ThreadDatastore]
+    tp: Taskpool
+
+var backendDatastore {.threadvar.}: ref Datastore
+
+proc startupDatastore(backend: DatastoreBackend): bool =
+
+  case backend:
+  of FileSystem:
+    backendDatastore = FSDatastore.new(
+      root: string,
+      depth = 2,
+      caseSensitive = true,
+      ignoreProtected = false
 
 proc has*(
   self: ThreadDatastore,
@@ -86,20 +108,20 @@ proc put*(
 proc close*(
   self: ThreadDatastore
 ): Future[?!void] {.async.} =
-
-  # for s in self.stores.values:
-  #   discard await s.store.close()
-
-  # TODO: how to handle failed close?
+  self.tp.shutdown()
   return success()
 
 func new*[S: ref Datastore](
   T: typedesc[ThreadDatastore],
-  storeTp: typedesc[S]
+  backend: DatastoreBackend,
 ): ?!ThreadDatastore =
 
   var self = T()
-  # for (k, v) in stores.pairs:
-  #   self.stores[?k.path] = MountedStore(store: v, key: k)
+  self.tp = Taskpool.new(num_threads = 1) ##\
+    ## Default to one thread, multiple threads \
+    ## will require more work
+
+  let pending = self.tp.spawn startupDatastore(backend)
+  sync pending
 
   success self
