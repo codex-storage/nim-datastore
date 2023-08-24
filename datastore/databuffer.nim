@@ -54,8 +54,14 @@ proc `=copy`*(a: var DataBuffer; b: DataBuffer) =
 
 proc incrAtomicCount*(a: DataBuffer) =
   let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
-proc getAtomicCount*(a: DataBuffer): int =
+proc unsafeGetAtomicCount*(a: DataBuffer): int =
   atomicLoad(a.cnt, addr result, ATOMIC_RELAXED)
+
+proc len*(a: DataBuffer): int = a.size
+
+proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
+  result = newSeq[T](a.len)
+  copyMem(addr result[0], unsafeAddr a.buf[0], a.len)
 
 proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   let cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
