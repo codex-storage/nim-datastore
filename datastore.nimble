@@ -13,6 +13,7 @@ requires "nim >= 1.2.0",
          "sqlite3_abi",
          "stew",
          "unittest2",
+         "patty",
          "upraises >= 0.1.0 & < 0.2.0"
 
 task coverage, "generates code coverage report":
