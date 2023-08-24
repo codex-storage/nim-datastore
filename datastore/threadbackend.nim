@@ -35,7 +35,7 @@ type
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
 
-var backendDatastore {.threadvar.}: ref Datastore
+var backendDatastore {.threadvar.}: Datastore
 
 proc startupDatastore(backend: ThreadBackend): bool =
   ## starts up a FS instance on a give thread
@@ -47,7 +47,7 @@ proc startupDatastore(backend: ThreadBackend): bool =
       caseSensitive = backend.caseSensitive,
       ignoreProtected = backend.ignoreProtected)
     if res.isOk:
-      backendDatastore = res.get()
+      backendDatastore =  res.get()
   else:
     discard
 
@@ -124,7 +124,7 @@ proc close*(
 
 func new*[S: ref Datastore](
   T: typedesc[ThreadDatastore],
-  backend: DatastoreBackend,
+  backend: ThreadBackend,
 ): ?!ThreadDatastore =
 
   var self = T()
