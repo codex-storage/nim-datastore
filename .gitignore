@@ -9,3 +9,4 @@ coverage
 datastore.nims
 nimcache
 TODO
+nim.cfg
