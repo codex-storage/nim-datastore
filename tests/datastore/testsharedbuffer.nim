@@ -43,8 +43,8 @@ proc thread1(val: int) {.thread.} =
       var myBytes = DataBuffer.new(@"hello world")
       myBytes2 = myBytes
 
-      echo "thread1: sending: ", myBytes, " cnt: ", myBytes.getAtomicCount()
-      echo "mybytes2: ", myBytes2, " cnt: ", myBytes2.getAtomicCount()
+      echo "thread1: sending: ", myBytes, " cnt: ", myBytes.unsafeGetAtomicCount()
+      echo "mybytes2: ", myBytes2, " cnt: ", myBytes2.unsafeGetAtomicCount()
 
       shareVal = myBytes
       echo "thread1: sent, left over: ", $myBytes
@@ -60,7 +60,8 @@ proc thread2(val: int) {.thread.} =
         wait(cond, lock)
       echo "thread2: receiving "
       let msg: DataBuffer = shareVal
-      echo "thread2: received: ", msg, " cnt: ", msg.getAtomicCount()
+      echo "thread2: received: ", msg, " cnt: ", msg.unsafeGetAtomicCount()
+      check msg.toSeq(char) == @"hello world"
       # os.sleep(100)
 
 proc runBasicTest() =
