@@ -26,8 +26,8 @@ type
   ThreadResult*[T: DataBuffer | void] = object
     state*: ThreadResultKind
     signal*: ThreadSignalPtr
-    val*: T
-    err*: CatchableErrorBuffer
+    value*: T
+    error*: CatchableErrorBuffer
 
   TResult*[T] = UniquePtr[ThreadResult[T]]
 
@@ -45,20 +45,19 @@ type
     of SQliteBackend:
       discard
 
-  ThreadDatastore* = object
-    taskpool: Taskpool
+  ThreadDatastore = object
+    tp: Taskpool
     backendDatastore: Datastore
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
-proc new*[T](tp: typedesc[TResult[T]]): TResult[T] =
+proc newThreadResult*[T](tp: typedesc[TResult[T]]): TResult[T] =
   newUniquePtr(ThreadResult[T])
 
 proc startupDatastore(
-    signal: ThreadSignalPtr,
-    backend: ThreadBackend,
     ret: TResult[ThreadDatastorePtr],
-): bool =
+    backend: ThreadBackend,
+) =
   ## starts up a FS instance on a give thread
   case backend.kind:
   of FSBackend:
@@ -72,14 +71,14 @@ proc startupDatastore(
       let tds = newSharedPtr(ThreadDatastore)
       tds[].backendDatastore = ds.get()
 
-      ret[].val = tds
+      ret[].value = tds
       ret[].state = Success
     else:
       ret[].state = Error
   else:
     discard
   
-  ret[].signal.fireSync().get()
+  discard ret[].signal.fireSync().get()
 
 proc getTask*(
   self: ThreadDatastorePtr,
@@ -107,17 +106,18 @@ proc putTask*(
 #   except Exception as exc:
 #     return TResult[void].new()
 
-func new*(
-  T: typedesc[ThreadDatastore],
-  signal: ThreadSignalPtr,
+func createThreadDatastore*(
+  ret: TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
-  ret: TResult[ThreadDatastore]
 ) =
 
-  var self = T()
-  self.tp = Taskpool.new(num_threads = 1) ##\
+  try:
+    ret[].value[].tp = Taskpool.new(num_threads = 1) ##\
     ## Default to one thread, multiple threads \
     ## will require more work
+    ret[].value[].tp.spawn startupDatastore(ret, backend)
 
-  let pending = self.tp.spawn startupDatastore(signal, backend)
+  except Exception as exc:
+    ret[].state = Error
+    ret[].error = exc.toBuffer()
 

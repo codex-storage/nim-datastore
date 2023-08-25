@@ -75,16 +75,17 @@ method close*(
   # TODO: how to handle failed close?
   return success()
 
-func new*[S: ref Datastore](
-  T: typedesc[SharedDatastore],
+func newSharedDataStore*(
+  # T: typedesc[SharedDatastore],
   backend: ThreadBackend,
 ): ?!SharedDatastore =
 
   var
     self = SharedDatastore()
-    res = TResult[ThreadDatastore].new()
+    res = newThreadResult(ThreadDatastore)
   
   res[].signal = newSignal()
-  self.tds = ThreadDatastore.new(backend, res)
+  res.createThreadDatastore(backend)
 
+  await wait(res[].signal)
   success self
