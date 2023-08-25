@@ -31,10 +31,8 @@ suite "Test Basic SharedDatastore":
 
     echo "\n\n=== put ==="
     let key1 = Key.init("/a").tryGet
-    # let res1 = await sds.put(key1, "value for 1".toBytes())
-    let res1 = sds.put(key1, "value for 1".toBytes())
-    res1.cancel()
-    echo "res1: ", res1.repr
+    let res1 = await sds.put(key1, "value for 1".toBytes())
+    print "res1: ", res1
 
     echo "\n\n=== get ==="
     let res2 = await sds.get(key1)
@@ -43,6 +41,12 @@ suite "Test Basic SharedDatastore":
     for c in res2.get():
       val &= char(c)
     print "get res2: ", $val
+
+    echo "\n\n=== put cancel ==="
+    # let res1 = await sds.put(key1, "value for 1".toBytes())
+    let res3 = sds.put(key1, "value for 1".toBytes())
+    res3.cancel()
+    # print "res3: ", res3
 
 # suite "Test Basic FSDatastore":
 #   let

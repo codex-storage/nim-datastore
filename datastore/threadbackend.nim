@@ -68,10 +68,6 @@ var
   fsDatastore {.threadvar.}: FSDatastore ##\
     ## TODO: figure out a better way to capture this?
 
-proc `=destroy`*[T](x: var ThreadResult[T]) =
-  when T isnot void:
-    x.value.`=destroy`
-
 proc newThreadResult*[T](tp: typedesc[T]): Result[TResult[T], ref CatchableError] =
   let res = newSharedPtr(ThreadResult[T])
   let signal = ThreadSignalPtr.new()
