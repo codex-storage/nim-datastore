@@ -78,18 +78,18 @@ proc put*(
 proc close*(
   self: ThreadDatastore,
   signal: ThreadSignalPtr,
-): Result[void, CatchableErrorBuffer] =
+): TResult[void] =
   try:
     self[].tp.shutdown()
     return ok()
   except Exception as exc:
-    return err(exc.toBuffer())
+    return TResult[void].new()
 
 func new*[S: ref Datastore](
   T: typedesc[ThreadDatastore],
   signal: ThreadSignalPtr,
   backend: ThreadBackend,
-): Result[ThreadDatastore, CatchableErrorBuffer] =
+): TResult[ThreadDatastore] =
 
   var self = T()
   self.tp = Taskpool.new(num_threads = 1) ##\
