@@ -79,13 +79,14 @@ proc newSharedDataStore*(
 
   var
     self = SharedDatastore()
-    res = newThreadResult(ThreadDatastorePtr)
+    # res = newThreadResult(ThreadDatastorePtr)
+    res = cast[ThreadDatastorePtr](allocShared0(sizeof(ThreadDatastorePtr)))
   
-  res[].signal = ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
+  # res[].signal = ThreadSignalPtr.new().valueOr:
+  #   return failure newException(DatastoreError, "error creating signal")
 
   res.createThreadDatastore(backend)
-  await wait(res[].signal)
-  res[].signal.close()
+  # await wait(res[].signal)
+  # res[].signal.close()
 
   success self

@@ -52,16 +52,20 @@ type
     tp: Taskpool
     backendDatastore: Datastore
 
-  ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
+  ThreadDatastorePtr* = ptr ThreadDatastore
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
 
 proc startupDatastore(
-    ret: TResult[ThreadDatastorePtr],
-    backend: ThreadBackend,
-) {.raises: [].} =
+    # ret: TResult[ThreadDatastorePtr],
+    # backend: ThreadBackend,
+  ) {.raises: [].} =
   ## starts up a FS instance on a give thread
+  var
+    ret: TResult[ThreadDatastorePtr]
+    backend: ThreadBackend
+
   case backend.kind:
   of FSBackend:
     let ds = FSDatastore.new(
@@ -113,19 +117,23 @@ proc putTask*(
 #     return TResult[void].new()
 
 proc createThreadDatastore*(
-  ret: TResult[ThreadDatastorePtr],
+  ret: var ThreadDatastorePtr,
   backend: ThreadBackend,
 ) =
 
   try:
     echo "createThreadDatastore: start"
-    ret[].value[].tp = Taskpool.new(num_threads = 2) ##\
+    # var tp = Taskpool.new(num_threads = 2) 
+    ret[].tp = Taskpool.new(num_threads = 2) ##\
     ## Default to one thread, multiple threads \
     ## will require more work
-    ret[].value[].tp.spawn startupDatastore(ret, backend)
+    echo "ret.tp: ", ret[].tp.repr
+    ret[].tp.spawn startupDatastore()
+    # ret[].value[].tp.spawn startupDatastore(ret, backend)
     echo "createThreadDatastore: done"
 
   except Exception as exc:
-    ret[].state = Error
-    ret[].error = exc.toBuffer()
+    # ret[].state = Error
+    # ret[].error = exc.toBuffer()
+    discard
 
