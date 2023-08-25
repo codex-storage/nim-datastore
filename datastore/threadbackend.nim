@@ -32,6 +32,7 @@ type
   TResult*[T] = SharedPtr[ThreadResult[T]]
 
   ThreadBackendKind* {.pure.} = enum
+    NoBackend
     TestBackend
     FSBackend
     SQliteBackend
@@ -47,19 +48,19 @@ type
       discard
     of TestBackend:
       count*: int
+    of NoBackend:
+      discard
 
   ThreadDatastore* = object
     tp: Taskpool
     backendDatastore: ThreadBackendKind
 
-  ThreadDatastorePtr* = UniquePtr[ThreadDatastore]
+  ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
   Test* = object
-    count*: int
+    count*: ThreadBackendKind
 
   TestPtr* = SharedPtr[Test]
-
-var fsBackend {.threadvar.}: FSDatastore
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
@@ -70,9 +71,6 @@ proc startupDatastore(
     count: TestPtr,
 ) {.raises: [].} =
   ## starts up a FS instance on a give thread
-  var
-    ret: TResult[ThreadDatastorePtr]
-    backend: ThreadBackend
   echo "\n\nstartupDatastore: ret:\n", ret.repr
 
   echo "\nstartupDatastore: backend:\n", backend.repr
@@ -88,13 +86,15 @@ proc startupDatastore(
       ignoreProtected = backend.ignoreProtected
     )
     if ds.isOk:
-      fsBackend = ds.get()
+      # ret[].value[].backendDatastore = ds.get()
       ret[].state = Success
     else:
       ret[].state = Error
-      ret[].error = newException(DatastoreError, "error creating signal").toBuffer()
+      # ret[].value[].backendDatastore = ds.get()
+      ret[].state = Success
   of TestBackend:
     echo "startupDatastore: TestBackend"
+    ret[].value[].backendDatastore = TestBackend
     ret[].state = Success
   else:
     discard
@@ -119,16 +119,17 @@ proc putTask*(
   discard
 
 proc createThreadDatastore*(
-  ret: TResult[ThreadDatastorePtr],
+  ret: var TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
 ) =
 
   try:
     echo "createThreadDatastore: start"
     ret[].value[].tp = Taskpool.new(num_threads = 2)
-    echo "\n\ncreateThreadDatastore:tp:\n", ret[].repr
+    # echo "\n\ncreateThreadDatastore:tp:\n", ret[].repr
+    echo "\n\ncreateThreadDatastore:value:\n", ret[].value.repr
     ret[].value[].tp.spawn startupDatastore(
-      ret, backend, newSharedPtr(Test(count: 22)))
+      ret, backend, newSharedPtr(Test(count: FSBackend)))
     echo "createThreadDatastore: done"
     ret[].state = Success
 
