@@ -49,15 +49,15 @@ method get*(
   key: Key
 ): Future[?!seq[byte]] {.async.} =
 
-  var res = ?newThreadResult(DataBuffer)
-  echo "res: ", res
+  without ret =? newThreadResult(DataBuffer), err:
+    return failure(err)
 
-  get(res, self.tds, key)
-  await wait(res[].signal)
-  res[].signal.close()
+  get(ret, self.tds, key)
+  await wait(ret[].signal)
+  ret[].signal.close()
 
-  echo "\nSharedDataStore:put:value: ", res[].repr
-  let data = res[].value.toSeq(byte)
+  echo "\nSharedDataStore:put:value: ", ret[].repr
+  let data = ret[].value.toSeq(byte)
   return success(data)
 
 method put*(
@@ -66,15 +66,16 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  var res = ?newThreadResult(void)
+  without ret =? newThreadResult(void), err:
+    return failure(err)
 
-  echo "res: ", res
-  put(res, self.tds, key, data)
-  await wait(res[].signal)
+  echo "res: ", ret
+  put(ret, self.tds, key, data)
+  await wait(ret[].signal)
   echo "closing signal"
-  res[].signal.close()
+  ret[].signal.close()
 
-  echo "\nSharedDataStore:put:value: ", res[].repr
+  echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
 
 
@@ -98,7 +99,9 @@ proc newSharedDataStore*(
 
   var
     self = SharedDatastore()
-    res = ?newThreadResult(ThreadDatastorePtr)
+
+  without res =? newThreadResult(ThreadDatastorePtr), err:
+    return failure(err)
   
   res[].value = newSharedPtr(ThreadDatastore)
   res[].signal = ThreadSignalPtr.new().valueOr:
