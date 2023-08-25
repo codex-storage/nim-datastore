@@ -7,7 +7,6 @@ import std/atomics
 
 import events
 
-
 type
   DataBuffer* = object
     cnt: ptr int

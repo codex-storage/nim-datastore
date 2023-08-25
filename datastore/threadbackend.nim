@@ -8,6 +8,7 @@ import ./key
 import ./query
 import ./datastore
 import ./databuffer
+import threading/smartptrs
 
 import fsds
 
@@ -16,6 +17,11 @@ export key, query
 push: {.upraises: [].}
 
 type
+
+  ThreadResult*[T: DataBuffer | void] = Result[T, CatchableErrorBuffer]
+
+  TResult*[T] = UniquePtr[ThreadResult[T]]
+
   ThreadBackendKind* {.pure.} = enum
     FSBackend
     SQliteBackend
@@ -34,6 +40,9 @@ type
     tp: Taskpool
 
 var backendDatastore {.threadvar.}: Datastore
+
+proc new*[T](tp: typedesc[TResult[T]]): TResult[T] =
+  newUniquePtr(ThreadResult[T])
 
 proc startupDatastore(backend: ThreadBackend): bool =
   ## starts up a FS instance on a give thread
@@ -61,11 +70,10 @@ proc put*(
   self: ThreadDatastore,
   signal: ThreadSignalPtr,
   key: KeyBuffer,
-  data: DataBuffer
-): Result[void, CatchableErrorBuffer] =
+  data: DataBuffer,
+): TResult[void] =
 
-  return ok()
-
+  return TResult[void].new()
 
 proc close*(
   self: ThreadDatastore,

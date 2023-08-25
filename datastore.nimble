@@ -14,6 +14,7 @@ requires "nim >= 1.2.0",
          "stew",
          "unittest2",
          "patty",
+         "threading",
          "upraises >= 0.1.0 & < 0.2.0"
 
 task coverage, "generates code coverage report":
