@@ -34,7 +34,7 @@ proc `=destroy`*(x: var DataBuffer) =
   if x.buf != nil and x.cnt != nil:
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      when isMainModule:
+      when isMainModule or true:
         echo "buffer: FREE: ", repr x.buf.pointer, " ", x.cnt[]
       deallocShared(x.buf)
       deallocShared(x.cnt)

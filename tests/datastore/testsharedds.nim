@@ -17,11 +17,20 @@ suite "Test Basic SharedDatastore":
 
   test "check create":
 
+    var sds: SharedDatastore
+
     let backend = ThreadBackend(
       kind: TestBackend,
     )
-    let sds = await newSharedDataStore(backend)
+    let res = await newSharedDataStore(backend)
+    check res.isOk()
+    sds = res.get()
     # echo "sds: ", repr sds
+
+    echo "\n\n=== put ==="
+    let key1 = Key.init("/a").tryGet
+    let res1 = await sds.put(key1, "value for 1".toBytes())
+    echo "res1: ", res1.repr
 
 # suite "Test Basic FSDatastore":
 #   let
