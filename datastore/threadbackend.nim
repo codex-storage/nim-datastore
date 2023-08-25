@@ -18,9 +18,14 @@ push: {.upraises: [].}
 
 type
 
+  ThreadResultKind* {.pure.} = enum
+    NotReady
+    Success
+    Error
+
   ThreadResult*[T: DataBuffer | void] = object
-    ready*: bool
-    success*: bool
+    state*: ThreadResultKind
+    signal*: ThreadSignalPtr
     val*: T
     err*: CatchableErrorBuffer
 
@@ -52,7 +57,7 @@ proc new*[T](tp: typedesc[TResult[T]]): TResult[T] =
 proc startupDatastore(
     signal: ThreadSignalPtr,
     backend: ThreadBackend,
-    res: TResult[ThreadDatastorePtr],
+    ret: TResult[ThreadDatastorePtr],
 ): bool =
   ## starts up a FS instance on a give thread
   case backend.kind:
@@ -67,33 +72,30 @@ proc startupDatastore(
       let tds = newSharedPtr(ThreadDatastore)
       tds[].backendDatastore = ds.get()
 
-      res[].ready = true
-      res[].success = true
-      res[].val = tds
+      ret[].val = tds
+      ret[].state = Success
     else:
-      res[].ready = true
-      res[].success = false
+      ret[].state = Error
   else:
     discard
   
-  signal.fireSync().get()
+  ret[].signal.fireSync().get()
 
-proc get*(
-  self: ThreadDatastore,
-  signal: ThreadSignalPtr,
-  key: KeyBuffer
-): Result[DataBuffer, CatchableErrorBuffer] =
-
-  return ok(DataBuffer.new())
-
-proc putWorker*(
-  self: ThreadDatastore,
-  signal: ThreadSignalPtr,
+proc getTask*(
+  self: ThreadDatastorePtr,
   key: KeyBuffer,
-  data: DataBuffer,
-  res: TResult[void]
+  ret: TResult[DataBuffer]
 ) =
 
+  # return ok(DataBuffer.new())
+  discard
+
+proc putTask*(
+  self: ThreadDatastorePtr,
+  key: KeyBuffer,
+  data: DataBuffer,
+  ret: TResult[void]
+) =
   discard
 
 # proc close*(
@@ -110,7 +112,7 @@ func new*[S: ref Datastore](
   T: typedesc[ThreadDatastore],
   signal: ThreadSignalPtr,
   backend: ThreadBackend,
-  res: TResult[ThreadDatastore]
+  ret: TResult[ThreadDatastore]
 ) =
 
   var self = T()
