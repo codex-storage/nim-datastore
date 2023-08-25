@@ -75,14 +75,14 @@ method close*(
   # TODO: how to handle failed close?
   return success()
 
-func newSharedDataStore*(
+proc newSharedDataStore*(
   # T: typedesc[SharedDatastore],
   backend: ThreadBackend,
 ): ?!SharedDatastore =
 
   var
     self = SharedDatastore()
-    res = newThreadResult(ThreadDatastore)
+    res = newThreadResult(ThreadDatastorePtr)
   
   res[].signal = newSignal()
   res.createThreadDatastore(backend)
