@@ -67,12 +67,11 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  let signal = ThreadSignalPtr.new()
-  if signal.isErr:
-    return failure("error creating signal")
-  else:
-    await wait(signal.get())
-    return success()
+  let signal = ThreadSignalPtr.new().valueOr:
+    return failure newException(DatastoreError, "error creating signal")
+
+  await wait(signal)
+  return success()
 
 method put*(
   self: SharedDatastore,
@@ -83,9 +82,6 @@ method put*(
 method close*(
   self: SharedDatastore
 ): Future[?!void] {.async.} =
-
-  # for s in self.stores.values:
-  #   discard await s.store.close()
 
   # TODO: how to handle failed close?
   return success()
