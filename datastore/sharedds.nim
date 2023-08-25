@@ -47,7 +47,18 @@ method get*(
   self: SharedDatastore,
   key: Key
 ): Future[?!seq[byte]] {.async.} =
-  return success(newSeq[byte]())
+
+  var res = newThreadResult(DataBuffer)
+  res[].signal = ThreadSignalPtr.new().valueOr:
+    return failure newException(DatastoreError, "error creating signal")
+
+  get(res, self.tds, key)
+  await wait(res[].signal)
+  res[].signal.close()
+
+  echo "\nSharedDataStore:put:value: ", res[].repr
+  let data = res[].value.toSeq(byte)
+  return success(data)
 
 method put*(
   self: SharedDatastore,

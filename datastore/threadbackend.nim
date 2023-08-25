@@ -98,7 +98,6 @@ proc startupDatastore(
       ret[].state = Success
     else:
       ret[].state = Error
-      # ret[].value[].backendDatastore = ds.get()
       ret[].state = Success
   of TestBackend:
     echo "startupDatastore: TestBackend"
@@ -110,12 +109,30 @@ proc startupDatastore(
   echo "startupDatastore: signal", ret[].signal.fireSync().get()
 
 proc getTask*(
-  self: ThreadDatastorePtr,
+  ret: TResult[DataBuffer],
+  backend: ThreadBackendKind,
   key: KeyBuffer,
-  ret: TResult[DataBuffer]
 ) =
   # return ok(DataBuffer.new())
-  discard
+  print "\nthrbackend: getTask: ", ret[]
+  print "\nthrbackend: getTask:key: ", key
+  let data = DataBuffer.new("hello world!")
+  print "\nthrbackend: getTask:data: ", data
+  ret[].state = Success
+  ret[].value = data
+
+  print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+
+proc get*(
+  ret: TResult[DataBuffer],
+  tds: ThreadDatastorePtr,
+  key: Key,
+) =
+  echo "thrfrontend:put: "
+  let bkey = StringBuffer.new(key.id())
+  print "bkey: ", bkey
+
+  tds[].tp.spawn getTask(ret, tds[].backend, bkey)
 
 proc putTask*(
   ret: TResult[void],
@@ -129,8 +146,6 @@ proc putTask*(
 
   print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
 
-import os
-
 proc put*(
   ret: TResult[void],
   tds: ThreadDatastorePtr,
@@ -138,16 +153,12 @@ proc put*(
   data: seq[byte]
 ): TResult[void] =
   echo "thrfrontend:put: "
-
   let bkey = StringBuffer.new(key.id())
   let bval = DataBuffer.new(data)
   print "bkey: ", bkey
   print "bval: ", bval
 
   tds[].tp.spawn putTask(ret, tds[].backend, bkey, bval)
-  os.sleep(500)
-  print "res:bkey: ", bkey
-  print "res:bval: ", bval
 
 proc createThreadDatastore*(
   ret: var TResult[ThreadDatastorePtr],
