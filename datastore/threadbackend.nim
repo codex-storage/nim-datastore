@@ -78,6 +78,7 @@ proc startupDatastore(
       ret[].value[].backendDatastore = ds.get()
       ret[].state = Success
   of TestBackend:
+    echo "startupDatastore: TestBackend"
     ret[].value[].backendDatastore = nil
     ret[].state = Success
   else:
@@ -117,10 +118,12 @@ proc createThreadDatastore*(
 ) =
 
   try:
-    ret[].value[].tp = Taskpool.new(num_threads = 1) ##\
+    echo "createThreadDatastore: start"
+    ret[].value[].tp = Taskpool.new(num_threads = 2) ##\
     ## Default to one thread, multiple threads \
     ## will require more work
     ret[].value[].tp.spawn startupDatastore(ret, backend)
+    echo "createThreadDatastore: done"
 
   except Exception as exc:
     ret[].state = Error

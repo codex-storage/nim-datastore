@@ -20,7 +20,8 @@ suite "Test Basic SharedDatastore":
     let backend = ThreadBackend(
       kind: TestBackend,
     )
-    let sds = newSharedDataStore(backend)
+    let sds = await newSharedDataStore(backend)
+    echo "sds: ", repr sds
 
 # suite "Test Basic FSDatastore":
 #   let
