@@ -50,9 +50,16 @@ type
 
   ThreadDatastore* = object
     tp: Taskpool
-    backendDatastore: Datastore
+    backendDatastore: ThreadBackendKind
 
   ThreadDatastorePtr* = UniquePtr[ThreadDatastore]
+
+  Test* = object
+    count*: int
+
+  TestPtr* = SharedPtr[Test]
+
+var fsBackend {.threadvar.}: FSDatastore
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
@@ -60,7 +67,7 @@ proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
 proc startupDatastore(
     ret: TResult[ThreadDatastorePtr],
     backend: ThreadBackend,
-    count: int,
+    count: TestPtr,
 ) {.raises: [].} =
   ## starts up a FS instance on a give thread
   var
@@ -81,15 +88,13 @@ proc startupDatastore(
       ignoreProtected = backend.ignoreProtected
     )
     if ds.isOk:
-      ret[].value[].backendDatastore = ds.get()
+      fsBackend = ds.get()
       ret[].state = Success
     else:
       ret[].state = Error
-      ret[].value[].backendDatastore = ds.get()
-      ret[].state = Success
+      ret[].error = newException(DatastoreError, "error creating signal").toBuffer()
   of TestBackend:
     echo "startupDatastore: TestBackend"
-    ret[].value[].backendDatastore = nil
     ret[].state = Success
   else:
     discard
@@ -113,16 +118,6 @@ proc putTask*(
 ) =
   discard
 
-# proc close*(
-#   self: ThreadDatastore,
-#   signal: ThreadSignalPtr,
-# ): TResult[void] =
-#   try:
-#     self[].tp.shutdown()
-#     return ok()
-#   except Exception as exc:
-#     return TResult[void].new()
-
 proc createThreadDatastore*(
   ret: TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
@@ -132,7 +127,8 @@ proc createThreadDatastore*(
     echo "createThreadDatastore: start"
     ret[].value[].tp = Taskpool.new(num_threads = 2)
     echo "\n\ncreateThreadDatastore:tp:\n", ret[].repr
-    ret[].value[].tp.spawn startupDatastore(ret, backend, 22)
+    ret[].value[].tp.spawn startupDatastore(
+      ret, backend, newSharedPtr(Test(count: 22)))
     echo "createThreadDatastore: done"
     ret[].state = Success
 
