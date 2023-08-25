@@ -29,21 +29,24 @@ type
     value*: T
     error*: CatchableErrorBuffer
 
-  TResult*[T] = UniquePtr[ThreadResult[T]]
+  TResult*[T] = SharedPtr[ThreadResult[T]]
 
   ThreadBackendKind* {.pure.} = enum
     FSBackend
     SQliteBackend
+    TestBackend
 
   ThreadBackend* = object
     case kind*: ThreadBackendKind
     of FSBackend:
-      root: StringBuffer
-      depth: int
-      caseSensitive: bool
-      ignoreProtected: bool
+      root*: StringBuffer
+      depth*: int
+      caseSensitive*: bool
+      ignoreProtected*: bool
     of SQliteBackend:
       discard
+    of TestBackend:
+      count*: int
 
   ThreadDatastore = object
     tp: Taskpool
@@ -51,8 +54,8 @@ type
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
-proc newThreadResult*[T](tp: typedesc[T]): UniquePtr[ThreadResult[T]] =
-  newUniquePtr(ThreadResult[T])
+proc newThreadResult*[T](tp: typedesc[T]): SharedPtr[ThreadResult[T]] =
+  newSharedPtr(ThreadResult[T])
 
 proc startupDatastore(
     ret: TResult[ThreadDatastorePtr],
@@ -72,6 +75,11 @@ proc startupDatastore(
       ret[].state = Success
     else:
       ret[].state = Error
+      ret[].value[].backendDatastore = ds.get()
+      ret[].state = Success
+  of TestBackend:
+    ret[].value[].backendDatastore = nil
+    ret[].state = Success
   else:
     discard
   

@@ -12,7 +12,7 @@ import ./query
 import ./datastore
 import ./threadbackend
 
-export key, query
+export key, query, ThreadBackend
 
 push: {.upraises: [].}
 
@@ -78,13 +78,13 @@ proc newSharedDataStore*(
 
   var
     self = SharedDatastore()
-    res = newThreadResult(ThreadDatastorePtr)
+    # res = newThreadResult(ThreadDatastorePtr)
 
-  res[].signal = ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
+  # res[].signal = ThreadSignalPtr.new().valueOr:
+  #   return failure newException(DatastoreError, "error creating signal")
 
-  res.createThreadDatastore(backend)
-  await wait(res[].signal)
-  res[].signal.close()
+  # res.createThreadDatastore(backend)
+  # await wait(res[].signal)
+  # res[].signal.close()
 
   success self
