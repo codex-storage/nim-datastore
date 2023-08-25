@@ -32,9 +32,9 @@ type
   TResult*[T] = SharedPtr[ThreadResult[T]]
 
   ThreadBackendKind* {.pure.} = enum
+    TestBackend
     FSBackend
     SQliteBackend
-    TestBackend
 
   ThreadBackend* = object
     case kind*: ThreadBackendKind
@@ -52,20 +52,26 @@ type
     tp: Taskpool
     backendDatastore: Datastore
 
-  ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
+  ThreadDatastorePtr* = UniquePtr[ThreadDatastore]
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
 
 proc startupDatastore(
-    # ret: TResult[ThreadDatastorePtr],
-    # backend: ThreadBackend,
-  ) {.raises: [].} =
+    ret: TResult[ThreadDatastorePtr],
+    backend: ThreadBackend,
+    count: int,
+) {.raises: [].} =
   ## starts up a FS instance on a give thread
   var
     ret: TResult[ThreadDatastorePtr]
     backend: ThreadBackend
+  echo "\n\nstartupDatastore: ret:\n", ret.repr
 
+  echo "\nstartupDatastore: backend:\n", backend.repr
+  echo "\nstartupDatastore: count:\n", count.repr
+
+  echo ""
   case backend.kind:
   of FSBackend:
     let ds = FSDatastore.new(
@@ -88,6 +94,7 @@ proc startupDatastore(
   else:
     discard
   
+  echo "startupDatastore: signal"
   discard ret[].signal.fireSync().get()
 
 proc getTask*(
@@ -123,17 +130,14 @@ proc createThreadDatastore*(
 
   try:
     echo "createThreadDatastore: start"
-    # var tp = Taskpool.new(num_threads = 2) 
-    ret[].value[].tp = Taskpool.new(num_threads = 2) ##\
-    ## Default to one thread, multiple threads \
-    ## will require more work
-    echo "ret.tp: ", ret[].repr
-    ret[].value[].tp.spawn startupDatastore()
-    # ret[].value[].tp.spawn startupDatastore(ret, backend)
+    ret[].value[].tp = Taskpool.new(num_threads = 2)
+    echo "\n\ncreateThreadDatastore:tp:\n", ret[].repr
+    ret[].value[].tp.spawn startupDatastore(ret, backend, 22)
     echo "createThreadDatastore: done"
+    ret[].state = Success
 
   except Exception as exc:
-    # ret[].state = Error
-    # ret[].error = exc.toBuffer()
+    ret[].state = Error
+    ret[].error = exc.toBuffer()
     discard
 
