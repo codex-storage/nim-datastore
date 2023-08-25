@@ -86,7 +86,6 @@ proc getTask*(
   key: KeyBuffer,
   ret: TResult[DataBuffer]
 ) =
-
   # return ok(DataBuffer.new())
   discard
 
@@ -108,7 +107,7 @@ proc putTask*(
 #   except Exception as exc:
 #     return TResult[void].new()
 
-func new*[S: ref Datastore](
+func new*(
   T: typedesc[ThreadDatastore],
   signal: ThreadSignalPtr,
   backend: ThreadBackend,
