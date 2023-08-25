@@ -13,6 +13,8 @@ import pkg/datastore/sharedds
 import ./dscommontests
 import ./querycommontests
 
+import pretty
+
 suite "Test Basic SharedDatastore":
 
   test "check create":
@@ -38,7 +40,7 @@ suite "Test Basic SharedDatastore":
     var val = ""
     for c in res2.get():
       val &= char(c)
-    echo "res2: ", $val
+    print "get res2: ", $val
 
 # suite "Test Basic FSDatastore":
 #   let
