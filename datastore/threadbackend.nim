@@ -12,6 +12,8 @@ import threading/smartptrs
 
 import fsds
 
+import pretty
+
 export key, query, smartptrs, databuffer
 
 push: {.upraises: [].}
@@ -52,7 +54,7 @@ type
       discard
 
   ThreadDatastore* = object
-    tp: Taskpool
+    tp*: Taskpool
     backend*: ThreadBackendKind
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
@@ -116,12 +118,36 @@ proc getTask*(
   discard
 
 proc putTask*(
-  self: ThreadDatastorePtr,
+  ret: TResult[void],
+  backend: ThreadBackendKind,
   key: KeyBuffer,
   data: DataBuffer,
-  ret: TResult[void]
 ) =
-  discard
+  print "\nthrbackend: putTask: ", ret[]
+  print "\nthrbackend: putTask:key: ", key
+  print "\nthrbackend: putTask:data: ", data
+
+  print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+
+import os
+
+proc put*(
+  ret: TResult[void],
+  tds: ThreadDatastorePtr,
+  key: Key,
+  data: seq[byte]
+): TResult[void] =
+  echo "thrfrontend:put: "
+
+  let bkey = StringBuffer.new(key.id())
+  let bval = DataBuffer.new(data)
+  print "bkey: ", bkey
+  print "bval: ", bval
+
+  tds[].tp.spawn putTask(ret, tds[].backend, bkey, bval)
+  os.sleep(500)
+  print "res:bkey: ", bkey
+  print "res:bval: ", bval
 
 proc createThreadDatastore*(
   ret: var TResult[ThreadDatastorePtr],

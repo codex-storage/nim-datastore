@@ -13,6 +13,8 @@ import ./datastore
 import ./threadbackend
 import threading/smartptrs
 
+import pretty
+
 export key, query, ThreadBackend
 
 push: {.upraises: [].}
@@ -53,10 +55,16 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  let signal = ThreadSignalPtr.new().valueOr:
+  var res = newThreadResult(void)
+  res[].signal = ThreadSignalPtr.new().valueOr:
     return failure newException(DatastoreError, "error creating signal")
 
-  await wait(signal)
+  put(res, self.tds, key, data)
+  await wait(res[].signal)
+  res[].signal.close()
+
+  echo "\nSharedDataStore:put:value: ", res[].repr
+
   return success()
 
 method put*(
@@ -92,5 +100,7 @@ proc newSharedDataStore*(
 
   echo "\nnewSharedDataStore:state: ", res[].state.repr
   echo "\nnewSharedDataStore:value: ", res[].value[].backend.repr
+
+  self.tds = res[].value
 
   success self
