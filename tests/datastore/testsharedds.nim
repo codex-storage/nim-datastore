@@ -31,7 +31,9 @@ suite "Test Basic SharedDatastore":
 
     echo "\n\n=== put ==="
     let key1 = Key.init("/a").tryGet
-    let res1 = await sds.put(key1, "value for 1".toBytes())
+    # let res1 = await sds.put(key1, "value for 1".toBytes())
+    let res1 = sds.put(key1, "value for 1".toBytes())
+    res1.cancel()
     echo "res1: ", res1.repr
 
     echo "\n\n=== get ==="

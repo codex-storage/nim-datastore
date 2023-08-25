@@ -68,8 +68,14 @@ var
   fsDatastore {.threadvar.}: FSDatastore ##\
     ## TODO: figure out a better way to capture this?
 
-proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
-  newSharedPtr(ThreadResult[T])
+proc newThreadResult*[T](tp: typedesc[T]): Result[TResult[T], ref CatchableError] =
+  let res = newSharedPtr(ThreadResult[T])
+  let signal = ThreadSignalPtr.new()
+  if signal.isErr:
+    return err((ref CatchableError)(msg: signal.error()))
+  else:
+    res[].signal = signal.get()
+  ok res
 
 proc startupDatastore(
     ret: TResult[ThreadDatastorePtr],
@@ -134,6 +140,8 @@ proc get*(
 
   tds[].tp.spawn getTask(ret, tds[].backend, bkey)
 
+import os
+
 proc putTask*(
   ret: TResult[void],
   backend: ThreadBackendKind,
@@ -144,6 +152,7 @@ proc putTask*(
   print "\nthrbackend: putTask:key: ", key
   print "\nthrbackend: putTask:data: ", data
 
+  os.sleep(200)
   print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
 
 proc put*(
@@ -151,7 +160,7 @@ proc put*(
   tds: ThreadDatastorePtr,
   key: Key,
   data: seq[byte]
-): TResult[void] =
+) =
   echo "thrfrontend:put: "
   let bkey = StringBuffer.new(key.id())
   let bval = DataBuffer.new(data)

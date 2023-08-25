@@ -6,6 +6,7 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 import pkg/taskpools
+import pkg/stew/results
 
 import ./key
 import ./query
@@ -48,9 +49,8 @@ method get*(
   key: Key
 ): Future[?!seq[byte]] {.async.} =
 
-  var res = newThreadResult(DataBuffer)
-  res[].signal = ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
+  var res = ?newThreadResult(DataBuffer)
+  echo "res: ", res
 
   get(res, self.tds, key)
   await wait(res[].signal)
@@ -66,17 +66,17 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  var res = newThreadResult(void)
-  res[].signal = ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
+  var res = ?newThreadResult(void)
 
+  echo "res: ", res
   put(res, self.tds, key, data)
   await wait(res[].signal)
+  echo "closing signal"
   res[].signal.close()
 
   echo "\nSharedDataStore:put:value: ", res[].repr
-
   return success()
+
 
 method put*(
   self: SharedDatastore,
@@ -98,7 +98,7 @@ proc newSharedDataStore*(
 
   var
     self = SharedDatastore()
-    res = newThreadResult(ThreadDatastorePtr)
+    res = ?newThreadResult(ThreadDatastorePtr)
   
   res[].value = newSharedPtr(ThreadDatastore)
   res[].signal = ThreadSignalPtr.new().valueOr:
