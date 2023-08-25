@@ -23,7 +23,7 @@ type
     Success
     Error
 
-  ThreadResult*[T: DataBuffer | void] = object
+  ThreadResult*[T: DataBuffer | void | ThreadDatastorePtr] = object
     state*: ThreadResultKind
     signal*: ThreadSignalPtr
     value*: T

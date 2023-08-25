@@ -22,10 +22,6 @@ type
     # stores*: Table[Key, SharedDatastore]
     tds: ThreadDatastorePtr
 
-template newSignal(): auto =
-  ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
-
 method has*(
   self: SharedDatastore,
   key: Key
@@ -78,13 +74,14 @@ method close*(
 proc newSharedDataStore*(
   # T: typedesc[SharedDatastore],
   backend: ThreadBackend,
-): ?!SharedDatastore =
+): Future[?!SharedDatastore] {.async.} =
 
   var
     self = SharedDatastore()
     res = newThreadResult(ThreadDatastorePtr)
   
-  res[].signal = newSignal()
+  res[].signal = ThreadSignalPtr.new().valueOr:
+    return failure newException(DatastoreError, "error creating signal")
   res.createThreadDatastore(backend)
 
   await wait(res[].signal)
