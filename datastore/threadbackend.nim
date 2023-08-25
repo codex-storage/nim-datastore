@@ -57,7 +57,7 @@ proc newThreadResult*[T](tp: typedesc[TResult[T]]): TResult[T] =
 proc startupDatastore(
     ret: TResult[ThreadDatastorePtr],
     backend: ThreadBackend,
-) =
+) {.raises: [].} =
   ## starts up a FS instance on a give thread
   case backend.kind:
   of FSBackend:
@@ -68,10 +68,7 @@ proc startupDatastore(
       ignoreProtected = backend.ignoreProtected
     )
     if ds.isOk:
-      let tds = newSharedPtr(ThreadDatastore)
-      tds[].backendDatastore = ds.get()
-
-      ret[].value = tds
+      ret[].value[].backendDatastore = ds.get()
       ret[].state = Success
     else:
       ret[].state = Error
@@ -106,7 +103,7 @@ proc putTask*(
 #   except Exception as exc:
 #     return TResult[void].new()
 
-func createThreadDatastore*(
+proc createThreadDatastore*(
   ret: TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
 ) =
