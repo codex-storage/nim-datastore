@@ -17,6 +17,8 @@ type
   KeyBuffer* = DataBuffer
   ValueBuffer* = DataBuffer
   StringBuffer* = DataBuffer
+  CatchableErrorBuffer* = object
+    msg: StringBuffer
 
 proc `$`*(data: DataBuffer): string =
   if data.buf.isNil:
@@ -83,7 +85,15 @@ proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
   result = newSeq[T](a.len)
   copyMem(addr result[0], unsafeAddr a.buf[0], a.len)
 
-proc toString*(data: StringBuffer): string =
+proc toString*(data: DataBuffer): string =
   result = newString(data.len())
   if data.len() > 0:
     copyMem(addr result[0], unsafeAddr data.buf[0], data.len)
+
+proc toCatchable*(data: CatchableErrorBuffer): ref CatchableError =
+  result = (ref CatchableError)(msg: data.msg.toString())
+
+proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
+  return CatchableErrorBuffer(
+    msg: StringBuffer.new(err.msg)
+  )

@@ -1,6 +1,7 @@
 import std/tables
 
 import pkg/chronos
+import pkg/chronos/threadsync
 import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
@@ -66,22 +67,18 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  # without mounted =? self.dispatch(key), error:
-  #   return failure(error)
-
-  # return (await mounted.store.store.put(mounted.relative, data))
-  return success()
+  let signal = ThreadSignalPtr.new()
+  if signal.isErr:
+    return failure("error creating signal")
+  else:
+    await wait(signal.get())
+    return success()
 
 method put*(
   self: SharedDatastore,
   batch: seq[BatchEntry]
 ): Future[?!void] {.async.} =
-
-  for entry in batch:
-    if err =? (await self.put(entry.key, entry.data)).errorOption:
-      return failure err
-
-  return success()
+  raiseAssert("Not implemented!")
 
 method close*(
   self: SharedDatastore
@@ -98,8 +95,6 @@ func new*[S: ref Datastore](
   storeTp: typedesc[S]
 ): ?!SharedDatastore =
 
-  var self = T()
-  # for (k, v) in stores.pairs:
-  #   self.stores[?k.path] = MountedStore(store: v, key: k)
+  var self = SharedDatastore()
 
   success self
