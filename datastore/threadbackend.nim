@@ -48,11 +48,11 @@ type
     of TestBackend:
       count*: int
 
-  ThreadDatastore = object
+  ThreadDatastore* = object
     tp: Taskpool
     backendDatastore: Datastore
 
-  ThreadDatastorePtr* = ptr ThreadDatastore
+  ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
@@ -117,18 +117,18 @@ proc putTask*(
 #     return TResult[void].new()
 
 proc createThreadDatastore*(
-  ret: var ThreadDatastorePtr,
+  ret: TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
 ) =
 
   try:
     echo "createThreadDatastore: start"
     # var tp = Taskpool.new(num_threads = 2) 
-    ret[].tp = Taskpool.new(num_threads = 2) ##\
+    ret[].value[].tp = Taskpool.new(num_threads = 2) ##\
     ## Default to one thread, multiple threads \
     ## will require more work
-    echo "ret.tp: ", ret[].tp.repr
-    ret[].tp.spawn startupDatastore()
+    echo "ret.tp: ", ret[].repr
+    ret[].value[].tp.spawn startupDatastore()
     # ret[].value[].tp.spawn startupDatastore(ret, backend)
     echo "createThreadDatastore: done"
 

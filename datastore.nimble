@@ -13,7 +13,7 @@ requires "nim >= 1.2.0",
          "sqlite3_abi",
          "stew",
          "unittest2",
-         "patty",
+         "pretty",
          "threading",
          "upraises >= 0.1.0 & < 0.2.0"
 
