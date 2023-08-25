@@ -5,10 +5,12 @@ import pkg/chronos/threadsync
 import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
+import pkg/taskpools
 
 import ./key
 import ./query
 import ./datastore
+import ./threadbackend
 
 export key, query
 
@@ -18,6 +20,11 @@ type
 
   SharedDatastore* = ref object of Datastore
     # stores*: Table[Key, SharedDatastore]
+    tds: ThreadDatastorePtr
+
+template newSignal(): auto =
+  ThreadSignalPtr.new().valueOr:
+    return failure newException(DatastoreError, "error creating signal")
 
 method has*(
   self: SharedDatastore,
@@ -70,9 +77,13 @@ method close*(
 
 func new*[S: ref Datastore](
   T: typedesc[SharedDatastore],
-  storeTp: typedesc[S]
+  backend: ThreadBackend,
 ): ?!SharedDatastore =
 
-  var self = SharedDatastore()
+  var
+    self = SharedDatastore()
+    signal = newSignal()
+    res = TResult[ThreadDatastore].new()
+  self.tds = ThreadDatastore.new(signal, backend, res)
 
   success self
