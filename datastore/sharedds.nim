@@ -11,6 +11,7 @@ import ./key
 import ./query
 import ./datastore
 import ./threadbackend
+import threading/smartptrs
 
 export key, query, ThreadBackend
 
@@ -78,7 +79,9 @@ proc newSharedDataStore*(
 
   var
     self = SharedDatastore()
-    # res = newThreadResult(ThreadDatastorePtr)
+    res = newThreadResult(ThreadDatastorePtr)
+  
+  let buf = DataBuffer.new()
 
   # res[].signal = ThreadSignalPtr.new().valueOr:
   #   return failure newException(DatastoreError, "error creating signal")
