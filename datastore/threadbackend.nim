@@ -80,15 +80,11 @@ proc newThreadResult*[T](tp: typedesc[T]): Result[TResult[T], ref CatchableError
 proc startupDatastore(
     ret: TResult[ThreadDatastorePtr],
     backend: ThreadBackend,
-    count: TestPtr,
 ) {.raises: [].} =
   ## starts up a FS instance on a give thread
   echo "\n"
   echo "\nstartupDatastore: threadId:", getThreadId()
-  echo "\nstartupDatastore: ret:\n", ret.repr
-
-  echo "\nstartupDatastore: backend:\n", backend.repr
-  echo "\nstartupDatastore: count:\n", count.repr
+  print "\nstartupDatastore: backend:\n", backend
 
   echo ""
   case backend.kind:
@@ -177,10 +173,7 @@ proc createThreadDatastore*(
   try:
     echo "createThreadDatastore: start"
     ret[].value[].tp = Taskpool.new(num_threads = 2)
-    # echo "\n\ncreateThreadDatastore:tp:\n", ret[].repr
-    echo "\n\ncreateThreadDatastore:value:\n", ret[].value.repr
-    ret[].value[].tp.spawn startupDatastore(
-      ret, backend, newSharedPtr(Test(count: FSBackend)))
+    ret[].value[].tp.spawn startupDatastore(ret, backend)
     echo "createThreadDatastore: done"
     ret[].state = Success
 

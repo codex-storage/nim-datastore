@@ -59,7 +59,7 @@ method get*(
     echo "closing signal"
     ret[].signal.close()
 
-  echo "\nSharedDataStore:put:value: ", ret[].repr
+  print "\nSharedDataStore:put:value: ", ret[]
   let data = ret[].value.toSeq(byte)
   return success(data)
 
@@ -117,8 +117,8 @@ proc newSharedDataStore*(
     echo "closing signal"
     res[].signal.close()
 
-  echo "\nnewSharedDataStore:state: ", res[].state.repr
-  echo "\nnewSharedDataStore:value: ", res[].value[].backend.repr
+  print "\nnewSharedDataStore:state: ", res[].state
+  print "\nnewSharedDataStore:value: ", res[].value[].backend
 
   self.tds = res[].value
 
