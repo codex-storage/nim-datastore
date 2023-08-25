@@ -81,7 +81,7 @@ proc newSharedDataStore*(
     self = SharedDatastore()
     res = newThreadResult(ThreadDatastorePtr)
   
-  res[].value = newUniquePtr(ThreadDatastore)
+  res[].value = newSharedPtr(ThreadDatastore)
   res[].signal = ThreadSignalPtr.new().valueOr:
     return failure newException(DatastoreError, "error creating signal")
 
