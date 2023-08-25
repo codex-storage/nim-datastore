@@ -85,9 +85,11 @@ proc newSharedDataStore*(
   res[].signal = ThreadSignalPtr.new().valueOr:
     return failure newException(DatastoreError, "error creating signal")
 
-  echo "sds:res: ", res.repr
   res.createThreadDatastore(backend)
   await wait(res[].signal)
   res[].signal.close()
+
+  echo "\nnewSharedDataStore:state: ", res[].state.repr
+  echo "\nnewSharedDataStore:value: ", res[].value[].backend.repr
 
   success self

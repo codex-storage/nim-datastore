@@ -21,7 +21,7 @@ suite "Test Basic SharedDatastore":
       kind: TestBackend,
     )
     let sds = await newSharedDataStore(backend)
-    echo "sds: ", repr sds
+    # echo "sds: ", repr sds
 
 # suite "Test Basic FSDatastore":
 #   let

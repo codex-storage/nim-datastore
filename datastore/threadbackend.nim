@@ -53,7 +53,7 @@ type
 
   ThreadDatastore* = object
     tp: Taskpool
-    backendDatastore: ThreadBackendKind
+    backend*: ThreadBackendKind
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
@@ -61,6 +61,10 @@ type
     count*: ThreadBackendKind
 
   TestPtr* = SharedPtr[Test]
+
+var
+  fsDatastore {.threadvar.}: FSDatastore ##\
+    ## TODO: figure out a better way to capture this?
 
 proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
@@ -86,7 +90,7 @@ proc startupDatastore(
       ignoreProtected = backend.ignoreProtected
     )
     if ds.isOk:
-      # ret[].value[].backendDatastore = ds.get()
+      fsDatastore = ds.get()
       ret[].state = Success
     else:
       ret[].state = Error
@@ -94,13 +98,12 @@ proc startupDatastore(
       ret[].state = Success
   of TestBackend:
     echo "startupDatastore: TestBackend"
-    ret[].value[].backendDatastore = TestBackend
+    ret[].value[].backend = TestBackend
     ret[].state = Success
   else:
     discard
   
-  echo "startupDatastore: signal"
-  discard ret[].signal.fireSync().get()
+  echo "startupDatastore: signal", ret[].signal.fireSync().get()
 
 proc getTask*(
   self: ThreadDatastorePtr,
