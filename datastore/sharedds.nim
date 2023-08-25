@@ -82,8 +82,9 @@ func new*[S: ref Datastore](
 
   var
     self = SharedDatastore()
-    signal = newSignal()
     res = TResult[ThreadDatastore].new()
-  self.tds = ThreadDatastore.new(signal, backend, res)
+  
+  res[].signal = newSignal()
+  self.tds = ThreadDatastore.new(backend, res)
 
   success self
