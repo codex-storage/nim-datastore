@@ -104,8 +104,6 @@ proc newSharedDataStore*(
     return failure(err)
   
   res[].value = newSharedPtr(ThreadDatastore)
-  res[].signal = ThreadSignalPtr.new().valueOr:
-    return failure newException(DatastoreError, "error creating signal")
 
   echo "\nnewDataStore: threadId:", getThreadId()
   res.createThreadDatastore(backend)
