@@ -52,9 +52,12 @@ method get*(
   without ret =? newThreadResult(DataBuffer), err:
     return failure(err)
 
-  get(ret, self.tds, key)
-  await wait(ret[].signal)
-  ret[].signal.close()
+  try:
+    get(ret, self.tds, key)
+    await wait(ret[].signal)
+  finally:
+    echo "closing signal"
+    ret[].signal.close()
 
   echo "\nSharedDataStore:put:value: ", ret[].repr
   let data = ret[].value.toSeq(byte)
@@ -70,10 +73,12 @@ method put*(
     return failure(err)
 
   echo "res: ", ret
-  put(ret, self.tds, key, data)
-  await wait(ret[].signal)
-  echo "closing signal"
-  ret[].signal.close()
+  try:
+    put(ret, self.tds, key, data)
+    await wait(ret[].signal)
+  finally:
+    echo "closing signal"
+    ret[].signal.close()
 
   echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
@@ -103,12 +108,14 @@ proc newSharedDataStore*(
   without res =? newThreadResult(ThreadDatastorePtr), err:
     return failure(err)
   
-  res[].value = newSharedPtr(ThreadDatastore)
-
-  echo "\nnewDataStore: threadId:", getThreadId()
-  res.createThreadDatastore(backend)
-  await wait(res[].signal)
-  res[].signal.close()
+  try:
+    res[].value = newSharedPtr(ThreadDatastore)
+    echo "\nnewDataStore: threadId:", getThreadId()
+    res.createThreadDatastore(backend)
+    await wait(res[].signal)
+  finally:
+    echo "closing signal"
+    res[].signal.close()
 
   echo "\nnewSharedDataStore:state: ", res[].state.repr
   echo "\nnewSharedDataStore:value: ", res[].value[].backend.repr
