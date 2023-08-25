@@ -32,6 +32,14 @@ suite "Test Basic SharedDatastore":
     let res1 = await sds.put(key1, "value for 1".toBytes())
     echo "res1: ", res1.repr
 
+    echo "\n\n=== get ==="
+    let res2 = await sds.get(key1)
+    check res2.get() == "hello world!".toBytes()
+    var val = ""
+    for c in res2.get():
+      val &= char(c)
+    echo "res2: ", $val
+
 # suite "Test Basic FSDatastore":
 #   let
 #     path = currentSourcePath() # get this file's name
