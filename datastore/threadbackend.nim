@@ -54,7 +54,7 @@ type
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
-proc newThreadResult*[T](tp: typedesc[T]): SharedPtr[ThreadResult[T]] =
+proc newThreadResult*[T](tp: typedesc[T]): TResult[T] =
   newSharedPtr(ThreadResult[T])
 
 proc startupDatastore(
