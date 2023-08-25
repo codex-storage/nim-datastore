@@ -75,7 +75,9 @@ proc startupDatastore(
     count: TestPtr,
 ) {.raises: [].} =
   ## starts up a FS instance on a give thread
-  echo "\n\nstartupDatastore: ret:\n", ret.repr
+  echo "\n"
+  echo "\nstartupDatastore: threadId:", getThreadId()
+  echo "\nstartupDatastore: ret:\n", ret.repr
 
   echo "\nstartupDatastore: backend:\n", backend.repr
   echo "\nstartupDatastore: count:\n", count.repr
