@@ -78,6 +78,30 @@ proc runBasicTest() =
 
 suite "Share buffer test":
 
-  test "basic test":
+  setup:
+    let k1 {.used.} = Key.init("/a/b").get()
+    let k2 {.used.} = Key.init("/a").get()
+    let a {.used.} = KeyBuffer.new(k1)
+    let b {.used.} = KeyBuffer.new(Key.init("/a/b").get)
+    let c {.used.} = KeyBuffer.new(k2)
+
+  test "creation":
+    let db = DataBuffer.new("abc")
+    check db[].size == 3
+    check db[].buf[0].char == 'a'
+    check db[].buf[1].char == 'b'
+    check db[].buf[2].char == 'c'
+  test "equality":
+    check a == b
+  test "toString":
+    check a.toString() == "/a/b"
+  test "key conversion":
+    check a.toKey().get() == k1
+  test "hash":
+    check a.hash() == b.hash()
+  test "hashes differ":
+    check a.hash() != c.hash()
+
+  test "basic thread test":
     runBasicTest()
 
