@@ -27,7 +27,7 @@ suite "Test Basic ThreadProxyDatastore":
 
   setupAll:
     mem = MemoryDatastore.new()
-    sds = newSharedDataStore(mem).expect("should work")
+    sds = newThreadProxyDatastore(mem).expect("should work")
     key1 = Key.init("/a").tryGet
     data = "value for 1".toBytes()
 
@@ -62,7 +62,7 @@ suite "Test Basic ThreadProxyDatastore":
 
   setupAll:
     memStore = MemoryDatastore.new()
-    ds = newSharedDataStore(memStore).expect("should work")
+    ds = newThreadProxyDatastore(memStore).expect("should work")
 
   teardownAll:
     (await memStore.close()).get()
