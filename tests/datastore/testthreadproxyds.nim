@@ -9,18 +9,18 @@ import pkg/stew/results
 import pkg/stew/byteutils
 
 import pkg/datastore/memoryds
-import pkg/datastore/sharedds
+import pkg/datastore/threadproxyds
 
 import ./dscommontests
 import ./querycommontests
 
 import pretty
 
-suite "Test Basic SharedDatastore":
+suite "Test Basic ThreadProxyDatastore":
   var
-    sds: SharedDatastore
+    sds: ThreadProxyDatastore
     mem: MemoryDatastore
-    res: SharedDatastore
+    res: ThreadProxyDatastore
     key1: Key
     data: seq[byte]
 
@@ -50,11 +50,11 @@ suite "Test Basic SharedDatastore":
     # res3.cancel()
     # # print "res3: ", res3
 
-suite "Test Basic SharedDatastore":
+suite "Test Basic ThreadProxyDatastore":
 
   var
     memStore: MemoryDatastore
-    ds: SharedDatastore
+    ds: ThreadProxyDatastore
     key = Key.init("/a/b").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
