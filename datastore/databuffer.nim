@@ -24,8 +24,8 @@ type
 proc `=destroy`*(x: var DataBufferHolder) =
   ## copy pointer implementation
   if x.buf != nil:
-    when isMainModule or true:
-      echo "buffer: FREE: ", repr x.buf.pointer
+    # when isMainModule or true:
+    #   echo "buffer: FREE: ", repr x.buf.pointer
     deallocShared(x.buf)
 
 proc len*(a: DataBuffer): int = a[].size

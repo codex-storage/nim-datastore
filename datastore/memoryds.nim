@@ -1,6 +1,7 @@
 import std/tables
 import std/sequtils
 import std/strutils
+import std/algorithm
 
 import pkg/chronos
 import pkg/questionable
@@ -91,10 +92,13 @@ method put*(
 
 proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer {.gcsafe.} =
   return iterator(): KeyBuffer {.closure.} =
-    let keys = self.store.keys().toSeq()
+    var keys = self.store.keys().toSeq()
+    keys.sort(proc (x, y: KeyBuffer): int = cmp(x.toString, y.toString))
     for key in keys:
       if key.toString().startsWith(queryKey):
         yield key 
+
+import pretty
 
 method query*(
   self: MemoryDatastore,
@@ -108,9 +112,13 @@ method query*(
   var
     iter = QueryIter.new()
 
+  echo "queryKey: ", queryKey
+
   proc next(): Future[?!QueryResponse] {.async.} =
     let
       kb = walker()
+
+    print "query: ", kb.toString
 
     if finished(walker):
       iter.finished = true
