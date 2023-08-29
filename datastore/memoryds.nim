@@ -59,7 +59,7 @@ method get*(
   let dk = KeyBuffer.new(key)
   echo "getting: ", key
   for k, v in self.store.pairs():
-    print "get: ", k.toString()
+    print "get: ", k.toString(), " v: ", v.toString().repr
 
   if self.store.hasKey(dk):
     let res = self.store[dk]
