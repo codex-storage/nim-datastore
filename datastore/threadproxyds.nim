@@ -23,7 +23,6 @@ push: {.upraises: [].}
 
 type
   ThreadProxyDatastore* = ref object of Datastore
-    # stores*: Table[Key, ThreadProxyDatastore]
     tds: ThreadDatastorePtr
 
 method has*(
@@ -36,7 +35,21 @@ method delete*(
   self: ThreadProxyDatastore,
   key: Key
 ): Future[?!void] {.async.} =
+
+  without ret =? newThreadResult(void), err:
+    return failure(err)
+
+  echo "res: ", ret
+  try:
+    delete(ret, self.tds, key)
+    await wait(ret[].signal)
+  finally:
+    echo "closing signal"
+    ret[].signal.close()
+
+  echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
+
 
 method delete*(
   self: ThreadProxyDatastore,
