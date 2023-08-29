@@ -109,29 +109,17 @@ proc newSharedDataStore*(
   ds: Datastore,
 ): Future[?!SharedDatastore] {.async.} =
 
-  var
-    self = SharedDatastore()
+  var self = SharedDatastore()
 
-  without res =? newThreadResult(ThreadDatastorePtr), err:
-    return failure(err)
-
+  let value = newSharedPtr(ThreadDatastore)
+  echo "\nnewDataStore: threadId:", getThreadId()
+  # GC_ref(ds)
+  value[].ds = ds
   try:
-    res[].value = newSharedPtr(ThreadDatastore)
-    echo "\nnewDataStore: threadId:", getThreadId()
-    # GC_ref(ds)
-    res[].value[].ds = ds
-    try:
-      res[].value[].tp = Taskpool.new(num_threads = 2)
-    except Exception as exc:
-      return err((ref DatastoreError)(msg: exc.msg))
-    await wait(res[].signal)
-  finally:
-    echo "closing signal"
-    res[].signal.close()
+    value[].tp = Taskpool.new(num_threads = 2)
+  except Exception as exc:
+    return err((ref DatastoreError)(msg: exc.msg))
 
-  print "\nnewSharedDataStore:state: ", res[].state
-  print "\nnewSharedDataStore:value: ", res[].value[].backend
-
-  self.tds = res[].value
+  self.tds = value
 
   success self
