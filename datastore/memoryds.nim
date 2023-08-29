@@ -82,7 +82,7 @@ method put*(
 
   return success()
 
-proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer =
+proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer {.gcsafe.} =
   return iterator(): KeyBuffer {.closure.} =
     let keys = self.store.keys().toSeq()
     for key in keys:
