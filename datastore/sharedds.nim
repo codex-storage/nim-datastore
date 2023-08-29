@@ -93,7 +93,15 @@ method close*(
   self: SharedDatastore
 ): Future[?!void] {.async.} =
   # TODO: how to handle failed close?
-  return success()
+  echo "ThreadDatastore: FREE: "
+  result = success()
+
+  without res =? self.tds[].ds.close(), err:
+    result = failure(err)
+
+  if self.tds[].tp != nil:
+    ## this can block... how to handle? maybe just leak?
+    self.tds[].tp.shutdown()
 
 proc newSharedDataStore*(
   # T: typedesc[SharedDatastore],

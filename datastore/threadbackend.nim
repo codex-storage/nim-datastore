@@ -56,6 +56,7 @@ type
   ThreadDatastore* = object
     tp*: Taskpool
     backend*: ThreadBackendKind
+    ds*: Datastore
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
@@ -63,10 +64,6 @@ type
     count*: ThreadBackendKind
 
   TestPtr* = SharedPtr[Test]
-
-var
-  fsDatastore {.threadvar.}: FSDatastore ##\
-    ## TODO: figure out a better way to capture this?
 
 proc newThreadResult*[T](
     tp: typedesc[T]
@@ -78,39 +75,6 @@ proc newThreadResult*[T](
   else:
     res[].signal = signal.get()
   ok res
-
-proc startupDatastore(
-    ret: TResult[ThreadDatastorePtr],
-    backend: ThreadBackend,
-) {.raises: [].} =
-  ## starts up a FS instance on a give thread
-  echo "\n"
-  echo "\nstartupDatastore: threadId:", getThreadId()
-  print "\nstartupDatastore: backend:\n", backend
-
-  echo ""
-  case backend.kind:
-  of FSBackend:
-    let ds = FSDatastore.new(
-      root = backend.root.toString(),
-      depth = backend.depth,
-      caseSensitive = backend.caseSensitive,
-      ignoreProtected = backend.ignoreProtected
-    )
-    if ds.isOk:
-      fsDatastore = ds.get()
-      ret[].state = Success
-    else:
-      ret[].state = Error
-      ret[].state = Success
-  of TestBackend:
-    echo "startupDatastore: TestBackend"
-    ret[].value[].backend = TestBackend
-    ret[].state = Success
-  else:
-    discard
-  
-  print "startupDatastore: signal", ret[].signal.fireSync()
 
 proc getTask*(
   ret: TResult[DataBuffer],
@@ -167,6 +131,8 @@ proc put*(
 
   tds[].tp.spawn putTask(ret, tds[].backend, bkey, bval)
 
+proc startupDatastore(ret: TResult[ThreadDatastorePtr], backend: ThreadBackend,) {.raises: [].}
+
 proc createThreadDatastore*(
   ret: TResult[ThreadDatastorePtr],
   backend: ThreadBackend,
@@ -184,3 +150,38 @@ proc createThreadDatastore*(
     ret[].error = exc.toBuffer()
     discard
 
+
+proc startupDatastore(
+    ret: TResult[ThreadDatastorePtr],
+    backend: ThreadBackend,
+) {.raises: [].} =
+  ## starts up a FS instance on a give thread
+  echo "\n"
+  echo "\nstartupDatastore: threadId:", getThreadId()
+  print "\nstartupDatastore: backend:\n", backend
+
+  echo ""
+  case backend.kind:
+  of FSBackend:
+    let ds = FSDatastore.new(
+      root = backend.root.toString(),
+      depth = backend.depth,
+      caseSensitive = backend.caseSensitive,
+      ignoreProtected = backend.ignoreProtected
+    )
+    if ds.isOk:
+      let ds = ds.get()
+      GC_ref(ds)
+      ret[].value[].ds = ds
+      ret[].state = Success
+    else:
+      ret[].state = Error
+      ret[].state = Success
+  of TestBackend:
+    echo "startupDatastore: TestBackend"
+    ret[].value[].backend = TestBackend
+    ret[].state = Success
+  else:
+    discard
+  
+  # print "startupDatastore: signal", ret[].signal.fireSync()
