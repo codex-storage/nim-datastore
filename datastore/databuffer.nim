@@ -1,5 +1,8 @@
 # import std/atomics
 import threading/smartptrs
+import std/hashes
+
+export hashes
 
 type
   DataBufferHolder* = object
@@ -28,6 +31,16 @@ proc `=destroy`*(x: var DataBufferHolder) =
 proc len*(a: DataBuffer): int = a[].size
 
 proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
+
+proc hash*(a: DataBuffer): Hash =
+  a[].buf.toOpenArray(0, a[].size-1).hash()
+
+proc `==`*(a, b: DataBuffer): bool =
+  if a.isNil and b.isNil: return true
+  elif a.isNil or b.isNil: return false
+  elif a[].size != b[].size: return false
+  elif a[].buf == b[].buf: return true
+  else: a.hash() == b.hash()
 
 proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   ## allocate new buffer with given size
