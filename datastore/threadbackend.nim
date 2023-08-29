@@ -81,7 +81,6 @@ proc get*(
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn getTask(ret, tds, bkey)
 
-import os
 
 proc putTask*(
   ret: TResult[void],
@@ -118,3 +117,30 @@ proc put*(
   print "bval: ", bval
 
   tds[].tp.spawn putTask(ret, tds, bkey, bval)
+
+proc deleteTask*(
+  ret: TResult[void],
+  tds: ThreadDatastorePtr,
+  kb: KeyBuffer,
+) =
+
+  without key =? kb.toKey(), err:
+    ret[].state = Error
+
+  let res = (waitFor tds[].ds.delete(key)).catch
+  # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+  if res.isErr:
+    ret[].state = Error
+    ret[].error = res.error().toBuffer()
+  else:
+    ret[].state = Success
+
+  discard ret[].signal.fireSync()
+
+proc delete*(
+  ret: TResult[void],
+  tds: ThreadDatastorePtr,
+  key: Key,
+) =
+  let bkey = StringBuffer.new(key.id())
+  tds[].tp.spawn deleteTask(ret, tds, bkey)
