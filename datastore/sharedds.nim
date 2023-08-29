@@ -17,12 +17,11 @@ import ./fsds
 
 import pretty
 
-export key, query, ThreadBackend
+export key, query
 
 push: {.upraises: [].}
 
 type
-
   SharedDatastore* = ref object of Datastore
     # stores*: Table[Key, SharedDatastore]
     tds: ThreadDatastorePtr
