@@ -108,24 +108,17 @@ method query*(
   let
     queryKey = query.key.id()
     walker = keyIterator(self, queryKey)
-
   var
     iter = QueryIter.new()
 
-  echo "queryKey: ", queryKey
-
   proc next(): Future[?!QueryResponse] {.async.} =
-    let
-      kb = walker()
-
-    print "query: ", kb.toString
+    let kb = walker()
 
     if finished(walker):
       iter.finished = true
       return success (Key.none, EmptyBytes)
 
-    let
-      key = kb.toKey().expect("should not fail")
+    let key = kb.toKey().expect("should not fail")
     var ds: ValueBuffer
     if query.value:
       ds = self.store[kb]
@@ -135,6 +128,7 @@ method query*(
 
   iter.next = next
   return success iter
+
 method close*(self: MemoryDatastore): Future[?!void] {.async.} =
   self.store.clear()
   return success()
