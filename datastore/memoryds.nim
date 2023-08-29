@@ -125,5 +125,5 @@ method close*(self: MemoryDatastore): Future[?!void] {.async.} =
   return success()
 
 func new*(tp: typedesc[MemoryDatastore]): MemoryDatastore =
-  var self = default(tp)
+  var self = tp()
   return self
