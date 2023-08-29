@@ -50,6 +50,34 @@ proc newThreadResult*[T](
     res[].signal = signal.get()
   ok res
 
+proc hasTask*(
+  ret: TResult[bool],
+  tds: ThreadDatastorePtr,
+  kb: KeyBuffer,
+) =
+  without key =? kb.toKey(), err:
+    ret[].state = Error
+  try:
+    let res = waitFor tds[].ds.has(key)
+    if res.isErr:
+      ret[].state = Error
+      ret[].error = res.error().toBuffer()
+    else:
+      ret[].state = Success
+      ret[].value = res.get()
+    discard ret[].signal.fireSync()
+  except CatchableError as err:
+    ret[].state = Error
+    ret[].error = err.toBuffer()
+
+proc has*(
+  ret: TResult[bool],
+  tds: ThreadDatastorePtr,
+  key: Key,
+) =
+  let bkey = StringBuffer.new(key.id())
+  tds[].tp.spawn hasTask(ret, tds, bkey)
+
 proc getTask*(
   ret: TResult[DataBuffer],
   tds: ThreadDatastorePtr,
@@ -71,7 +99,6 @@ proc getTask*(
   except CatchableError as err:
     ret[].state = Error
     ret[].error = err.toBuffer()
-
 
 proc get*(
   ret: TResult[DataBuffer],
@@ -103,7 +130,6 @@ proc putTask*(
 
   discard ret[].signal.fireSync()
 
-
 proc put*(
   ret: TResult[void],
   tds: ThreadDatastorePtr,
@@ -117,6 +143,7 @@ proc put*(
   print "bval: ", bval
 
   tds[].tp.spawn putTask(ret, tds, bkey, bval)
+
 
 proc deleteTask*(
   ret: TResult[void],
