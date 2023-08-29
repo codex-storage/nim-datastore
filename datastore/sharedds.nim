@@ -7,12 +7,13 @@ import pkg/questionable/results
 import pkg/upraises
 import pkg/taskpools
 import pkg/stew/results
+import pkg/threading/smartptrs
 
 import ./key
 import ./query
 import ./datastore
 import ./threadbackend
-import threading/smartptrs
+import ./fsds
 
 import pretty
 
@@ -98,14 +99,14 @@ method close*(
 
   without res =? self.tds[].ds.close(), err:
     result = failure(err)
+  # GC_unref(self.tds[].ds) ## TODO: is this needed?
 
   if self.tds[].tp != nil:
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
-proc newSharedDataStore*(
-  # T: typedesc[SharedDatastore],
-  backend: ThreadBackend,
+proc newSharedDataStore*[T: Datastore](
+  ds: Datastore,
 ): Future[?!SharedDatastore] {.async.} =
 
   var
@@ -113,11 +114,12 @@ proc newSharedDataStore*(
 
   without res =? newThreadResult(ThreadDatastorePtr), err:
     return failure(err)
-  
+
   try:
     res[].value = newSharedPtr(ThreadDatastore)
     echo "\nnewDataStore: threadId:", getThreadId()
-    res.createThreadDatastore(backend)
+    # GC_ref(ds)
+    res[].value[].ds = ds
     await wait(res[].signal)
   finally:
     echo "closing signal"
