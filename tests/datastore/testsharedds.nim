@@ -23,7 +23,7 @@ suite "Test Basic SharedDatastore":
     var sds: SharedDatastore
 
     let mem = MemoryDatastore.new()
-    let res = await newSharedDataStore(mem)
+    let res = newSharedDataStore(mem)
     check res.isOk()
     sds = res.get()
     # echo "sds: ", repr sds
@@ -51,12 +51,14 @@ suite "Test Basic FSDatastore":
 
   var
     memStore: MemoryDatastore
+    ds: SharedDatastore
     key = Key.init("/a/b").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
   setupAll:
     memStore = MemoryDatastore.new()
+    ds = newSharedDataStore(memStore).expect("should work")
 
   teardownAll:
     (await memStore.close()).get()
