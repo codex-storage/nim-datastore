@@ -1,5 +1,7 @@
-
+import pkg/chronos
 import pkg/chronos/threadsync
+import pkg/questionable
+import pkg/questionable/results
 import stew/results
 import pkg/upraises
 import pkg/taskpools
@@ -50,42 +52,58 @@ proc newThreadResult*[T](
 
 proc getTask*(
   ret: TResult[DataBuffer],
-  key: KeyBuffer,
+  tds: ThreadDatastorePtr,
+  kb: KeyBuffer,
 ) =
-  # return ok(DataBuffer.new())
-  print "\nthrbackend: getTask: ", ret[]
-  print "\nthrbackend: getTask:key: ", key
-  let data = DataBuffer.new("hello world!")
-  print "\nthrbackend: getTask:data: ", data
-  ret[].state = Success
-  ret[].value = data
+  without key =? kb.toKey(), err:
+    ret[].state = Error
+  try:
+    let res = waitFor tds[].ds.get(key)
+    if res.isErr:
+      ret[].state = Error
+      ret[].error = res.error().toBuffer()
+    else:
+      let db = DataBuffer.new res.get()
+      ret[].state = Success
+      ret[].value = db
 
-  print "thrbackend: putTask: fire", ret[].signal.fireSync()
+    discard ret[].signal.fireSync()
+  except CatchableError as err:
+    ret[].state = Error
+    ret[].error = err.toBuffer()
+
 
 proc get*(
   ret: TResult[DataBuffer],
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
-  echo "thrfrontend:put: "
   let bkey = StringBuffer.new(key.id())
-  print "bkey: ", bkey
-
-  tds[].tp.spawn getTask(ret, bkey)
+  tds[].tp.spawn getTask(ret, tds, bkey)
 
 import os
 
 proc putTask*(
   ret: TResult[void],
-  key: KeyBuffer,
-  data: DataBuffer,
+  tds: ThreadDatastorePtr,
+  kb: KeyBuffer,
+  db: DataBuffer,
 ) =
-  print "\nthrbackend: putTask: ", ret[]
-  print "\nthrbackend: putTask:key: ", key
-  print "\nthrbackend: putTask:data: ", data
 
-  os.sleep(200)
-  print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+  without key =? kb.toKey(), err:
+    ret[].state = Error
+
+  let data = db.toSeq(byte)
+  let res = (waitFor tds[].ds.put(key, data)).catch
+  # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+  if res.isErr:
+    ret[].state = Error
+    ret[].error = res.error().toBuffer()
+  else:
+    ret[].state = Success
+
+  discard ret[].signal.fireSync()
+
 
 proc put*(
   ret: TResult[void],
@@ -99,4 +117,4 @@ proc put*(
   print "bkey: ", bkey
   print "bval: ", bval
 
-  tds[].tp.spawn putTask(ret, bkey, bval)
+  tds[].tp.spawn putTask(ret, tds, bkey, bval)
