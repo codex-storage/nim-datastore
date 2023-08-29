@@ -120,6 +120,22 @@ method put*(
 
   return success()
 
+method query*(
+  self: ThreadProxyDatastore,
+  query: Query
+): Future[?!QueryIter] {.async.} =
+
+  without ret =? newThreadResult(QueryResponseBuffer), err:
+    return failure(err)
+
+  try:
+    delete(ret, self.tds, key)
+    await wait(ret[].signal)
+  finally:
+    ret[].signal.close()
+
+  return ret.convert(void)
+
 method close*(
   self: ThreadProxyDatastore
 ): Future[?!void] {.async.} =
