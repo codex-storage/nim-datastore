@@ -65,6 +65,11 @@ method delete*(
   self: ThreadProxyDatastore,
   keys: seq[Key]
 ): Future[?!void] {.async.} =
+
+  for key in keys:
+    if err =? (await self.delete(key)).errorOption:
+      return failure err
+
   return success()
 
 method get*(
@@ -110,7 +115,12 @@ method put*(
   self: ThreadProxyDatastore,
   batch: seq[BatchEntry]
 ): Future[?!void] {.async.} =
-  raiseAssert("Not implemented!")
+
+  for entry in batch:
+    if err =? (await self.put(entry.key, entry.data)).errorOption:
+      return failure err
+
+  return success()
 
 method close*(
   self: ThreadProxyDatastore
