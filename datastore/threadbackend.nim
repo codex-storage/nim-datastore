@@ -187,11 +187,12 @@ proc delete*(
 #         yield key 
 
 method queryTask*(
-  ret: TResult[void],
+  ret: TResult[QueryResponseBuffer],
   tds: ThreadDatastorePtr,
-  query: Query,
-): Future[?!QueryIter] {.async.} =
+  qb: QueryBuffer,
+) =
 
+  let query = qb.toQuery()
   without key =? kb.toKey(), err:
     ret.failure(err)
 
@@ -201,7 +202,6 @@ method queryTask*(
     if err =? (await self.put(entry.key, entry.data)).errorOption:
       return failure err
 
-
   iter.next = next
   return success iter
 
@@ -210,5 +210,5 @@ proc query*(
   tds: ThreadDatastorePtr,
   query: Query,
 ) =
-  let bkey = StringBuffer.new(key.id())
-  tds[].tp.spawn deleteTask(ret, tds, bkey)
+  let bq = query.toBuffer()
+  tds[].tp.spawn queryTask(ret, tds, bq)
