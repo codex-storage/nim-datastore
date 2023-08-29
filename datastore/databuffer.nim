@@ -27,6 +27,8 @@ proc `=destroy`*(x: var DataBufferHolder) =
 
 proc len*(a: DataBuffer): int = a[].size
 
+proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
+
 proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   ## allocate new buffer with given size
   newSharedPtr(DataBufferHolder(
@@ -63,8 +65,11 @@ proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
   )
 
 import ./key
+import stew/results
 
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
   KeyBuffer.new(key.id())
+proc toKey*(kb: KeyBuffer): Result[Key, ref CatchableError] =
+  Key.init(kb.toString())
 proc new*(tp: typedesc[ValueBuffer], data: seq[byte]): KeyBuffer =
   DataBuffer.new(data)

@@ -1,4 +1,6 @@
 import std/tables
+import std/sequtils
+import std/strutils
 
 import pkg/chronos
 import pkg/questionable
@@ -80,6 +82,44 @@ method put*(
 
   return success()
 
+proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer =
+  return iterator(): KeyBuffer {.closure.} =
+    let keys = self.store.keys().toSeq()
+    for key in keys:
+      if key.toString().startsWith(queryKey):
+        yield key 
+
+method query*(
+  self: MemoryDatastore,
+  query: Query,
+): Future[?!QueryIter] {.async.} =
+
+  let
+    queryKey = query.key.id()
+    walker = keyIterator(self, queryKey)
+
+  var
+    iter = QueryIter.new()
+
+  proc next(): Future[?!QueryResponse] {.async.} =
+    let
+      kb = walker()
+
+    if finished(walker):
+      iter.finished = true
+      return success (Key.none, EmptyBytes)
+
+    let
+      key = kb.toKey().expect("should not fail")
+    var ds: ValueBuffer
+    if query.value:
+      ds = self.store[kb]
+    let data = if ds.isNil: EmptyBytes else: ds.toSeq(byte)
+
+    return success (key.some, data)
+
+  iter.next = next
+  return success iter
 method close*(self: MemoryDatastore): Future[?!void] {.async.} =
   self.store.clear()
   return success()
