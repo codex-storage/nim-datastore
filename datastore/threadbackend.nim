@@ -17,8 +17,8 @@ export key, query, smartptrs, databuffer
 push: {.upraises: [].}
 
 type
-
-  ThreadResult*[T: DataBuffer | void | bool | ThreadDatastorePtr] = object
+  ThreadSafeTypes* = DataBuffer | void | bool | ThreadDatastorePtr | QueryResponseBuffer
+  ThreadResult*[T: ThreadSafeTypes] = object
     signal*: ThreadSignalPtr
     results*: Result[T, CatchableErrorBuffer]
 
@@ -29,6 +29,10 @@ type
     ds*: Datastore
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
+
+  QueryIterStore* = object
+    it*: QueryIter
+  QueryIterPtr* = SharedPtr[QueryIterStore]
 
 proc newThreadResult*[T](
     tp: typedesc[T]
@@ -176,14 +180,14 @@ proc delete*(
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn deleteTask(ret, tds, bkey)
 
-method queryTask*(
+proc queryTask*(
   ret: TResult[QueryResponseBuffer],
   tds: ThreadDatastorePtr,
-  qiter: QueryIter,
+  qiter: QueryIterPtr,
 ) =
 
   try:
-    without res =? waitFor(qiter.next()), err:
+    without res =? waitFor(qiter[].it.next()), err:
       ret.failure(err)
 
     let qrb = res.toBuffer()
@@ -191,18 +195,3 @@ method queryTask*(
 
   except Exception:
     echo "failure"
-
-proc query*(
-  ret: TResult[QueryResponseBuffer],
-  tds: ThreadDatastorePtr,
-  q: Query,
-) =
-
-  try:
-    without iter =? waitFor(tds[].ds.query(q)), err:
-      ret.failure(err)
-
-    while not iter.finished:
-      tds[].tp.spawn queryTask(ret, tds, iter)
-  except Exception as exc:
-    ret.failure(exc)

@@ -129,12 +129,24 @@ method query*(
     return failure(err)
 
   try:
-    delete(ret, self.tds, key)
-    await wait(ret[].signal)
+    ## we need to setup the query iter on the main thread
+    ## to keep it's lifetime associated with this async Future
+    without it =? await self.tds[].ds.query(query), err:
+      ret.failure(err)
+
+    var iter = newSharedPtr(QueryIterStore())
+    ## note that bypasses SharedPtr isolation - may need `protect` here?
+    iter[].it = it
+
+    while not iter[].it.finished:
+      self.tds[].tp.spawn queryTask(ret, self.tds, iter)
+      await wait(ret[].signal)
+
+    iter[].it = nil # ensure our sharedptr doesn't try and dealloc
   finally:
     ret[].signal.close()
 
-  return ret.convert(void)
+  # return ret.convert(void)
 
 method close*(
   self: ThreadProxyDatastore
@@ -150,6 +162,7 @@ method close*(
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
+  self[].tds[].ds = nil # ensure our sharedptr doesn't try and dealloc
 
 proc newThreadProxyDatastore*(
   ds: Datastore,
