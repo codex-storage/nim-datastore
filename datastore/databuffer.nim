@@ -21,17 +21,6 @@ type
   CatchableErrorBuffer* = object
     msg: StringBuffer
 
-  QSortOrder* {.pure.} = enum
-    Ascending,
-    Descending
-
-  QueryBuffer* = object
-    key*: KeyBuffer    # Key to be queried
-    value*: bool       # Flag to indicate if data should be returned
-    limit*: int        # Max items to return - not available in all backends
-    offset*: int       # Offset from which to start querying - not available in all backends
-    sort*: QSortOrder  # Sort order - not available in all backends
-
 
 proc `=destroy`*(x: var DataBufferHolder) =
   ## copy pointer implementation

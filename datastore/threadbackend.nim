@@ -204,3 +204,11 @@ method queryTask*(
 
   iter.next = next
   return success iter
+
+proc query*(
+  ret: TResult[void],
+  tds: ThreadDatastorePtr,
+  query: Query,
+) =
+  let bkey = StringBuffer.new(key.id())
+  tds[].tp.spawn deleteTask(ret, tds, bkey)
