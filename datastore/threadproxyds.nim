@@ -22,30 +22,30 @@ export key, query
 push: {.upraises: [].}
 
 type
-  SharedDatastore* = ref object of Datastore
-    # stores*: Table[Key, SharedDatastore]
+  ThreadProxyDatastore* = ref object of Datastore
+    # stores*: Table[Key, ThreadProxyDatastore]
     tds: ThreadDatastorePtr
 
 method has*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   key: Key
 ): Future[?!bool] {.async.} =
   return success(true)
 
 method delete*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   key: Key
 ): Future[?!void] {.async.} =
   return success()
 
 method delete*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   keys: seq[Key]
 ): Future[?!void] {.async.} =
   return success()
 
 method get*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   key: Key
 ): Future[?!seq[byte]] {.async.} =
 
@@ -64,7 +64,7 @@ method get*(
   return success(data)
 
 method put*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   key: Key,
   data: seq[byte]
 ): Future[?!void] {.async.} =
@@ -84,13 +84,13 @@ method put*(
   return success()
 
 method put*(
-  self: SharedDatastore,
+  self: ThreadProxyDatastore,
   batch: seq[BatchEntry]
 ): Future[?!void] {.async.} =
   raiseAssert("Not implemented!")
 
 method close*(
-  self: SharedDatastore
+  self: ThreadProxyDatastore
 ): Future[?!void] {.async.} =
   # TODO: how to handle failed close?
   echo "ThreadDatastore: FREE: "
@@ -106,9 +106,9 @@ method close*(
 
 proc newSharedDataStore*(
   ds: Datastore,
-): ?!SharedDatastore =
+): ?!ThreadProxyDatastore =
 
-  var self = SharedDatastore()
+  var self = ThreadProxyDatastore()
 
   let value = newSharedPtr(ThreadDatastore)
   echo "\nnewDataStore: threadId:", getThreadId()
