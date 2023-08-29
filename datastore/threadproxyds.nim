@@ -134,6 +134,7 @@ method close*(
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
+
 proc newThreadProxyDatastore*(
   ds: Datastore,
 ): ?!ThreadProxyDatastore =

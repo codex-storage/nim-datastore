@@ -175,3 +175,32 @@ proc delete*(
 ) =
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn deleteTask(ret, tds, bkey)
+
+# proc keyIterator(self: ThreadProxyDatastore,
+#                  queryKey: string
+#                  ): iterator: KeyBuffer {.gcsafe.} =
+#   return iterator(): KeyBuffer {.closure.} =
+#     var keys = self.store.keys().toSeq()
+#     keys.sort(proc (x, y: KeyBuffer): int = cmp(x.toString, y.toString))
+#     for key in keys:
+#       if key.toString().startsWith(queryKey):
+#         yield key 
+
+method queryTask*(
+  ret: TResult[void],
+  tds: ThreadDatastorePtr,
+  query: Query,
+): Future[?!QueryIter] {.async.} =
+
+  without key =? kb.toKey(), err:
+    ret.failure(err)
+
+  let q = Query.init(key1)
+
+  for entry in batch:
+    if err =? (await self.put(entry.key, entry.data)).errorOption:
+      return failure err
+
+
+  iter.next = next
+  return success iter

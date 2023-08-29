@@ -5,6 +5,7 @@ import pkg/questionable/results
 
 import ./key
 import ./types
+import ./databuffer
 
 type
   SortOrder* {.pure.} = enum
@@ -52,3 +53,15 @@ proc init*(
     sort: sort,
     offset: offset,
     limit: limit)
+
+proc toBuffer*(q: Query): QueryBuffer =
+  ## convert Query to thread-safe QueryBuffer
+  return QueryBuffer(
+    key: KeyBuffer.new(q.key),
+    value: q.value,
+    offset: q.offset,
+    sort:
+      case q.sort:
+      of SortOrder.Assending: QSortOrder.Ascending
+      of SortOrder.Descending: QSortOrder.Descending
+  )
