@@ -8,36 +8,34 @@ import pkg/upraises
 import ./key
 import ./query
 import ./datastore
+import ./databuffer
 
 export key, query
 
 push: {.upraises: [].}
 
 type
-  MemoryStore* = object
-    store*: Datastore
-    key*: Key
 
   MemoryDatastore* = ref object of Datastore
-    stores*: Table[Key, MemoryStore]
+    store*: Table[KeyBuffer, ValueBuffer]
 
 method has*(
-  self: MemoryDatastore,
-  key: Key): Future[?!bool] {.async.} =
+    self: MemoryDatastore,
+    key: Key
+): Future[?!bool] {.async.} =
 
-  without mounted =? self.dispatch(key):
-    return failure "No mounted datastore found"
-
-  return (await mounted.store.store.has(mounted.relative))
+  let dk = KeyBuffer.new(key)
+  return success self.store.hasKey(dk)
 
 method delete*(
-  self: MemoryDatastore,
-  key: Key): Future[?!void] {.async.} =
+    self: MemoryDatastore,
+    key: Key
+): Future[?!void] {.async.} =
 
-  without mounted =? self.dispatch(key), error:
-    return failure(error)
-
-  return (await mounted.store.store.delete(mounted.relative))
+  let dk = KeyBuffer.new(key)
+  var val: ValueBuffer
+  discard self.store.pop(dk, val)
+  return success()
 
 method delete*(
   self: MemoryDatastore,
@@ -50,13 +48,16 @@ method delete*(
   return success()
 
 method get*(
-  self: MemoryDatastore,
-  key: Key): Future[?!seq[byte]] {.async.} =
+    self: MemoryDatastore,
+    key: Key
+): Future[?!seq[byte]] {.async.} =
 
-  without mounted =? self.dispatch(key), error:
-    return failure(error)
-
-  return await mounted.store.store.get(mounted.relative)
+  let dk = KeyBuffer.new(key)
+  if self.store.hasKey(dk):
+    let res = self.store[dk]
+    return success res.toSeq(byte)
+  else:
+    return failure (ref DatastoreError)(msg: "no such key")
 
 method put*(
   self: MemoryDatastore,
