@@ -3,7 +3,7 @@ import std/sequtils
 import std/algorithm
 import std/locks
 import std/os
-
+import pkg/stew/byteutils
 import pkg/unittest2
 import pkg/questionable
 import pkg/questionable/results
@@ -95,12 +95,16 @@ suite "Share buffer test":
     check a == b
   test "toString":
     check a.toString() == "/a/b"
-  test "key conversion":
-    check a.toKey().get() == k1
   test "hash":
     check a.hash() == b.hash()
   test "hashes differ":
     check a.hash() != c.hash()
+  test "key conversion":
+    check a.toKey().get() == k1
+  test "seq conversion":
+    check a.toSeq(char) == @"/a/b"
+  test "seq conversion":
+    check a.toSeq(byte) == "/a/b".toBytes
 
   test "basic thread test":
     runBasicTest()
