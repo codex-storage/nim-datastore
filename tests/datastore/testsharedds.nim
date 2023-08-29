@@ -22,9 +22,6 @@ suite "Test Basic SharedDatastore":
 
     var sds: SharedDatastore
 
-    let backend = ThreadBackend(
-      kind: TestBackend,
-    )
     let mem = MemoryDatastore.new()
     let res = await newSharedDataStore(mem)
     check res.isOk()
@@ -50,30 +47,21 @@ suite "Test Basic SharedDatastore":
     res3.cancel()
     # print "res3: ", res3
 
-# suite "Test Basic FSDatastore":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+suite "Test Basic FSDatastore":
 
-#   var
-#     fsStore: FSDatastore
+  var
+    memStore: MemoryDatastore
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   setupAll:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+  setupAll:
+    memStore = MemoryDatastore.new()
 
-#     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+  teardownAll:
+    (await memStore.close()).get()
 
-#   teardownAll:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-
-#   basicStoreTests(fsStore, key, bytes, otherBytes)
+  basicStoreTests(memStore, key, bytes, otherBytes)
 
 # suite "Test Misc FSDatastore":
 #   let

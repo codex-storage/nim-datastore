@@ -31,37 +31,11 @@ type
 
   TResult*[T] = SharedPtr[ThreadResult[T]]
 
-  ThreadBackendKind* {.pure.} = enum
-    NoBackend
-    TestBackend
-    FSBackend
-    SQliteBackend
-
-  ThreadBackend* = object
-    case kind*: ThreadBackendKind
-    of FSBackend:
-      root*: StringBuffer
-      depth*: int
-      caseSensitive*: bool
-      ignoreProtected*: bool
-    of SQliteBackend:
-      discard
-    of TestBackend:
-      count*: int
-    of NoBackend:
-      discard
-
   ThreadDatastore* = object
     tp*: Taskpool
-    backend*: ThreadBackendKind
     ds*: Datastore
 
   ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
-
-  Test* = object
-    count*: ThreadBackendKind
-
-  TestPtr* = SharedPtr[Test]
 
 proc newThreadResult*[T](
     tp: typedesc[T]
@@ -76,7 +50,6 @@ proc newThreadResult*[T](
 
 proc getTask*(
   ret: TResult[DataBuffer],
-  backend: ThreadBackendKind,
   key: KeyBuffer,
 ) =
   # return ok(DataBuffer.new())
@@ -98,13 +71,12 @@ proc get*(
   let bkey = StringBuffer.new(key.id())
   print "bkey: ", bkey
 
-  tds[].tp.spawn getTask(ret, tds[].backend, bkey)
+  tds[].tp.spawn getTask(ret, bkey)
 
 import os
 
 proc putTask*(
   ret: TResult[void],
-  backend: ThreadBackendKind,
   key: KeyBuffer,
   data: DataBuffer,
 ) =
@@ -127,4 +99,4 @@ proc put*(
   print "bkey: ", bkey
   print "bval: ", bval
 
-  tds[].tp.spawn putTask(ret, tds[].backend, bkey, bval)
+  tds[].tp.spawn putTask(ret, bkey, bval)
