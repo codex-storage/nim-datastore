@@ -193,5 +193,14 @@ proc queryTask*(
     let qrb = res.toBuffer()
     ret.success(qrb)
 
-  except Exception:
-    echo "failure"
+  except Exception as exc:
+    ret.failure(exc)
+
+  discard ret[].signal.fireSync()
+
+proc query*(
+  ret: TResult[QueryResponseBuffer],
+  tds: ThreadDatastorePtr,
+  qiter: QueryIterPtr,
+) =
+  tds[].tp.spawn queryTask(ret, tds, qiter)
