@@ -50,21 +50,14 @@ method delete*(
 
   return success()
 
-import pretty
-
 method get*(
     self: MemoryDatastore,
     key: Key
 ): Future[?!seq[byte]] {.async.} =
 
   let dk = KeyBuffer.new(key)
-  echo "getting: ", key
-  for k, v in self.store.pairs():
-    print "get: ", k.toString(), " v: ", v.toString().repr
-
   if self.store.hasKey(dk):
     let res = self.store[dk].toSeq(byte)
-    print "get:res: ", res
     return success res
   else:
     return failure (ref DatastoreError)(msg: "no such key")
@@ -97,8 +90,6 @@ proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer {
     for key in keys:
       if key.toString().startsWith(queryKey):
         yield key 
-
-import pretty
 
 method query*(
   self: MemoryDatastore,
