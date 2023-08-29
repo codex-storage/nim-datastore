@@ -105,7 +105,7 @@ method close*(
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
-proc newSharedDataStore*[T: Datastore](
+proc newSharedDataStore*(
   ds: Datastore,
 ): Future[?!SharedDatastore] {.async.} =
 
@@ -120,7 +120,10 @@ proc newSharedDataStore*[T: Datastore](
     echo "\nnewDataStore: threadId:", getThreadId()
     # GC_ref(ds)
     res[].value[].ds = ds
-    res.createThreadDatastore()
+    try:
+      res[].value[].tp = Taskpool.new(num_threads = 2)
+    except Exception as exc:
+      return err((ref DatastoreError)(msg: exc.msg))
     await wait(res[].signal)
   finally:
     echo "closing signal"
