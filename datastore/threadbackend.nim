@@ -68,7 +68,9 @@ var
   fsDatastore {.threadvar.}: FSDatastore ##\
     ## TODO: figure out a better way to capture this?
 
-proc newThreadResult*[T](tp: typedesc[T]): Result[TResult[T], ref CatchableError] =
+proc newThreadResult*[T](
+    tp: typedesc[T]
+): Result[TResult[T], ref CatchableError] =
   let res = newSharedPtr(ThreadResult[T])
   let signal = ThreadSignalPtr.new()
   if signal.isErr:
