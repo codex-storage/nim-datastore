@@ -84,5 +84,3 @@ proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
   KeyBuffer.new(key.id())
 proc toKey*(kb: KeyBuffer): Result[Key, ref CatchableError] =
   Key.init(kb.toString())
-proc new*(tp: typedesc[ValueBuffer], data: seq[byte]): KeyBuffer =
-  DataBuffer.new(data)

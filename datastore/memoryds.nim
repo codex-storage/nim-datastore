@@ -62,8 +62,9 @@ method get*(
     print "get: ", k.toString(), " v: ", v.toString().repr
 
   if self.store.hasKey(dk):
-    let res = self.store[dk]
-    return success res.toSeq(byte)
+    let res = self.store[dk].toSeq(byte)
+    print "get:res: ", res
+    return success res
   else:
     return failure (ref DatastoreError)(msg: "no such key")
 
@@ -74,7 +75,7 @@ method put*(
 ): Future[?!void] {.async.} =
 
   let dk = KeyBuffer.new(key)
-  let dv = ValueBuffer.new(key)
+  let dv = ValueBuffer.new(data)
   self.store[dk] = dv
   return success()
 
