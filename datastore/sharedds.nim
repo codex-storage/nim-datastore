@@ -120,6 +120,7 @@ proc newSharedDataStore*[T: Datastore](
     echo "\nnewDataStore: threadId:", getThreadId()
     # GC_ref(ds)
     res[].value[].ds = ds
+    res.createThreadDatastore()
     await wait(res[].signal)
   finally:
     echo "closing signal"
