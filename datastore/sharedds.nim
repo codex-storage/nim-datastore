@@ -106,7 +106,7 @@ method close*(
 
 proc newSharedDataStore*(
   ds: Datastore,
-): Future[?!SharedDatastore] {.async.} =
+): ?!SharedDatastore =
 
   var self = SharedDatastore()
 
