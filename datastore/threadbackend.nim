@@ -108,7 +108,7 @@ proc startupDatastore(
   else:
     discard
   
-  echo "startupDatastore: signal", ret[].signal.fireSync().get()
+  print "startupDatastore: signal", ret[].signal.fireSync()
 
 proc getTask*(
   ret: TResult[DataBuffer],
@@ -123,7 +123,7 @@ proc getTask*(
   ret[].state = Success
   ret[].value = data
 
-  print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+  print "thrbackend: putTask: fire", ret[].signal.fireSync()
 
 proc get*(
   ret: TResult[DataBuffer],

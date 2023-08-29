@@ -83,7 +83,6 @@ method put*(
   echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
 
-
 method put*(
   self: SharedDatastore,
   batch: seq[BatchEntry]
@@ -93,7 +92,6 @@ method put*(
 method close*(
   self: SharedDatastore
 ): Future[?!void] {.async.} =
-
   # TODO: how to handle failed close?
   return success()
 
