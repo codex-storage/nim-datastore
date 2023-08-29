@@ -37,7 +37,6 @@ method has*(
     has(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    # echo "closing signal"
     ret[].signal.close()
 
   # echo "\nSharedDataStore:has:value: ", ret[].repr
@@ -55,7 +54,6 @@ method delete*(
     delete(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    # echo "closing signal"
     ret[].signal.close()
 
   # echo "\nSharedDataStore:put:value: ", ret[].repr
@@ -105,7 +103,6 @@ method put*(
   finally:
     ret[].signal.close()
 
-  # echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
 
 method put*(
@@ -133,17 +130,16 @@ method close*(
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
-proc newSharedDataStore*(
+proc newThreadProxyDatastore*(
   ds: Datastore,
 ): ?!ThreadProxyDatastore =
+  ## create a new 
 
   var self = ThreadProxyDatastore()
-
   let value = newSharedPtr(ThreadDatastore)
-  echo "\nnewDataStore: threadId:", getThreadId()
-  # GC_ref(ds)
-  value[].ds = ds
+  # GC_ref(ds) ## TODO: is this needed?
   try:
+    value[].ds = ds
     value[].tp = Taskpool.new(num_threads = 2)
   except Exception as exc:
     return err((ref DatastoreError)(msg: exc.msg))
