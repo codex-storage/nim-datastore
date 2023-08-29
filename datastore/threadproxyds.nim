@@ -41,7 +41,7 @@ method has*(
     ret[].signal.close()
 
   # echo "\nSharedDataStore:has:value: ", ret[].repr
-  return success(ret[].value)
+  return ret.convert(bool)
 
 method delete*(
   self: ThreadProxyDatastore,
@@ -77,7 +77,7 @@ method get*(
   key: Key
 ): Future[?!seq[byte]] {.async.} =
 
-  without ret =? newThreadResult(DataBuffer), err:
+  without ret =? newThreadResult(ValueBuffer), err:
     return failure(err)
 
   try:
@@ -87,8 +87,8 @@ method get*(
     ret[].signal.close()
 
   # print "\nSharedDataStore:put:value: ", ret[]
-  let data = ret[].value.toSeq(byte)
-  return success(data)
+  # let data = ret[].value.toSeq(byte)
+  return ret.convert(seq[byte])
 
 method put*(
   self: ThreadProxyDatastore,

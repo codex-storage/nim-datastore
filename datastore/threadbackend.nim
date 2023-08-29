@@ -20,20 +20,9 @@ push: {.upraises: [].}
 
 type
 
-  ThreadResultKind* {.pure.} = enum
-    NotReady
-    Success
-    Error
-
   ThreadResult*[T: DataBuffer | void | bool | ThreadDatastorePtr] = object
     signal*: ThreadSignalPtr
-    case state*: ThreadResultKind
-    of ThreadResultKind.NotReady:
-      discard
-    of ThreadResultKind.Success:
-      value*: T
-    of ThreadResultKind.Error:
-      error*: CatchableErrorBuffer
+    results*: Result[T, CatchableErrorBuffer]
 
   TResult*[T] = SharedPtr[ThreadResult[T]]
 
@@ -55,18 +44,25 @@ proc newThreadResult*[T](
   ok res
 
 proc success*[T](ret: TResult[T], value: T) =
-  {.cast(uncheckedAssign).}:
-    ret[].state = ThreadResultKind.Success
-    ret[].value = value
+  ret[].results.ok(value)
 
 proc success*[T: void](ret: TResult[T]) =
-  {.cast(uncheckedAssign).}:
-    ret[].state = ThreadResultKind.Success
+  ret[].results.ok()
 
-proc failure*[T](ret: TResult[T], err: ref CatchableError) =
-  {.cast(uncheckedAssign).}:
-    ret[].state = ThreadResultKind.Error
-  ret[].error = err.toBuffer()
+proc failure*[T](ret: TResult[T], exc: ref CatchableError) =
+  ret[].results.err(exc.toBuffer())
+
+proc convert*[T, S](ret: TResult[T], tp: typedesc[S]): Result[S, ref CatchableError] =
+  if ret[].results.isOk():
+    when S is seq[byte]:
+      result.ok(ret[].results.get().toSeq(byte))
+    elif S is string:
+      result.ok(ret[].results.get().toString())
+    else:
+      result.ok(ret[].results.get())
+  else:
+    let exc: ref CatchableError = ret[].results.error().toCatchable()
+    result.err(exc)
 
 proc hasTask*(
   ret: TResult[bool],
@@ -100,7 +96,7 @@ proc getTask*(
   kb: KeyBuffer,
 ) =
   without key =? kb.toKey(), err:
-    ret[].state = Error
+    ret.failure(err)
   try:
     let res = waitFor tds[].ds.get(key)
     if res.isErr:
@@ -130,7 +126,7 @@ proc putTask*(
 ) =
 
   without key =? kb.toKey(), err:
-    ret[].state = Error
+    ret.failure(err)
 
   let data = db.toSeq(byte)
   let res = (waitFor tds[].ds.put(key, data)).catch
@@ -161,7 +157,7 @@ proc deleteTask*(
 ) =
 
   without key =? kb.toKey(), err:
-    ret[].state = Error
+    ret.failure(err)
 
   let res = (waitFor tds[].ds.delete(key)).catch
   # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
