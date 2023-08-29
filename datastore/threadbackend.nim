@@ -136,11 +136,8 @@ proc put*(
   key: Key,
   data: seq[byte]
 ) =
-  echo "thrfrontend:put: "
   let bkey = StringBuffer.new(key.id())
   let bval = DataBuffer.new(data)
-  print "bkey: ", bkey
-  print "bval: ", bval
 
   tds[].tp.spawn putTask(ret, tds, bkey, bval)
 

@@ -37,10 +37,10 @@ method has*(
     has(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    echo "closing signal"
+    # echo "closing signal"
     ret[].signal.close()
 
-  echo "\nSharedDataStore:has:value: ", ret[].repr
+  # echo "\nSharedDataStore:has:value: ", ret[].repr
   return success(ret[].value)
 
 method delete*(
@@ -55,10 +55,10 @@ method delete*(
     delete(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    echo "closing signal"
+    # echo "closing signal"
     ret[].signal.close()
 
-  echo "\nSharedDataStore:put:value: ", ret[].repr
+  # echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
 
 method delete*(
@@ -84,10 +84,9 @@ method get*(
     get(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    echo "closing signal"
     ret[].signal.close()
 
-  print "\nSharedDataStore:put:value: ", ret[]
+  # print "\nSharedDataStore:put:value: ", ret[]
   let data = ret[].value.toSeq(byte)
   return success(data)
 
@@ -100,15 +99,13 @@ method put*(
   without ret =? newThreadResult(void), err:
     return failure(err)
 
-  echo "res: ", ret
   try:
     put(ret, self.tds, key, data)
     await wait(ret[].signal)
   finally:
-    echo "closing signal"
     ret[].signal.close()
 
-  echo "\nSharedDataStore:put:value: ", ret[].repr
+  # echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
 
 method put*(
@@ -126,7 +123,6 @@ method close*(
   self: ThreadProxyDatastore
 ): Future[?!void] {.async.} =
   # TODO: how to handle failed close?
-  echo "ThreadDatastore: FREE: "
   result = success()
 
   without res =? self.tds[].ds.close(), err:
