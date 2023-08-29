@@ -61,3 +61,8 @@ proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
   return CatchableErrorBuffer(
     msg: StringBuffer.new(err.msg)
   )
+
+import ./key
+
+proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
+  KeyBuffer.new(key.id())
