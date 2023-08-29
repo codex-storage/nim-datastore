@@ -29,7 +29,19 @@ method has*(
   self: ThreadProxyDatastore,
   key: Key
 ): Future[?!bool] {.async.} =
-  return success(true)
+
+  without ret =? newThreadResult(bool), err:
+    return failure(err)
+
+  try:
+    has(ret, self.tds, key)
+    await wait(ret[].signal)
+  finally:
+    echo "closing signal"
+    ret[].signal.close()
+
+  echo "\nSharedDataStore:has:value: ", ret[].repr
+  return success(ret[].value)
 
 method delete*(
   self: ThreadProxyDatastore,
@@ -39,7 +51,6 @@ method delete*(
   without ret =? newThreadResult(void), err:
     return failure(err)
 
-  echo "res: ", ret
   try:
     delete(ret, self.tds, key)
     await wait(ret[].signal)
@@ -49,7 +60,6 @@ method delete*(
 
   echo "\nSharedDataStore:put:value: ", ret[].repr
   return success()
-
 
 method delete*(
   self: ThreadProxyDatastore,
