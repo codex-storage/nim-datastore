@@ -91,6 +91,19 @@ proc toBuffer*(q: Query): QueryBuffer =
       of SortOrder.Descending: QSortOrder.Descending
   )
 
+proc toQuery*(qb: QueryBuffer): Query =
+  ## convert QueryBuffer to regular Query
+  Query(
+    key: qb.key.toKey().expect("key expected"),
+    value: qb.value,
+    limit: qb.limit,
+    offset: qb.offset,
+    sort:
+      case qb.sort:
+      of QSortOrder.Ascending: SortOrder.Assending
+      of QSortOrder.Descending: SortOrder.Descending
+  )
+
 proc toBuffer*(q: QueryResponse): QueryResponseBuffer =
   ## convert QueryReponses to thread safe type
   var kb: KeyBuffer
