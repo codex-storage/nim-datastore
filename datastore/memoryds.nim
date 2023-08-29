@@ -49,12 +49,18 @@ method delete*(
 
   return success()
 
+import pretty
+
 method get*(
     self: MemoryDatastore,
     key: Key
 ): Future[?!seq[byte]] {.async.} =
 
   let dk = KeyBuffer.new(key)
+  echo "getting: ", key
+  for k, v in self.store.pairs():
+    print "get: ", k.toString()
+
   if self.store.hasKey(dk):
     let res = self.store[dk]
     return success res.toSeq(byte)
