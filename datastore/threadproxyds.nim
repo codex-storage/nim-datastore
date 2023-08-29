@@ -134,7 +134,7 @@ method query*(
     without it =? await self.tds[].ds.query(query), err:
       ret.failure(err)
 
-    var iter = newSharedPtr(QueryIterStore())
+    var iter = newSharedPtr(QueryIterStore)
     ## note that bypasses SharedPtr isolation - may need `protect` here?
     iter[].it = it
 
