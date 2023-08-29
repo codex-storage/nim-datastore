@@ -142,7 +142,7 @@ method query*(
       self.tds[].tp.spawn queryTask(ret, self.tds, iter)
       await wait(ret[].signal)
 
-    iter[].it = nil # ensure our sharedptr doesn't try and dealloc
+    # iter[].it = nil # ensure our sharedptr doesn't try and dealloc
   finally:
     ret[].signal.close()
 
@@ -162,7 +162,7 @@ method close*(
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
 
-  self[].tds[].ds = nil # ensure our sharedptr doesn't try and dealloc
+  # self[].tds[].ds = nil # ensure our sharedptr doesn't try and dealloc
 
 proc newThreadProxyDatastore*(
   ds: Datastore,
