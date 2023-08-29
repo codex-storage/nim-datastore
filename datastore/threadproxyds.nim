@@ -15,8 +15,6 @@ import ./datastore
 import ./threadbackend
 import ./fsds
 
-import pretty
-
 export key, query
 
 push: {.upraises: [].}
@@ -39,7 +37,6 @@ method has*(
   finally:
     ret[].signal.close()
 
-  # echo "\nSharedDataStore:has:value: ", ret[].repr
   return ret.convert(bool)
 
 method delete*(
@@ -56,8 +53,7 @@ method delete*(
   finally:
     ret[].signal.close()
 
-  # echo "\nSharedDataStore:put:value: ", ret[].repr
-  return success()
+  return ret.convert(void)
 
 method delete*(
   self: ThreadProxyDatastore,
@@ -74,6 +70,11 @@ method get*(
   self: ThreadProxyDatastore,
   key: Key
 ): Future[?!seq[byte]] {.async.} =
+  ## implements batch get
+  ## 
+  ## note: this implementation is rather naive and should
+  ## probably be switched to use a single ThreadSignal
+  ## for the entire batch
 
   without ret =? newThreadResult(ValueBuffer), err:
     return failure(err)
@@ -84,8 +85,6 @@ method get*(
   finally:
     ret[].signal.close()
 
-  # print "\nSharedDataStore:put:value: ", ret[]
-  # let data = ret[].value.toSeq(byte)
   return ret.convert(seq[byte])
 
 method put*(
@@ -103,12 +102,17 @@ method put*(
   finally:
     ret[].signal.close()
 
-  return success()
+  return ret.convert(void)
 
 method put*(
   self: ThreadProxyDatastore,
   batch: seq[BatchEntry]
 ): Future[?!void] {.async.} =
+  ## implements batch put
+  ## 
+  ## note: this implementation is rather naive and should
+  ## probably be switched to use a single ThreadSignal
+  ## for the entire batch
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:

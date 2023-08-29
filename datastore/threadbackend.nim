@@ -12,8 +12,6 @@ import ./datastore
 import ./databuffer
 import threading/smartptrs
 
-import pretty
-
 export key, query, smartptrs, databuffer
 
 push: {.upraises: [].}
@@ -58,6 +56,8 @@ proc convert*[T, S](ret: TResult[T], tp: typedesc[S]): Result[S, ref CatchableEr
       result.ok(ret[].results.get().toSeq(byte))
     elif S is string:
       result.ok(ret[].results.get().toString())
+    elif S is void:
+      result.ok()
     else:
       result.ok(ret[].results.get())
   else:
