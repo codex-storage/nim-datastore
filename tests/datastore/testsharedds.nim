@@ -1,13 +1,14 @@
 import std/options
 import std/sequtils
 import std/os
-from std/algorithm import sort, reversed
+import std/algorithm
 
 import pkg/asynctest/unittest2
 import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
+import pkg/datastore/memoryds
 import pkg/datastore/sharedds
 
 import ./dscommontests
@@ -24,7 +25,8 @@ suite "Test Basic SharedDatastore":
     let backend = ThreadBackend(
       kind: TestBackend,
     )
-    let res = await newSharedDataStore(backend)
+    let mem = MemoryDatastore.new()
+    let res = await newSharedDataStore(mem)
     check res.isOk()
     sds = res.get()
     # echo "sds: ", repr sds

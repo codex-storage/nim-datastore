@@ -128,13 +128,3 @@ proc put*(
   print "bval: ", bval
 
   tds[].tp.spawn putTask(ret, tds[].backend, bkey, bval)
-
-proc createThreadDatastore*(ret: ThreadDatastorePtr): Result[void, ref CatchableError] =
-  try:
-    echo "createThreadDatastore: start"
-    ret[].tp = Taskpool.new(num_threads = 2)
-    echo "createThreadDatastore: done"
-
-  except Exception as exc:
-    return err((ref DatastoreError)(msg: exc.msg))
-
