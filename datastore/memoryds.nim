@@ -60,14 +60,15 @@ method get*(
     return failure (ref DatastoreError)(msg: "no such key")
 
 method put*(
-  self: MemoryDatastore,
-  key: Key,
-  data: seq[byte]): Future[?!void] {.async.} =
+    self: MemoryDatastore,
+    key: Key,
+    data: seq[byte]
+): Future[?!void] {.async.} =
 
-  without mounted =? self.dispatch(key), error:
-    return failure(error)
-
-  return (await mounted.store.store.put(mounted.relative, data))
+  let dk = KeyBuffer.new(key)
+  let dv = ValueBuffer.new(key)
+  self.store[dk] = dv
+  return success()
 
 method put*(
   self: MemoryDatastore,
@@ -80,18 +81,9 @@ method put*(
   return success()
 
 method close*(self: MemoryDatastore): Future[?!void] {.async.} =
-  for s in self.stores.values:
-    discard await s.store.close()
-
-  # TODO: how to handle failed close?
+  self.store.clear()
   return success()
 
-func new*(
-  T: type MemoryDatastore,
-  stores: Table[Key, Datastore] = initTable[Key, Datastore]()): ?!T =
-
-  var self = T()
-  for (k, v) in stores.pairs:
-    self.stores[?k.path] = MemoryStore(store: v, key: k)
-
+func new*(tp: typedesc[MemoryDatastore]): ?!MemoryDatastore =
+  var self = default(tp)
   success self

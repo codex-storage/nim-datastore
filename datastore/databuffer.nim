@@ -66,3 +66,5 @@ import ./key
 
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
   KeyBuffer.new(key.id())
+proc new*(tp: typedesc[ValueBuffer], data: seq[byte]): KeyBuffer =
+  DataBuffer.new(data)
