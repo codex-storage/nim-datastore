@@ -21,7 +21,6 @@ suite "Test Basic ThreadProxyDatastore":
   var
     sds: ThreadProxyDatastore
     mem: MemoryDatastore
-    res: ThreadProxyDatastore
     key1: Key
     data: seq[byte]
 
@@ -69,25 +68,18 @@ suite "Test Basic ThreadProxyDatastore":
 
   basicStoreTests(ds, key, bytes, otherBytes)
 
-# suite "Test Query":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
+suite "Test Query":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
 
-#   var
-#     ds: FSDatastore
+  var
+    mem: MemoryDatastore
+    sds: ThreadProxyDatastore
 
-#   setup:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+  setup:
+    mem = MemoryDatastore.new()
+    sds = newThreadProxyDatastore(mem).expect("should work")
 
-#     ds = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
-
-#   teardown:
-
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-
-#   queryTests(ds, false)
+  queryTests(sds, false)

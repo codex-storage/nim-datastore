@@ -1,4 +1,5 @@
 import std/options
+import std/algorithm
 import pkg/upraises
 import pkg/chronos
 import pkg/questionable
@@ -7,12 +8,9 @@ import pkg/questionable/results
 import ./key
 import ./types
 import ./databuffer
-export options
+export options, SortOrder
 
 type
-  SortOrder* {.pure.} = enum
-    Assending,
-    Descending
 
   Query* = object
     key*: Key         # Key to be queried
@@ -45,7 +43,7 @@ proc init*(
   T: type Query,
   key: Key,
   value = true,
-  sort = SortOrder.Assending,
+  sort = Ascending,
   offset = 0,
   limit = -1): T =
 
@@ -57,16 +55,13 @@ proc init*(
     limit: limit)
 
 type
-  QSortOrder* {.pure.} = enum
-    Ascending,
-    Descending
 
   QueryBuffer* = object
     key*: KeyBuffer    # Key to be queried
     value*: bool       # Flag to indicate if data should be returned
     limit*: int        # Max items to return - not available in all backends
     offset*: int       # Offset from which to start querying - not available in all backends
-    sort*: QSortOrder  # Sort order - not available in all backends
+    sort*: SortOrder  # Sort order - not available in all backends
 
   QueryResponseBuffer* = object
     key*: KeyBuffer
@@ -85,10 +80,7 @@ proc toBuffer*(q: Query): QueryBuffer =
     key: KeyBuffer.new(q.key),
     value: q.value,
     offset: q.offset,
-    sort:
-      case q.sort:
-      of SortOrder.Assending: QSortOrder.Ascending
-      of SortOrder.Descending: QSortOrder.Descending
+    sort: q.sort
   )
 
 proc toQuery*(qb: QueryBuffer): Query =
@@ -98,10 +90,7 @@ proc toQuery*(qb: QueryBuffer): Query =
     value: qb.value,
     limit: qb.limit,
     offset: qb.offset,
-    sort:
-      case qb.sort:
-      of QSortOrder.Ascending: SortOrder.Assending
-      of QSortOrder.Descending: SortOrder.Descending
+    sort: qb.sort
   )
 
 proc toBuffer*(q: QueryResponse): QueryResponseBuffer =
