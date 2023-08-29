@@ -17,37 +17,40 @@ import ./querycommontests
 import pretty
 
 suite "Test Basic SharedDatastore":
+  var
+    sds: SharedDatastore
+    mem: MemoryDatastore
+    res: SharedDatastore
+    key1: Key
+    data: seq[byte]
 
-  test "check create":
+  setupAll:
+    mem = MemoryDatastore.new()
+    sds = newSharedDataStore(mem).expect("should work")
+    key1 = Key.init("/a").tryGet
+    data = "value for 1".toBytes()
 
-    var sds: SharedDatastore
-
-    let mem = MemoryDatastore.new()
-    let res = newSharedDataStore(mem)
-    check res.isOk()
-    sds = res.get()
-    # echo "sds: ", repr sds
-
+  test "check put":
     echo "\n\n=== put ==="
-    let key1 = Key.init("/a").tryGet
-    let res1 = await sds.put(key1, "value for 1".toBytes())
+    let res1 = await sds.put(key1, data)
     print "res1: ", res1
 
+  test "check get":
     echo "\n\n=== get ==="
     let res2 = await sds.get(key1)
-    check res2.get() == "hello world!".toBytes()
+    check res2.get() == data
     var val = ""
     for c in res2.get():
       val &= char(c)
     print "get res2: ", $val
 
-    echo "\n\n=== put cancel ==="
-    # let res1 = await sds.put(key1, "value for 1".toBytes())
-    let res3 = sds.put(key1, "value for 1".toBytes())
-    res3.cancel()
-    # print "res3: ", res3
+    # echo "\n\n=== put cancel ==="
+    # # let res1 = await sds.put(key1, "value for 1".toBytes())
+    # let res3 = sds.put(key1, "value for 1".toBytes())
+    # res3.cancel()
+    # # print "res3: ", res3
 
-suite "Test Basic FSDatastore":
+suite "Test Basic SharedDatastore":
 
   var
     memStore: MemoryDatastore
