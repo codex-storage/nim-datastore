@@ -70,6 +70,7 @@ method put*(
 
   let dk = KeyBuffer.new(key)
   let dv = ValueBuffer.new(data)
+  echo "MemoryDatastore:put: ", key, " => ", data.repr
   self.store[dk] = dv
   return success()
 

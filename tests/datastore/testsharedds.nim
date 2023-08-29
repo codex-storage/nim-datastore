@@ -63,7 +63,7 @@ suite "Test Basic FSDatastore":
   teardownAll:
     (await memStore.close()).get()
 
-  basicStoreTests(memStore, key, bytes, otherBytes)
+  basicStoreTests(ds, key, bytes, otherBytes)
 
 # suite "Test Misc FSDatastore":
 #   let
