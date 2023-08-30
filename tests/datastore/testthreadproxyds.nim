@@ -69,11 +69,6 @@ suite "Test Basic ThreadProxyDatastore":
   basicStoreTests(ds, key, bytes, otherBytes)
 
 suite "Test Query":
-  let
-    path = currentSourcePath() # get this file's name
-    basePath = "tests_data"
-    basePathAbs = path.parentDir / basePath
-
   var
     mem: MemoryDatastore
     sds: ThreadProxyDatastore
@@ -83,3 +78,4 @@ suite "Test Query":
     sds = newThreadProxyDatastore(mem).expect("should work")
 
   queryTests(sds, false)
+

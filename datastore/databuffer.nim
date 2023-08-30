@@ -64,6 +64,7 @@ proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
 
 proc toString*(data: DataBuffer): string =
   ## convert buffer to string type using copy
+  if data.isNil: return ""
   result = newString(data.len())
   if data.len() > 0:
     copyMem(addr result[0], unsafeAddr data[].buf[0], data.len)
