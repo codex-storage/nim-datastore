@@ -62,6 +62,8 @@ proc convert*[T, S](ret: TResult[T], tp: typedesc[S]): Result[S, ref CatchableEr
       result.ok(ret[].results.get().toString())
     elif S is void:
       result.ok()
+    elif S is QueryResponse:
+      result.ok(ret[].results.get().toQueryResponse())
     else:
       result.ok(ret[].results.get())
   else:

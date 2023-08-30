@@ -130,30 +130,38 @@ method query*(
   without ret =? newThreadResult(QueryResponseBuffer), err:
     return failure(err)
 
-  try:
-    ## we need to setup the query iter on the main thread
-    ## to keep it's lifetime associated with this async Future
-    without it =? await self.tds[].ds.query(query), err:
-      ret.failure(err)
+  ## we need to setup the query iter on the main thread
+  ## to keep it's lifetime associated with this async Future
+  without it =? await self.tds[].ds.query(query), err:
+    ret.failure(err)
 
-    var iter = newSharedPtr(QueryIterStore)
-    ## note that bypasses SharedPtr isolation - may need `protect` here?
-    iter[].it = it
+  var iter = newSharedPtr(QueryIterStore)
+  ## note that bypasses SharedPtr isolation - may need `protect` here?
+  iter[].it = it
 
+  var iterWrapper = QueryIter.new()
+
+  proc next(): Future[?!QueryResponse] {.async.} =
     echo "\n\n=== Query Start === "
-    while not iter[].it.finished:
+    if not iter[].it.finished:
       echo ""
       query(ret, self.tds, iter)
       await wait(ret[].signal)
       print "query:post: ", ret[].results
       print "query:post: ", " qrb:key: ", ret[].results.get().key.toString()
       print "query:post: ", " qrb:data: ", ret[].results.get().data.toString()
+      return ret.convert(QueryResponse)
+    else:
+      iterWrapper.finished = true
 
+  proc dispose(): Future[?!void] {.async.} =
     iter[].it = nil # ensure our sharedptr doesn't try and dealloc
-  finally:
     ret[].signal.close()
+    return success()
 
-  # return ret.convert(void)
+  iterWrapper.next = next
+  iterWrapper.dispose = dispose
+  return success iterWrapper
 
 method close*(
   self: ThreadProxyDatastore
