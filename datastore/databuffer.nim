@@ -1,4 +1,3 @@
-# import std/atomics
 import threading/smartptrs
 import std/hashes
 
