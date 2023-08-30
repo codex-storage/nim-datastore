@@ -14,9 +14,6 @@ import threading/smartptrs
 
 export key, query, smartptrs, databuffer
 
-when defined(nimHasStyleChecks):
-  {.push styleChecks: off.}
-
 push: {.upraises: [].}
 
 type
