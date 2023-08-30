@@ -9,7 +9,6 @@ import pkg/stew/byteutils
 
 import pkg/datastore
 
-import pretty
 
 template queryTests*(ds: Datastore, extended = true) {.dirty.} =
   var
@@ -91,8 +90,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      iter = tryGet(await ds.query(q))
-      res = tryGet(await iter.waitForAllQueryResults())
+      res = tryGet(await ds.query(q).waitForAllQueryResults())
 
     check:
       res.len == 2
@@ -101,8 +99,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       res[1].key.get == key3
       res[1].data == val3
-
-    (await iter.dispose()).tryGet
 
   test "Key should all list all keys at the same level":
     let
@@ -185,8 +181,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        iter = tryGet(await ds.query(q))
-        res = tryGet(await iter.waitForAllQueryResults())
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
       check:
         res.len == 5
@@ -199,8 +194,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         check:
           res[i].key.get == key
           res[i].data == val
-
-      (await iter.dispose()).tryGet
 
     test "Should apply sort order - descending":
       let
@@ -222,8 +215,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       kvs = kvs.reversed
       let
-        iter = tryGet(await ds.query(q))
-        res = tryGet(await iter.waitForAllQueryResults())
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
       check:
         res.len == 100
@@ -232,5 +224,3 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         check:
           res[i].key.get == kvs[i].key.get
           res[i].data == kvs[i].data
-
-      (await iter.dispose()).tryGet
