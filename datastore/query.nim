@@ -29,12 +29,11 @@ type
     next*: GetNext
     dispose*: IterDispose
 
-proc waitForAllQueryResults*(iter: QueryIter): Future[?!seq[QueryResponse]] {.async.} =
+proc waitForAllQueryResults*(qi: ?!QueryIter): Future[?!seq[QueryResponse]] {.async.} =
   ## for large blocks this would be *expensive*
   var res: seq[QueryResponse]
-  # if qi.isErr():
-  #   return failure qi.error()
-  # let iter = qi.get()
+  without iter =? qi, err:
+    return failure err
 
   while not iter.finished:
     let val = await iter.next()
@@ -45,8 +44,14 @@ proc waitForAllQueryResults*(iter: QueryIter): Future[?!seq[QueryResponse]] {.as
     else:
       return failure val.error()
   
-  await iter.dispose()
+  let rd = await iter.dispose()
+  if rd.isErr():
+    return failure(rd.error())
   return success res
+
+proc waitForAllQueryResults*(iter: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
+  let res = await iter
+  await waitForAllQueryResults(res)
 
 proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
   return success()

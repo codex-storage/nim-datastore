@@ -67,7 +67,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      all = waitForAllQueryResults(tryGet(await ds.query(q)))
+      all = waitForAllQueryResults(await ds.query(q))
       res = tryGet(await all)
 
     check:
@@ -82,146 +82,146 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       res[2].data.len == 0
 
 
-  # test "Key should not query parent":
-  #   let
-  #     q = Query.init(key2)
+  test "Key should not query parent":
+    let
+      q = Query.init(key2)
 
-  #   (await ds.put(key1, val1)).tryGet
-  #   (await ds.put(key2, val2)).tryGet
-  #   (await ds.put(key3, val3)).tryGet
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   let
-  #     res = tryGet(await ds.query(q).waitForAllQueryResults())
+    let
+      res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #   check:
-  #     res.len == 2
-  #     res[0].key.get == key2
-  #     res[0].data == val2
+    check:
+      res.len == 2
+      res[0].key.get == key2
+      res[0].data == val2
 
-  #     res[1].key.get == key3
-  #     res[1].data == val3
+      res[1].key.get == key3
+      res[1].data == val3
 
-  # test "Key should all list all keys at the same level":
-  #   let
-  #     queryKey = Key.init("/a").tryGet
-  #     q = Query.init(queryKey)
+  test "Key should all list all keys at the same level":
+    let
+      queryKey = Key.init("/a").tryGet
+      q = Query.init(queryKey)
 
-  #   (await ds.put(key1, val1)).tryGet
-  #   (await ds.put(key2, val2)).tryGet
-  #   (await ds.put(key3, val3)).tryGet
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   let
-  #     iter = (await ds.query(q)).tryGet
+    let
+      iter = (await ds.query(q)).tryGet
 
-  #   var
-  #     res = tryGet(await ds.query(q).waitForAllQueryResults())
+    var
+      res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #   res.sort do (a, b: QueryResponse) -> int:
-  #     cmp(a.key.get.id, b.key.get.id)
+    res.sort do (a, b: QueryResponse) -> int:
+      cmp(a.key.get.id, b.key.get.id)
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data == val1
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-  #     res[1].key.get == key2
-  #     res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-  #     res[2].key.get == key3
-  #     res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
-  #   (await iter.dispose()).tryGet
+    (await iter.dispose()).tryGet
 
-  # if extended:
-  #   test "Should apply limit":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, limit = 10)
+  if extended:
+    test "Should apply limit":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, limit = 10)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       res = tryGet(await ds.query(q).waitForAllQueryResults())
+      let
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #     check:
-  #       res.len == 10
+      check:
+        res.len == 10
 
-  #   test "Should not apply offset":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, offset = 90)
+    test "Should not apply offset":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, offset = 90)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       res = tryGet(await ds.query(q).waitForAllQueryResults())
+      let
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #     check:
-  #       res.len == 10
+      check:
+        res.len == 10
 
-  #   test "Should not apply offset and limit":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, offset = 95, limit = 5)
+    test "Should not apply offset and limit":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, offset = 95, limit = 5)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       res = tryGet(await ds.query(q).waitForAllQueryResults())
+      let
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #     check:
-  #       res.len == 5
+      check:
+        res.len == 5
 
-  #     for i in 0..<res.high:
-  #       let
-  #         val = ("val " & $(i + 95)).toBytes
-  #         key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+      for i in 0..<res.high:
+        let
+          val = ("val " & $(i + 95)).toBytes
+          key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
-  #       check:
-  #         res[i].key.get == key
-  #         res[i].data == val
+        check:
+          res[i].key.get == key
+          res[i].data == val
 
-  #   test "Should apply sort order - descending":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, sort = SortOrder.Descending)
+    test "Should apply sort order - descending":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, sort = SortOrder.Descending)
 
-  #     var kvs: seq[QueryResponse]
-  #     for i in 0..<100:
-  #       let
-  #         k = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      var kvs: seq[QueryResponse]
+      for i in 0..<100:
+        let
+          k = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       kvs.add((k.some, val))
-  #       (await ds.put(k, val)).tryGet
+        kvs.add((k.some, val))
+        (await ds.put(k, val)).tryGet
 
-  #     # lexicographic sort, as it comes from the backend
-  #     kvs.sort do (a, b: QueryResponse) -> int:
-  #       cmp(a.key.get.id, b.key.get.id)
+      # lexicographic sort, as it comes from the backend
+      kvs.sort do (a, b: QueryResponse) -> int:
+        cmp(a.key.get.id, b.key.get.id)
 
-  #     kvs = kvs.reversed
-  #     let
-  #       res = tryGet(await ds.query(q).waitForAllQueryResults())
+      kvs = kvs.reversed
+      let
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
-  #     check:
-  #       res.len == 100
+      check:
+        res.len == 100
 
-  #     for i, r in res[1..^1]:
-  #       check:
-  #         res[i].key.get == kvs[i].key.get
-  #         res[i].data == kvs[i].data
+      for i, r in res[1..^1]:
+        check:
+          res[i].key.get == kvs[i].key.get
+          res[i].data == kvs[i].data
