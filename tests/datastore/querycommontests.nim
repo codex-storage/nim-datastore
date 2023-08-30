@@ -91,10 +91,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      iter = tryGet(await ds.query(q))
+      res = tryGet(await iter.waitForAllQueryResults())
 
     check:
       res.len == 2
@@ -119,9 +117,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       iter = (await ds.query(q)).tryGet
 
     var
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = tryGet(await ds.query(q).waitForAllQueryResults())
 
     res.sort do (a, b: QueryResponse) -> int:
       cmp(a.key.get.id, b.key.get.id)
@@ -153,15 +149,10 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
       check:
         res.len == 10
-
-      (await iter.dispose()).tryGet
 
     test "Should not apply offset":
       let
@@ -176,15 +167,10 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = tryGet(await ds.query(q).waitForAllQueryResults())
 
       check:
         res.len == 10
-
-      (await iter.dispose()).tryGet
 
     test "Should not apply offset and limit":
       let
@@ -199,10 +185,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        iter = tryGet(await ds.query(q))
+        res = tryGet(await iter.waitForAllQueryResults())
 
       check:
         res.len == 5
@@ -238,10 +222,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       kvs = kvs.reversed
       let
-        iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        iter = tryGet(await ds.query(q))
+        res = tryGet(await iter.waitForAllQueryResults())
 
       check:
         res.len == 100
