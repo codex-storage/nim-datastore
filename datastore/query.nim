@@ -32,8 +32,10 @@ type
 proc waitForAllQueryResults*(qi: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
   ## for large blocks this would be *expensive*
   var res: seq[QueryResponse]
-  without iter =? (await qi), err:
-    return failure err
+  let iterRes = await qi
+  if iterRes.isErr():
+    return failure iterRes.error()
+  let iter = iterRes.get()
 
   while not iter.finished:
     let val = await iter.next()
