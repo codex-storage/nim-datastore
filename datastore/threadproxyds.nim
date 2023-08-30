@@ -120,6 +120,8 @@ method put*(
 
   return success()
 
+import pretty
+
 method query*(
   self: ThreadProxyDatastore,
   query: Query
@@ -138,9 +140,14 @@ method query*(
     ## note that bypasses SharedPtr isolation - may need `protect` here?
     iter[].it = it
 
+    echo "\n\n=== Query Start === "
     while not iter[].it.finished:
+      echo ""
       query(ret, self.tds, iter)
       await wait(ret[].signal)
+      print "query:post: ", ret[].results
+      print "query:post: ", " qrb:key: ", ret[].results.get().key.toString()
+      print "query:post: ", " qrb:data: ", ret[].results.get().data.toString()
 
     iter[].it = nil # ensure our sharedptr doesn't try and dealloc
   finally:

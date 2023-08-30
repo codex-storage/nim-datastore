@@ -172,6 +172,8 @@ proc deleteTask*(
 
   discard ret[].signal.fireSync()
 
+import pretty
+
 proc delete*(
   ret: TResult[void],
   tds: ThreadDatastorePtr,
@@ -191,7 +193,11 @@ proc queryTask*(
       ret.failure(err)
 
     let qrb = res.toBuffer()
+    print "queryTask: ", " res: ", res
+
     ret.success(qrb)
+    print "queryTask: ", " qrb:key: ", ret[].results.get().key.toString()
+    print "queryTask: ", " qrb:data: ", ret[].results.get().data.toString()
 
   except Exception as exc:
     ret.failure(exc)
