@@ -29,13 +29,14 @@ type
     next*: GetNext
     dispose*: IterDispose
 
-proc waitForAllQueryResults*(qi: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
+proc waitForAllQueryResults*(qi: QueryIter): Future[?!seq[QueryResponse]] {.async.} =
   ## for large blocks this would be *expensive*
   var res: seq[QueryResponse]
-  let iterRes = await qi
-  if iterRes.isErr():
-    return failure iterRes.error()
-  let iter = iterRes.get()
+  # let iterRes = await qi
+  # if iterRes.isErr():
+  #   return failure iterRes.error()
+  # let iter = iterRes.get()
+  let iter = qi
 
   while not iter.finished:
     let val = await iter.next()
