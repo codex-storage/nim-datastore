@@ -3,6 +3,9 @@ import std/hashes
 
 export hashes
 
+when defined(nimHasStyleChecks):
+  {.push styleChecks: off.}
+
 type
   DataBufferHolder* = object
     buf: ptr UncheckedArray[byte]
