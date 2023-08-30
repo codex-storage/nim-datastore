@@ -184,6 +184,8 @@ proc delete*(
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn deleteTask(ret, tds, bkey)
 
+import os
+
 proc queryTask*(
   ret: TResult[QueryResponseBuffer],
   tds: ThreadDatastorePtr,
@@ -191,11 +193,12 @@ proc queryTask*(
 ) =
 
   try:
+    os.sleep(100)
     without res =? waitFor(qiter[].it.next()), err:
       ret.failure(err)
 
     let qrb = res.toBuffer()
-    print "queryTask: ", " res: ", res
+    # print "queryTask: ", " res: ", res
 
     ret.success(qrb)
     print "queryTask: ", " qrb:key: ", ret[].results.get().key.toString()

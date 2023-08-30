@@ -29,9 +29,11 @@ type
     next*: GetNext
     dispose*: IterDispose
 
-iterator items*(q: QueryIter): Future[?!QueryResponse] =
+proc collectAllQueries*(q: QueryIter)  =
+  var qr: Future[?!QueryResponse]
   while not q.finished:
-    yield q.next()
+    qr = q.next()
+    yield qr
 
 proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
   return success()
