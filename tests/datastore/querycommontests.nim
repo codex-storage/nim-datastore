@@ -68,10 +68,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = tryGet(await ds.query(q).waitForAllQueryResults())
 
     check:
       res.len == 3
@@ -84,7 +81,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       res[2].key.get == key3
       res[2].data.len == 0
 
-    (await iter.dispose()).tryGet
 
   test "Key should not query parent":
     let
