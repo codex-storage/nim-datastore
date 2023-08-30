@@ -29,11 +29,23 @@ type
     next*: GetNext
     dispose*: IterDispose
 
-proc collectAllQueries*(q: QueryIter)  =
-  var qr: Future[?!QueryResponse]
-  while not q.finished:
-    qr = q.next()
-    yield qr
+proc waitForAllQueryResults*(qi: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
+  ## for large blocks this would be *expensive*
+  var res: seq[QueryResponse]
+  without iter =? (await qi), err:
+    return failure err
+
+  while not iter.finished:
+    let val = await iter.next()
+    if val.isOk():
+      let qr = val.tryGet()
+      if qr.key.isSome:
+        res.add qr
+    else:
+      return failure val.error()
+  
+  await iter.dispose()
+  return success res
 
 proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
   return success()
