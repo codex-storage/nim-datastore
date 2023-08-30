@@ -130,6 +130,8 @@ method query*(
   without ret =? newThreadResult(QueryResponseBuffer), err:
     return failure(err)
 
+  echo "\n\n=== Query Start === "
+
   ## we need to setup the query iter on the main thread
   ## to keep it's lifetime associated with this async Future
   without it =? await self.tds[].ds.query(query), err:
@@ -142,17 +144,19 @@ method query*(
   var iterWrapper = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
-    echo "\n\n=== Query Start === "
+    print "query:next:start: "
+    iterWrapper.finished = iter[].it.finished
     if not iter[].it.finished:
-      echo ""
       query(ret, self.tds, iter)
       await wait(ret[].signal)
+      echo ""
       print "query:post: ", ret[].results
+      print "query:post:finished: ", iter[].it.finished
       print "query:post: ", " qrb:key: ", ret[].results.get().key.toString()
       print "query:post: ", " qrb:data: ", ret[].results.get().data.toString()
-      return ret.convert(QueryResponse)
+      result = ret.convert(QueryResponse)
     else:
-      iterWrapper.finished = true
+      result = success (Key.none, EmptyBytes)
 
   proc dispose(): Future[?!void] {.async.} =
     iter[].it = nil # ensure our sharedptr doesn't try and dealloc

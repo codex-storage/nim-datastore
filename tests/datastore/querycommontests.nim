@@ -9,6 +9,8 @@ import pkg/stew/byteutils
 
 import pkg/datastore
 
+import pretty
+
 template queryTests*(ds: Datastore, extended = true) {.dirty.} =
   var
     key1: Key
@@ -36,9 +38,13 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+    
+    var res: seq[QueryResponse]
+    while not iter.finished:
+      let val = await iter.next()
+      let qr = val.tryGet()
+      if qr.key.isSome:
+        res.add qr
 
     check:
       res.len == 3
