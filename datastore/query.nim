@@ -51,7 +51,7 @@ proc waitForAllQueryResults*(qi: ?!QueryIter): Future[?!seq[QueryResponse]] {.as
 
 proc waitForAllQueryResults*(iter: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
   let res = await iter
-  await waitForAllQueryResults(res)
+  return await waitForAllQueryResults(res)
 
 proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
   return success()
