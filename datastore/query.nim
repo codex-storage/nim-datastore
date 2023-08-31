@@ -49,7 +49,8 @@ proc waitForAllQueryResults*(qi: ?!QueryIter): Future[?!seq[QueryResponse]] {.as
     return failure(rd.error())
   return success res
 
-proc waitForAllQueryResults*(iter: Future[?!QueryIter]): Future[?!seq[QueryResponse]] {.async.} =
+proc waitForAllQueryResults*(iter: Future[?!QueryIter]
+                            ): Future[?!seq[QueryResponse]] {.async.} =
   let res = await iter
   return await waitForAllQueryResults(res)
 
