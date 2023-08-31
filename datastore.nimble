@@ -8,7 +8,7 @@ license       = "Apache License 2.0 or MIT"
 
 requires "nim >= 1.6.14",
          "asynctest >= 0.3.1 & < 0.4.0",
-         "chronos",
+         "chronos >= 3.2.0",
          "questionable >= 0.10.3 & < 0.11.0",
          "sqlite3_abi",
          "stew",
