@@ -133,7 +133,7 @@ proc deleteTask*(
 
   discard ret[].signal.fireSync()
 
-import pretty
+# import pretty
 
 proc delete*(
   ret: TResult[void],
