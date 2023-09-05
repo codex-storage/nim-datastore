@@ -133,10 +133,12 @@ proc toQueryResponse*(qb: QueryResponseBuffer): QueryResponse =
 
   (key: key, data: data)
 
-proc convert*[T: QueryResponseBuffer, S: QueryResponse](
-    ret: TResult[T],
-    tp: typedesc[S]
-): Result[S, ref CatchableError] =
+proc convert*(
+    ret: TResult[QueryResponseBuffer],
+    tp: typedesc[QueryResponse]
+): Result[QueryResponse, ref CatchableError] =
+  ## helper to convert `TResult[QueryReponseBuffer]` to
+  ## a regular `Result[QueryResponse]` type
   if ret[].results.isOk():
     result.ok(ret[].results.get().toQueryResponse())
   else:
