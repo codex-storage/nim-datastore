@@ -160,8 +160,8 @@ proc queryTask*(
     # print "queryTask: ", " res: ", res
 
     ret.success(qrb)
-    print "queryTask: ", " qrb:key: ", ret[].results.get().key.toString()
-    print "queryTask: ", " qrb:data: ", ret[].results.get().data.toString()
+    # print "queryTask: ", " qrb:key: ", ret[].results.get().key.toString()
+    # print "queryTask: ", " qrb:data: ", ret[].results.get().data.toString()
 
   except Exception as exc:
     ret.failure(exc)
