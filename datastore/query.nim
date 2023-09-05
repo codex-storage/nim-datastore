@@ -78,6 +78,10 @@ proc init*(
 
 type
 
+  ## These type are equivalent thread-safe types
+  ## for copying / sharing query data between threads.
+  ## 
+
   QueryBuffer* = object
     key*: KeyBuffer    # Key to be queried
     value*: bool       # Flag to indicate if data should be returned
@@ -143,5 +147,6 @@ proc convert*(
   if ret[].results.isOk():
     result.ok(ret[].results.get().toQueryResponse())
   else:
-    let exc: ref CatchableError = ret[].results.error().toCatchable()
+    let exc: ref CatchableError =
+      ret[].results.error().toCatchable()
     result.err(exc)
