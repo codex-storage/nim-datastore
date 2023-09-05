@@ -120,7 +120,7 @@ method put*(
 
   return success()
 
-import pretty
+# import pretty
 
 method query*(
   self: ThreadProxyDatastore,
