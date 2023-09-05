@@ -138,13 +138,13 @@ method query*(
     ret.failure(err)
 
   var iter = newSharedPtr(QueryIterStore)
-  ## note that bypasses SharedPtr isolation - may need `protect` here?
+  ## does this bypasses SharedPtr isolation? - may need `protect` here?
   iter[].it = it
 
   var iterWrapper = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
-    print "query:next:start: "
+    # print "query:next:start: "
     iterWrapper.finished = iter[].it.finished
     if not iter[].it.finished:
       query(ret, self.tds, iter)
@@ -191,6 +191,7 @@ proc newThreadProxyDatastore*(
   var self = ThreadProxyDatastore()
   let value = newSharedPtr(ThreadDatastore)
   # GC_ref(ds) ## TODO: is this needed?
+
   try:
     value[].ds = ds
     value[].tp = Taskpool.new(num_threads = 2)
