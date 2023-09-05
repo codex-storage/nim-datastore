@@ -38,8 +38,8 @@ type
     ## result in likely memory corruption (use-after-free).
 
 const
-  SignalPoolSize {.intdefine.} = 1024
-  SignalPoolRetries {.intdefine.} = 1_000
+  SignalPoolSize {.intdefine.} = 20
+  SignalPoolRetries {.intdefine.} = 10
 
 var
   signalPoolLock: Lock
@@ -84,6 +84,7 @@ proc getThreadSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
         discard
       finally:
         signalPoolLock.release()
+      echo "wait:signalPoolUsed: "
       await sleepAsync(10.milliseconds)
     raise newException(DeadThreadDefect, "reached limit trying to acquire a ThreadSignalPtr")
 
