@@ -90,6 +90,7 @@ type
     data*: ValueBuffer
 
 proc threadSafeType*(tp: typedesc[QueryResponseBuffer]) =
+  ## QueryResponseBuffer is a thread-safe type
   discard
 
 proc toBuffer*(q: Query): QueryBuffer =
