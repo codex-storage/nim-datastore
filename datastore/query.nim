@@ -8,6 +8,7 @@ import pkg/questionable/results
 import ./key
 import ./types
 import ./databuffer
+import ./threadresults
 export options, SortOrder
 
 type
@@ -66,9 +67,9 @@ proc init*(
   value = true,
   sort = Ascending,
   offset = 0,
-  limit = -1): T =
-
-  T(
+  limit = -1
+): T =
+  Query(
     key: key,
     value: value,
     sort: sort,
@@ -88,12 +89,8 @@ type
     key*: KeyBuffer
     data*: ValueBuffer
 
-  # GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe, closure.}
-  # IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
-  # QueryIter* = ref object
-  #   finished*: bool
-  #   next*: GetNext
-  #   dispose*: IterDispose
+proc threadSafeType*(tp: typedesc[QueryResponseBuffer]) =
+  discard
 
 proc toBuffer*(q: Query): QueryBuffer =
   ## convert Query to thread-safe QueryBuffer
@@ -136,11 +133,12 @@ proc toQueryResponse*(qb: QueryResponseBuffer): QueryResponse =
 
   (key: key, data: data)
 
-# proc convert*(ret: TResult[QueryResponseBuffer],
-#               tp: typedesc[QueryResponse]
-#               ): Result[QueryResponse, ref CatchableError] =
-#   if ret[].results.isOk():
-#     result.ok(ret[].results.get().toString())
-#   else:
-#     let exc: ref CatchableError = ret[].results.error().toCatchable()
-#     result.err(exc)
+proc convert*[T: QueryResponseBuffer, S: QueryResponse](
+    ret: TResult[T],
+    tp: typedesc[S]
+): Result[S, ref CatchableError] =
+  if ret[].results.isOk():
+    result.ok(ret[].results.get().toQueryResponse())
+  else:
+    let exc: ref CatchableError = ret[].results.error().toCatchable()
+    result.err(exc)
