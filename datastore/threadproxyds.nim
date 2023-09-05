@@ -28,8 +28,7 @@ method has*(
   key: Key
 ): Future[?!bool] {.async.} =
 
-  without ret =? newThreadResult(bool), err:
-    return failure(err)
+  let ret = await newThreadResult(bool)
 
   try:
     has(ret, self.tds, key)
@@ -44,8 +43,7 @@ method delete*(
   key: Key
 ): Future[?!void] {.async.} =
 
-  without ret =? newThreadResult(void), err:
-    return failure(err)
+  let ret = await newThreadResult(void)
 
   try:
     delete(ret, self.tds, key)
@@ -76,8 +74,7 @@ method get*(
   ## probably be switched to use a single ThreadSignal
   ## for the entire batch
 
-  without ret =? newThreadResult(ValueBuffer), err:
-    return failure(err)
+  let ret = await newThreadResult(ValueBuffer)
 
   try:
     get(ret, self.tds, key)
@@ -93,8 +90,7 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  without ret =? newThreadResult(void), err:
-    return failure(err)
+  let ret = await newThreadResult(void)
 
   try:
     put(ret, self.tds, key, data)
@@ -127,8 +123,7 @@ method query*(
   query: Query
 ): Future[?!QueryIter] {.async.} =
 
-  without ret =? newThreadResult(QueryResponseBuffer), err:
-    return failure(err)
+  let ret = await newThreadResult(QueryResponseBuffer)
 
   # echo "\n\n=== Query Start === "
 

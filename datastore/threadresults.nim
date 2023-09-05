@@ -54,7 +54,7 @@ proc initSignalPool() =
 
 initSignalPool()
 
-proc getSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
+proc getThreadSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
   ## Get's a ThreadSignalPtr from the pool in a thread-safe way.
   ## 
   ## This provides a simple backpressue mechanism for the
@@ -84,7 +84,7 @@ proc getSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
       await sleepAsync(10.milliseconds)
     raise newException(DeadThreadDefect, "reached limit trying to acquire a ThreadSignalPtr")
 
-proc releaseSignal*(sig: ThreadSignalPtr) =
+proc release*(sig: ThreadSignalPtr) =
   ## Release ThreadSignalPtr back to the pool in a thread-safe way.
   withLock(signalPoolLock):
     signalPoolUsed.excl(sig)
@@ -99,7 +99,7 @@ proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
 
 proc newThreadResult*[T](
     tp: typedesc[T]
-): Result[TResult[T], ref CatchableError] =
+): Future[TResult[T]] {.async.} =
   ## Creates a new TResult including allocating
   ## a new ThreadSignalPtr.
   ## 
@@ -110,12 +110,8 @@ proc newThreadResult*[T](
     {.error: "only thread safe types can be used".}
 
   let res = newSharedPtr(ThreadResult[T])
-
-  if signal.isErr:
-    return err((ref CatchableError)(msg: signal.error()))
-  else:
-    res[].signal = signal.get()
-  ok res
+  res[].signal = await getThreadSignal()
+  res
 
 proc success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate
