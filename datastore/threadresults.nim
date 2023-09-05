@@ -73,22 +73,27 @@ proc getThreadSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
     var cnt = SignalPoolRetries
     while cnt > 0:
       cnt.dec()
-      withLock(signalPoolLock):
+      signalPoolLock.acquire()
+      try:
         if signalPoolFree.len() > 0:
-          try:
-            let res = signalPoolFree.pop()
-            signalPoolUsed.incl(res)
-            return res
-          except KeyError:
-            discard
+          let res = signalPoolFree.pop()
+          signalPoolUsed.incl(res)
+          echo "get:signalPoolUsed:size: ", signalPoolUsed.len()
+          return res
+      except KeyError:
+        discard
+      finally:
+        signalPoolLock.release()
       await sleepAsync(10.milliseconds)
     raise newException(DeadThreadDefect, "reached limit trying to acquire a ThreadSignalPtr")
 
 proc release*(sig: ThreadSignalPtr) =
   ## Release ThreadSignalPtr back to the pool in a thread-safe way.
-  withLock(signalPoolLock):
-    signalPoolUsed.excl(sig)
-    signalPoolFree.incl(sig)
+  {.cast(gcsafe).}:
+    withLock(signalPoolLock):
+      signalPoolUsed.excl(sig)
+      signalPoolFree.incl(sig)
+      echo "free:signalPoolUsed:size: ", signalPoolUsed.len()
 
 proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
   ## Used to explicitly mark a type as threadsafe. It's checked
