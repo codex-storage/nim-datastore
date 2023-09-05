@@ -130,7 +130,7 @@ method query*(
   without ret =? newThreadResult(QueryResponseBuffer), err:
     return failure(err)
 
-  echo "\n\n=== Query Start === "
+  # echo "\n\n=== Query Start === "
 
   ## we need to setup the query iter on the main thread
   ## to keep it's lifetime associated with this async Future
@@ -149,11 +149,11 @@ method query*(
     if not iter[].it.finished:
       query(ret, self.tds, iter)
       await wait(ret[].signal)
-      echo ""
-      print "query:post: ", ret[].results
-      print "query:post:finished: ", iter[].it.finished
-      print "query:post: ", " qrb:key: ", ret[].results.get().key.toString()
-      print "query:post: ", " qrb:data: ", ret[].results.get().data.toString()
+      # echo ""
+      # print "query:post: ", ret[].results
+      # print "query:post:finished: ", iter[].it.finished
+      # print "query:post: ", " qrb:key: ", ret[].results.get().key.toString()
+      # print "query:post: ", " qrb:data: ", ret[].results.get().data.toString()
       result = ret.convert(QueryResponse)
     else:
       result = success (Key.none, EmptyBytes)
