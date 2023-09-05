@@ -35,6 +35,10 @@ type
     ## result in likely memory corruption (use-after-free).
 
 proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
+  ## Used to explicitly mark a type as threadsafe. It's checked
+  ## at compile time in `newThreadResult`. 
+  ## 
+  ## Warning! Only non-GC types should be used!
   discard
 
 proc newThreadResult*[T](
@@ -58,18 +62,18 @@ proc newThreadResult*[T](
   ok res
 
 proc success*[T](ret: TResult[T], value: T) =
-  ## convenience wrapper for `TResult` to make
-  ## "returning" results easier
+  ## convenience wrapper for `TResult` to replicate
+  ## normal questionable api
   ret[].results.ok(value)
 
 proc success*[T: void](ret: TResult[T]) =
-  ## convenience wrapper for `TResult` to make
-  ## "returning" results easier
+  ## convenience wrapper for `TResult` to replicate
+  ## normal questionable api
   ret[].results.ok()
 
 proc failure*[T](ret: TResult[T], exc: ref Exception) =
-  ## convenience wrapper for `TResult` to make
-  ## "returning" results easier
+  ## convenience wrapper for `TResult` to replicate
+  ## normal questionable api
   ret[].results.err(exc.toBuffer())
 
 proc convert*[T, S](ret: TResult[T],
