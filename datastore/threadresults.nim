@@ -1,6 +1,7 @@
 
 import pkg/chronos/threadsync
 import pkg/threading/smartptrs
+import std/locks
 
 import ./databuffer
 
@@ -25,9 +26,9 @@ type
     ## SharedPtr that allocates a shared buffer and keeps the 
     ## memory allocated until all references to it are gone.
     ## 
-    ## Since ThreadResult is a plain object, and if its lifetime is
-    ## tied to that of an async proc or the thread-backend request
-    ## it could be freed before the other thread is finished.
+    ## Since ThreadResult is a plain object, its lifetime can be
+    ## tied to that of an async proc. In this case it could be
+    ## freed before the other background thread is finished.
     ## 
     ## For example, `myFuture.cancel()` can end an async proc early. 
     ## If the ThreadResult was stored in the async's memory then it'd
