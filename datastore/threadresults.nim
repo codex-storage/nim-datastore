@@ -28,6 +28,11 @@ type
     ## SharedPtr that allocates a shared buffer and keeps the 
     ## memory allocated until all references to it are gone.
     ## 
+    ## Important:
+    ##    On `refc` that internal destructors for ThreadResult[T]
+    ##    are *not* called. Effectively limiting this to 1 depth
+    ##    of destructors. Hence the `threadSafeType` marker below.
+    ## 
     ## Since ThreadResult is a plain object, its lifetime can be
     ## tied to that of an async proc. In this case it could be
     ## freed before the other background thread is finished.
@@ -36,10 +41,11 @@ type
     ## If the ThreadResult was stored in the async's memory then it'd
     ## be free'ed along with the rest of the async env. This would
     ## result in likely memory corruption (use-after-free).
+    ## 
 
 const
-  SignalPoolSize {.intdefine.} = 20
-  SignalPoolRetries {.intdefine.} = 10
+  SignalPoolSize {.intdefine.} = 1024
+  SignalPoolRetries {.intdefine.} = 1000
 
 var
   signalPoolLock: Lock
@@ -88,7 +94,7 @@ proc getThreadSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
       await sleepAsync(10.milliseconds)
     raise newException(DeadThreadDefect, "reached limit trying to acquire a ThreadSignalPtr")
 
-proc release*(sig: ThreadSignalPtr) =
+proc release*(sig: ThreadSignalPtr) {.raises: [].} =
   ## Release ThreadSignalPtr back to the pool in a thread-safe way.
   {.cast(gcsafe).}:
     withLock(signalPoolLock):
