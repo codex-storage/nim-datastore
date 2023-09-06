@@ -54,11 +54,9 @@ proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
 proc newThreadResult*[T](
     tp: typedesc[T]
 ): Future[TResult[T]] {.async.} =
-  ## Creates a new TResult including allocating
-  ## a new ThreadSignalPtr.
+  ## Creates a new TResult including getting
+  ## a new ThreadSignalPtr from the pool.
   ## 
-  ## Since allocating the TSP can fail, this returns 
-  ## a Result.
   mixin threadSafeType
   when not compiles(threadSafeType):
     {.error: "only thread safe types can be used".}
