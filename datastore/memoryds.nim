@@ -101,9 +101,12 @@ method query*(
     walker = keyIterator(self, queryKey)
   var
     iter = QueryIter.new()
+  iter.readyForNext = true
 
   proc next(): Future[?!QueryResponse] {.async.} =
+    iter.readyForNext = false
     let kb = walker()
+    iter.readyForNext = true
 
     if finished(walker):
       iter.finished = true

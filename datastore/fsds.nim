@@ -187,10 +187,13 @@ method query*(
 
   var
     iter = QueryIter.new()
+  iter.readyForNext = true
 
   proc next(): Future[?!QueryResponse] {.async.} =
+    iter.readyForNext = false
     let
       path = walker()
+    iter.readyForNext = true
 
     if finished(walker):
       iter.finished = true

@@ -151,12 +151,16 @@ method query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
+  iter.readyForNext = true
+
   proc next(): Future[?!QueryResponse] {.async.} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
+    iter.readyForNext = false
     let
       v = sqlite3_step(s)
+    iter.readyForNext = true
 
     case v
     of SQLITE_ROW:
