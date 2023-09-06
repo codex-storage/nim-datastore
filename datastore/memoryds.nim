@@ -11,7 +11,7 @@ import pkg/upraises
 import ./key
 import ./query
 import ./datastore
-import ./databuffer
+import ./threads/databuffer
 
 export key, query
 

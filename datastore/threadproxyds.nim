@@ -33,7 +33,7 @@ method has*(
     has(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    ret[].signal.release()
+    ret.release()
 
   return ret.convert(bool)
 
@@ -48,7 +48,7 @@ method delete*(
     delete(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    ret[].signal.release()
+    ret.release()
 
   return ret.convert(void)
 
@@ -79,7 +79,7 @@ method get*(
     get(ret, self.tds, key)
     await wait(ret[].signal)
   finally:
-    ret[].signal.release()
+    ret.release()
 
   return ret.convert(seq[byte])
 
@@ -95,7 +95,7 @@ method put*(
     put(ret, self.tds, key, data)
     await wait(ret[].signal)
   finally:
-    ret[].signal.release()
+    ret.release()
 
   return ret.convert(void)
 
@@ -154,7 +154,7 @@ method query*(
 
   proc dispose(): Future[?!void] {.async.} =
     iter[].it = nil # ensure our sharedptr doesn't try and dealloc
-    ret[].signal.release()
+    ret.release()
     return success()
 
   iterWrapper.next = next
