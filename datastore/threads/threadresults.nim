@@ -68,6 +68,7 @@ proc newThreadResult*[T](
   res
 
 proc release*[T](res: TResult[T]) {.raises: [].} =
+  ## release TResult and it's ThreadSignal
   res[].signal.release()
 
 proc success*[T](ret: TResult[T], value: T) =
