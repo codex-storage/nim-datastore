@@ -13,6 +13,8 @@ import ./datastore
 import ./databuffer
 import ./threadresults
 
+# import pretty
+
 export key, query, smartptrs, databuffer
 export threadresults
 
@@ -143,7 +145,7 @@ proc delete*(
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn deleteTask(ret, tds, bkey)
 
-import os
+# import os
 
 proc queryTask*(
   ret: TResult[QueryResponseBuffer],

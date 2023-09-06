@@ -35,12 +35,10 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key2, val2)).tryGet
     (await ds.put(key3, val3)).tryGet
 
-    let
-      iter = (await ds.query(q)).tryGet
-    
+    let iter = (await ds.query(q)).tryGet
     var res: seq[QueryResponse]
-    while not iter.finished:
-      let val = await iter.next()
+    for item in iter:
+      let val = await item
       let qr = val.tryGet()
       if qr.key.isSome:
         res.add qr

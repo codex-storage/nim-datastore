@@ -115,7 +115,7 @@ method put*(
 
   return success()
 
-# import pretty
+import pretty
 
 method query*(
   self: ThreadProxyDatastore,
@@ -136,13 +136,16 @@ method query*(
   iter[].it = it
 
   var iterWrapper = QueryIter.new()
+  iterWrapper.readyForNext = true
 
   proc next(): Future[?!QueryResponse] {.async.} =
     # print "query:next:start: "
     iterWrapper.finished = iter[].it.finished
     if not iter[].it.finished:
+      iterWrapper.readyForNext = false
       query(ret, self.tds, iter)
       await wait(ret[].signal)
+      iterWrapper.readyForNext = true
       # echo ""
       # print "query:post: ", ret[].results
       # print "query:post:finished: ", iter[].it.finished

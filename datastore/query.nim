@@ -27,8 +27,15 @@ type
   IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
   QueryIter* = ref object
     finished*: bool
+    readyForNext*: bool
     next*: GetNext
     dispose*: IterDispose
+
+iterator items*(q: QueryIter): Future[?!QueryResponse] =
+  while not q.finished:
+    if not q.readyForNext:
+      raise newException(FutureDefect, "query iterator not ready for next Future")
+    yield q.next()
 
 proc waitForAllQueryResults*(qi: ?!QueryIter): Future[?!seq[QueryResponse]] {.async.} =
   ## for large blocks this would be *expensive*

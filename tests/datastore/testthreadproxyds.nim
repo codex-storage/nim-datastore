@@ -14,7 +14,7 @@ import pkg/datastore/threadproxyds
 import ./dscommontests
 import ./querycommontests
 
-import pretty
+# import pretty
 
 
 suite "Test Basic ThreadProxyDatastore":
@@ -31,18 +31,19 @@ suite "Test Basic ThreadProxyDatastore":
     data = "value for 1".toBytes()
 
   test "check put":
-    echo "\n\n=== put ==="
+    # echo "\n\n=== put ==="
     let res1 = await sds.put(key1, data)
-    print "res1: ", res1
+    check res1.isOk
+    # print "res1: ", res1
 
   test "check get":
-    echo "\n\n=== get ==="
+    # echo "\n\n=== get ==="
     let res2 = await sds.get(key1)
     check res2.get() == data
     var val = ""
     for c in res2.get():
       val &= char(c)
-    print "get res2: ", $val
+    # print "get res2: ", $val
 
     # echo "\n\n=== put cancel ==="
     # # let res1 = await sds.put(key1, "value for 1".toBytes())
@@ -78,4 +79,21 @@ suite "Test Query":
     sds = newThreadProxyDatastore(mem).expect("should work")
 
   queryTests(sds, false)
+
+  test "query iter fails":
+
+    expect FutureDefect:
+      let q = Query.init(key1)
+
+      (await sds.put(key1, val1)).tryGet
+      (await sds.put(key2, val2)).tryGet
+      (await sds.put(key3, val3)).tryGet
+
+      let
+        iter = (await sds.query(q)).tryGet
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
+      
+      check res.len() > 0
 
