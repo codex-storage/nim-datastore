@@ -7,7 +7,7 @@ description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
 
 requires "nim >= 1.6.14",
-         "asynctest >= 0.3.1 & < 0.4.0",
+         "asynctest#a236a5f0f3031573ac2cb082b63dbf6e170e06e7",
          "chronos#0277b65be2c7a365ac13df002fba6e172be55537",
          "questionable >= 0.10.3 & < 0.11.0",
          "sqlite3_abi",
