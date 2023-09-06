@@ -152,7 +152,7 @@ proc queryTask*(
 ) =
 
   try:
-    os.sleep(100)
+    # os.sleep(100)
     without res =? waitFor(qiter[].it.next()), err:
       ret.failure(err)
 
