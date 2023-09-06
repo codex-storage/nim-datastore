@@ -7,16 +7,16 @@ description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
 
 requires "nim >= 1.6.14"
-requires "asynctest#fe1a34caf572b05f8bdba3b650f1871af9fce31e"
+requires "asynctest >= 0.3.1"
 requires "chronos#0277b65be2c7a365ac13df002fba6e172be55537"
 requires "questionable >= 0.10.3 & < 0.11.0"
 requires "sqlite3_abi"
-requires "stew#7afe7e3c070758cac1f628e4330109f3ef6fc853"
-requires "unittest2#b178f47527074964f76c395ad0dfc81cf118f379"
+requires "stew"
+requires "unittest2"
 requires "pretty"
 requires "threading"
 requires "taskpools"
-requires "upraises#ff4f8108e44fba9b35cac535ab63d3927e8fd3c2"
+requires "upraises >= 0.1.0 & < 0.2.0"
 
 task coverage, "generates code coverage report":
   var (output, exitCode) = gorgeEx("which lcov")
