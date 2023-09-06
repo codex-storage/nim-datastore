@@ -12,8 +12,7 @@ import pkg/threading/smartptrs
 import ./key
 import ./query
 import ./datastore
-import ./threadbackend
-import ./fsds
+import ./threads/threadbackend
 
 export key, query
 

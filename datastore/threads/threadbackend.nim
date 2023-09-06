@@ -7,8 +7,8 @@ import pkg/upraises
 import pkg/taskpools
 import pkg/threading/smartptrs
 
-import ./key
-import ./query
+import ../key
+import ../query
 import ./datastore
 import ./databuffer
 import ./threadresults

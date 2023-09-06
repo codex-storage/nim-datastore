@@ -78,7 +78,7 @@ proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
     msg: StringBuffer.new(err.msg)
   )
 
-import ./key
+import ../key
 import stew/results
 
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =

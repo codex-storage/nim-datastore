@@ -7,8 +7,8 @@ import pkg/questionable/results
 
 import ./key
 import ./types
-import ./databuffer
-import ./threadresults
+import ./threads/databuffer
+import ./threads/threadresults
 export options, SortOrder
 
 type
