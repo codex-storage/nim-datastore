@@ -11,33 +11,27 @@ import pkg/upraises
 import ./key
 import ./query
 import ./datastore
-import ./databuffer
 
 export key, query
 
 push: {.upraises: [].}
 
 type
-
   MemoryDatastore* = ref object of Datastore
-    store*: Table[KeyBuffer, ValueBuffer]
+    store*: Table[Key, seq[byte]]
 
 method has*(
     self: MemoryDatastore,
     key: Key
 ): Future[?!bool] {.async.} =
 
-  let dk = KeyBuffer.new(key)
-  return success self.store.hasKey(dk)
+  return success self.store.hasKey(key)
 
 method delete*(
-    self: MemoryDatastore,
-    key: Key
-): Future[?!void] {.async.} =
+  self: MemoryDatastore,
+  key: Key): Future[?!void] {.async.} =
 
-  let dk = KeyBuffer.new(key)
-  var val: ValueBuffer
-  discard self.store.pop(dk, val)
+  self.store.del(key)
   return success()
 
 method delete*(
@@ -51,26 +45,20 @@ method delete*(
   return success()
 
 method get*(
-    self: MemoryDatastore,
-    key: Key
-): Future[?!seq[byte]] {.async.} =
+  self: MemoryDatastore,
+  key: Key): Future[?!seq[byte]] {.async.} =
 
-  let dk = KeyBuffer.new(key)
-  if self.store.hasKey(dk):
-    let res = self.store[dk].toSeq(byte)
-    return success res
-  else:
+  self.store.withValue(key, value):
+    return success value[]
+  do:
     return failure (ref DatastoreError)(msg: "no such key")
 
 method put*(
-    self: MemoryDatastore,
-    key: Key,
-    data: seq[byte]
-): Future[?!void] {.async.} =
+  self: MemoryDatastore,
+  key: Key,
+  data: seq[byte]): Future[?!void] {.async.} =
 
-  let dk = KeyBuffer.new(key)
-  let dv = ValueBuffer.new(data)
-  self.store[dk] = dv
+  self.store[key] = data
   return success()
 
 method put*(
@@ -83,47 +71,47 @@ method put*(
 
   return success()
 
-proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer {.gcsafe.} =
-  return iterator(): KeyBuffer {.closure.} =
-    var keys = self.store.keys().toSeq()
-    keys.sort(proc (x, y: KeyBuffer): int = cmp(x.toString, y.toString))
-    for key in keys:
-      if key.toString().startsWith(queryKey):
-        yield key 
+# proc keyIterator(self: MemoryDatastore, queryKey: string): iterator: KeyBuffer {.gcsafe.} =
+#   return iterator(): KeyBuffer {.closure.} =
+#     var keys = self.store.keys().toSeq()
+#     keys.sort(proc (x, y: KeyBuffer): int = cmp(x.toString, y.toString))
+#     for key in keys:
+#       if key.toString().startsWith(queryKey):
+#         yield key
 
-method query*(
-  self: MemoryDatastore,
-  query: Query,
-): Future[?!QueryIter] {.async.} =
+# method query*(
+#   self: MemoryDatastore,
+#   query: Query,
+# ): Future[?!QueryIter] {.async.} =
 
-  let
-    queryKey = query.key.id()
-    walker = keyIterator(self, queryKey)
-  var
-    iter = QueryIter.new()
+#   let
+#     queryKey = query.key.id()
+#     walker = keyIterator(self, queryKey)
+#   var
+#     iter = QueryIter.new()
 
-  proc next(): Future[?!QueryResponse] {.async.} =
-    let kb = walker()
+#   proc next(): Future[?!QueryResponse] {.async.} =
+#     let kb = walker()
 
-    if finished(walker):
-      iter.finished = true
-      return success (Key.none, EmptyBytes)
+#     if finished(walker):
+#       iter.finished = true
+#       return success (Key.none, EmptyBytes)
 
-    let key = kb.toKey().expect("should not fail")
-    var ds: ValueBuffer
-    if query.value:
-      ds = self.store[kb]
-    let data = if ds.isNil: EmptyBytes else: ds.toSeq(byte)
+#     let key = kb.toKey().expect("should not fail")
+#     var ds: ValueBuffer
+#     if query.value:
+#       ds = self.store[kb]
+#     let data = if ds.isNil: EmptyBytes else: ds.toSeq(byte)
 
-    return success (key.some, data)
+#     return success (key.some, data)
 
-  iter.next = next
-  return success iter
+#   iter.next = next
+#   return success iter
 
 method close*(self: MemoryDatastore): Future[?!void] {.async.} =
   self.store.clear()
   return success()
 
-func new*(tp: typedesc[MemoryDatastore]): MemoryDatastore =
+func new*(tp: type MemoryDatastore): MemoryDatastore =
   var self = tp()
   return self

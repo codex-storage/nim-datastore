@@ -34,11 +34,11 @@ method put*(self: Datastore, batch: seq[BatchEntry]): Future[?!void] {.base, loc
 method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method query*(
-  self: Datastore,
-  query: Query): Future[?!QueryIter] {.base, gcsafe.} =
+# method query*(
+#   self: Datastore,
+#   query: Query): Future[?!QueryIter] {.base, gcsafe.} =
 
-  raiseAssert("Not implemented!")
+#   raiseAssert("Not implemented!")
 
 proc contains*(self: Datastore, key: Key): Future[bool] {.async.} =
   return (await self.has(key)) |? false

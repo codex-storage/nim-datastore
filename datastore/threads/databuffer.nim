@@ -1,5 +1,12 @@
+
 import threading/smartptrs
 import std/hashes
+import pkg/stew/results
+import pkg/upraises
+
+push: {.upraises: [].}
+
+import ../key
 
 export hashes
 
@@ -7,19 +14,19 @@ type
   DataBufferHolder* = object
     buf: ptr UncheckedArray[byte]
     size: int
-  
+
   DataBuffer* = SharedPtr[DataBufferHolder] ##\
     ## A fixed length data buffer using a SharedPtr.
     ## It is thread safe even with `refc` since
     ## it doesn't use string or seq types internally.
-    ## 
+    ##
 
   KeyBuffer* = DataBuffer
   ValueBuffer* = DataBuffer
   StringBuffer* = DataBuffer
+
   CatchableErrorBuffer* = object
     msg: StringBuffer
-
 
 proc `=destroy`*(x: var DataBufferHolder) =
   ## copy pointer implementation
@@ -51,7 +58,7 @@ proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
 
 proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuffer =
   ## allocate new buffer and copies indata from openArray
-  ## 
+  ##
   result = DataBuffer.new(data.len)
   if data.len() > 0:
     copyMem(result[].buf, unsafeAddr data[0], data.len)
@@ -78,10 +85,8 @@ proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
     msg: StringBuffer.new(err.msg)
   )
 
-import ./key
-import stew/results
-
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
   KeyBuffer.new(key.id())
+
 proc toKey*(kb: KeyBuffer): Result[Key, ref CatchableError] =
   Key.init(kb.toString())
