@@ -62,18 +62,15 @@ suite "Test Basic ThreadProxyDatastore":
     key = Key.init("/a/b").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
-    taskPool: TaskPool
+    taskPool: Taskpool
 
   setupAll:
     memStore = MemoryDatastore.new()
-    taskPool = TaskPool.new(3)
-    ds = ThreadDatastore.new(memStore, taskPool).expect("should work")
+    taskPool = Taskpool.new(2)
+    ds = ThreadDatastore.new(memStore, taskPool).tryGet()
 
   teardownAll:
     (await memStore.close()).get()
-
-  # test "check put":
-  #   (await ds.put(key, bytes)).tryGet()
 
   basicStoreTests(ds, key, bytes, otherBytes)
 

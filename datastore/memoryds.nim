@@ -21,9 +21,8 @@ type
     store*: Table[Key, seq[byte]]
 
 method has*(
-    self: MemoryDatastore,
-    key: Key
-): Future[?!bool] {.async.} =
+  self: MemoryDatastore,
+  key: Key): Future[?!bool] {.async.} =
 
   return success self.store.hasKey(key)
 
@@ -113,5 +112,4 @@ method close*(self: MemoryDatastore): Future[?!void] {.async.} =
   return success()
 
 func new*(tp: type MemoryDatastore): MemoryDatastore =
-  var self = tp()
-  return self
+  MemoryDatastore()

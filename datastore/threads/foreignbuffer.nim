@@ -1,8 +1,10 @@
 
+import std/locks
+
 type
-  ## Copy foreign buffers between threads.
+  ## Pass foreign buffers between threads.
   ##
-  ## This is meant to be used as a temporary holder a
+  ## This is meant to be used as temporary holder
   ## pointer to a foreign buffer that is being passed
   ## between threads.
   ##
@@ -11,58 +13,64 @@ type
   ## used with refgc.
   ##
   ForeignBuff*[T] = object
+    lock: Lock
     buf: ptr UncheckedArray[T]
     len: int
     cell: ForeignCell
 
-proc `=sink`[T](a: var ForeignBuff[T], b: ForeignBuff[T]) =
-  `=destroy`(a)
-  wasMoved(a)
-  a.len = b.len
-  a.buf = b.buf
-  a.cell = b.cell
+proc `=sink`[T](self: var ForeignBuff[T], b: ForeignBuff[T]) =
+  withLock(self.lock):
+    `=destroy`(self)
+    wasMoved(self)
+    self.len = b.len
+    self.buf = b.buf
+    self.cell = b.cell
 
-proc `=copy`[T](a: var ForeignBuff[T], b: ForeignBuff[T])
-  {.error: "You can't copy the buffer, only it's contents!".}
+proc `=copy`[T](self: var ForeignBuff[T], b: ForeignBuff[T]) {.error.}
 
 proc `=destroy`[T](self: var ForeignBuff[T]) =
-  if self.cell.data != nil:
-    echo "DESTROYING CELL"
-    dispose self.cell
+  withLock(self.lock):
+    if self.cell.data != nil:
+      echo "DESTROYING CELL"
+      dispose self.cell
 
 proc len*[T](self: ForeignBuff[T]): int =
   return self.len
 
-template `[]`*[T](self: ForeignBuff[T], idx: int): T =
-  assert idx >= 0 and idx < self.len
-  return self.buf[idx]
-
-template `[]=`*[T](self: ForeignBuff[T], idx: int, val: T) =
-  assert idx >= 0 and idx < self.len
-  return self.buf[idx]
-
 proc get*[T](self: ForeignBuff[T]): ptr UncheckedArray[T] =
   self.buf
 
-iterator items*[T](self: ForeignBuff[T]): T =
-  for i in 0 ..< self.len:
-    yield self.buf[i]
-
-iterator miterms*[T](self: ForeignBuff[T]): var T =
-  for i in 0 ..< self.len:
-    yield self.buf[i]
-
 proc attach*[T](
   self: var ForeignBuff[T],
-  buf: ptr UncheckedArray[T],
-  len: int,
-  cell: ForeignCell) =
-  ## Attach a foreign pointer to this buffer
+  buf: openArray[T]) =
+  ## Attach self foreign pointer to this buffer
   ##
+  withLock(self.lock):
+    self.buf = makeUncheckedArray[T](baseAddr buf)
+    self.len = buf.len
+    self.cell = protect(self.buf)
 
-  self.buf = buf
-  self.len = len
-  self.cell = cell
+func attached*[T]() =
+  ## Check if self foreign pointer is attached to this buffer
+  ##
+  withLock(self.lock):
+    return self.but != nil and self.cell.data != nil
+
+## NOTE: Converters might return copies of the buffer,
+## this should be overall safe since we want to copy
+## the buffer local GC anyway.
+converter toSeq*[T](self: ForeignBuff[T]): seq[T] | lent seq[T] =
+  @(self.buf.toOpenArray(0, self.len - 1))
+
+converter toString*[T](self: ForeignBuff[T]): string | lent string =
+  $(self.buf.toOpenArray(0, self.len - 1))
+
+converter getVal*[T](self: ForeignBuff[T]): ptr UncheckedArray[T] =
+  self.buf
 
 func init*[T](_: type ForeignBuff[T]): ForeignBuff[T] =
-  return ForeignBuff[T]()
+  var
+    lock = Lock()
+
+  lock.initLock()
+  ForeignBuff[T](lock: lock)

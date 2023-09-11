@@ -1,4 +1,7 @@
 
+when not compileOption("threads"):
+  {.error: "This module requires --threads:on compilation flag".}
+
 import pkg/upraises
 
 push: {.upraises: [].}
@@ -19,50 +22,49 @@ import ../datastore
 import ./foreignbuffer
 
 type
-  TaskRes = object
+  ThreadResults = object
     ok: Atomic[bool]
-    msg: ptr cstring
+    msg: ForeignBuff[char]
 
   TaskCtx = object
     ds: ptr Datastore
-    res: TaskRes
+    res: ptr ThreadResults
     signal: ThreadSignalPtr
 
   ThreadDatastore* = ref object of Datastore
     tp*: Taskpool
     ds*: Datastore
 
+proc success(self: var ThreadResults) {.inline.} =
+  self.ok.store(true)
+
+proc failure(self: var ThreadResults, msg: var string) {.inline.} =
+  self.ok.store(false)
+  self.msg.attach(msg.toOpenArray(0, msg.high))
+
 proc hasTask(
   ctx: ptr TaskCtx,
   key: ptr Key,
   doesHave: ptr bool) =
 
-  let
-    res = (waitFor ctx[].ds[].has(key[])).catch
+  without res =? (waitFor ctx[].ds[].has(key[])).catch, error:
+    ctx[].res[].failure(error.msg)
+    return
 
-  if res.isErr:
-    var
-      err = cstring(res.error().msg)
-    ctx[].res.msg = addr err
-  else:
-    ctx[].res.msg = nil
-    doesHave[] = res.get().get()
-
-  ctx[].res.ok.store(res.isOk)
+  doesHave[] = res.get()
+  ctx[].res[].success()
   discard ctx[].signal.fireSync()
 
-proc has*(
-  self: ThreadDatastore,
-  key: Key): Future[?!bool] {.async.} =
-
+method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
   var
     signal = ThreadSignalPtr.new().valueOr:
         return failure("Failed to create signal")
 
     key = key
+    res = ThreadResults()
     ctx = TaskCtx(
       ds: addr self.ds,
-      res: TaskRes(msg: nil),
+      res: addr res,
       signal: signal)
     doesHave = false
 
@@ -73,30 +75,22 @@ proc has*(
     runTask()
     await wait(ctx.signal)
 
-    var data: bool
     if ctx.res.ok.load() == false:
-      return failure("error")
+      return failure($(ctx.res.msg))
 
     return success(doesHave)
   finally:
     ctx.signal.close()
 
 proc delTask(ctx: ptr TaskCtx, key: ptr Key) =
+  without res =? (waitFor ctx[].ds[].delete(key[])).catch, error:
+    ctx[].res[].failure(error.msg)
+    return
 
-  let
-    res = (waitFor ctx[].ds[].delete(key[])).catch
-
-  if res.isErr:
-    var
-      err = cstring(res.error().msg)
-    ctx[].res.msg = addr err
-  else:
-    ctx[].res.msg = nil
-
-  ctx[].res.ok.store(res.isOk)
+  ctx[].res[].ok.store(true)
   discard ctx[].signal.fireSync()
 
-proc delete*(
+method delete*(
   self: ThreadDatastore,
   key: Key): Future[?!void] {.async.} =
 
@@ -105,9 +99,10 @@ proc delete*(
         return failure("Failed to create signal")
 
     key = key
+    res = ThreadResults()
     ctx = TaskCtx(
       ds: addr self.ds,
-      res: TaskRes(msg: nil),
+      res: addr res,
       signal: signal)
 
   proc runTask() =
@@ -124,6 +119,13 @@ proc delete*(
   finally:
     ctx.signal.close()
 
+method delete*(self: ThreadDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+  for key in keys:
+    if err =? (await self.delete(key)).errorOption:
+      return failure err
+
+  return success()
+
 proc putTask(
   ctx: ptr TaskCtx,
   key: ptr Key,
@@ -132,21 +134,16 @@ proc putTask(
   ## run put in a thread task
   ##
 
-  let
-    res = (waitFor ctx[].ds[].put(
+  without res =? (waitFor ctx[].ds[].put(
       key[],
-      @(toOpenArray(data, 0, len - 1)))).catch
+      @(toOpenArray(data, 0, len - 1)))).catch, error:
+    ctx[].res[].failure(error.msg)
+    return
 
-  if res.isErr:
-    var err = cstring(res.error().msg)
-    ctx[].res.msg = addr err
-  else:
-    ctx[].res.msg = nil
-
-  ctx[].res.ok.store(res.isOk)
+  ctx[].res[].ok.store(true)
   discard ctx[].signal.fireSync()
 
-proc put*(
+method put*(
   self: ThreadDatastore,
   key: Key,
   data: seq[byte]): Future[?!void] {.async.} =
@@ -156,15 +153,17 @@ proc put*(
         return failure("Failed to create signal")
     key = key
     data = data
+    res = ThreadResults()
     ctx = TaskCtx(
       ds: addr self.ds,
-      res: TaskRes(msg: nil),
+      res: addr res,
       signal: signal)
 
   proc runTask() =
     self.tp.spawn putTask(
       addr ctx,
-      addr key, makeUncheckedArray(baseAddr data),
+      addr key,
+      makeUncheckedArray(baseAddr data),
       data.len)
 
   try:
@@ -173,8 +172,18 @@ proc put*(
   finally:
     ctx.signal.close()
 
-  if ctx.res.ok.load() == false:
-    return failure("error")
+  if ctx.res[].ok.load() == false:
+    return failure($(ctx.res[].msg))
+
+  return success()
+
+method put*(
+  self: ThreadDatastore,
+  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+
+  for entry in batch:
+    if err =? (await self.put(entry.key, entry.data)).errorOption:
+      return failure err
 
   return success()
 
@@ -186,21 +195,18 @@ proc getTask(
   ##
 
   without res =? (waitFor ctx[].ds[].get(key[])).catch, error:
-    var err = cstring(error.msg)
-    ctx[].res.msg = addr err
+    var err = error.msg
+    ctx[].res[].failure(error.msg)
     return
 
   var
     data = res.get()
-    cell = protect(addr data)
-  ctx[].res.msg = nil
-  buf[].attach(
-    makeUncheckedArray(baseAddr data), data.len, cell)
 
-  ctx[].res.ok.store(res.isOk)
+  buf[].attach(data)
+  ctx[].res[].ok.store(res.isOk)
   discard ctx[].signal.fireSync()
 
-proc get*(
+method get*(
   self: ThreadDatastore,
   key: Key): Future[?!seq[byte]] {.async.} =
 
@@ -210,9 +216,10 @@ proc get*(
 
     key = key
     buf = ForeignBuff[byte].init()
+    res = ThreadResults()
     ctx = TaskCtx(
       ds: addr self.ds,
-      res: TaskRes(msg: nil),
+      res: addr res,
       signal: signal)
 
   proc runTask() =
@@ -223,14 +230,13 @@ proc get*(
     await wait(ctx.signal)
 
     if ctx.res.ok.load() == false:
-      return failure("error")
+      return failure($(ctx.res[].msg))
 
-    var data = @(toOpenArray(buf.get(), 0, buf.len - 1))
-    return success(data)
+    return success(buf.toSeq())
   finally:
     ctx.signal.close()
 
-proc new*(
+func new*(
   self: type ThreadDatastore,
   ds: Datastore,
   tp: Taskpool): ?!ThreadDatastore =
