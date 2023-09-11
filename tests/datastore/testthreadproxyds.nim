@@ -3,7 +3,7 @@ import std/sequtils
 import std/os
 import std/algorithm
 
-import pkg/asynctest/unittest2
+import pkg/asynctest
 import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
