@@ -16,7 +16,6 @@ import ./querycommontests
 
 # import pretty
 
-
 suite "Test Basic ThreadProxyDatastore":
   var
     sds: ThreadProxyDatastore

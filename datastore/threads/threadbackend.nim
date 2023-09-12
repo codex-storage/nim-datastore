@@ -20,6 +20,38 @@ export threadresults
 
 push: {.upraises: [].}
 
+## Design Notes
+## ============
+## This is the threaded backend for `threadproxyds.nim`. It requires
+## a `TResult[T]` to already be allocated, and uses it to "return" 
+## the data. The `taskpools` worker uses `TResult[T]` to signal
+## Chronos that the associated future is ready. Then the future on the
+## `threadproxyds` frontend can read the results from `TResult[T]`.
+##
+## `TResult[T]` handles the shared memory aspect so each threaded
+## task here can rely on having the memory until it finishes it's
+## work. Even if the future exits early, the thread workers won't
+## need to worry about using free-ed memory.
+##
+## The `FlowVar[T]` in `taskpools` isn't really suitable because
+## we want to use Chronos's `ThreadSignalPtr` notification mechanism.
+## Likewise the signaling mechanism in `taskpools` isn't suitable
+## for the same reason. We need to notify Chronos when our work
+## is done.
+##
+##
+## Potential Issues
+## ================
+## One issue still outstanding with this setup and using a 
+## ThreadSignalPtr pool is if `threadproxyds` frontend called
+## `tresult.release()` early due to a `myFuture.cancel()` scenario.
+## In this case the task here would then fire `tresult[].signal.fireAsync()`.
+## If another `threadproxyds` had gotten that same ThreadSignalPtr it'd
+## potentially get the signal. In this case the `TResult` would still be empty.
+## It shouldn't corrupt memory, but the `threadproxyds` TResult would return "empty".
+##
+##
+
 type
   ThreadDatastore* = object
     tp*: Taskpool

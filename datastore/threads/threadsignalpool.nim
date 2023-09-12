@@ -39,8 +39,16 @@ proc getThreadSignal*(): Future[ThreadSignalPtr] {.async, raises: [].} =
   ##      processes IO descriptor limit, which results in bad
   ##      and unpredictable failure modes.
   ## 
-  ## This could be put onto its own thread and use it's own set ThreadSignalPtr, 
-  ## but the sleepAsync should prove if this is useful for not.
+  ## This could be put onto its own thread and use it's own set ThreadSignalPtr
+  ## to become a true "resource pool".  
+  ## For now the sleepAsync should prove if this setup is useful
+  ## or not before going into that effort.
+  ## 
+  ## TLDR: if all ThreadSignalPtr's are used up, this will 
+  ##        repetedly call `sleepAsync` deferring whatever request
+  ##        is until more ThreadSignalPtr's are available. This
+  ##        design isn't particularly fair, but should let us handle
+  ##        periods of overloads with lots of requests in flight.
   ## 
   {.cast(gcsafe).}:
     var cnt = SignalPoolRetries
