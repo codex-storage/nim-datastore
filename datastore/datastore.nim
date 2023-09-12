@@ -31,7 +31,7 @@ method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, 
 method put*(self: Datastore, batch: seq[BatchEntry]): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
+method close*(self: Datastore): Future[?!void] {.base, locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 # method query*(
