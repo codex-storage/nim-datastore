@@ -50,6 +50,11 @@ push: {.upraises: [].}
 ## potentially get the signal. In this case the `TResult` would still be empty.
 ## It shouldn't corrupt memory, but the `threadproxyds` TResult would return "empty".
 ##
+## Note I'm not sure if using ThreadSignalPtr's directly and closing them would work
+## as File sockets are just int's on Linux/Mac and can be racey. It may be possible
+## that if both sides don't `close` the AsyncFD that are used, you'd just get events
+## from another pipe/socketpair which shares the same AsyncFD int's. Probably a solution
+## to this but needs some more consideration.
 ##
 
 type
