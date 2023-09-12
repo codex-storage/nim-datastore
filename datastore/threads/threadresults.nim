@@ -30,15 +30,6 @@ type
     ## SharedPtr that allocates a shared buffer and keeps the 
     ## memory allocated until all references to it are gone.
     ## 
-    ## Important:
-    ##    On `refc` that "internal" destructors for ThreadResult[T]
-    ##    are *not* called. Effectively limiting this to 1 depth
-    ##    of destructors. Hence the `threadSafeType` marker below.
-    ##
-    ##    Edit: not sure this is quire accurate, but some care
-    ##          needs to be taken to verify the destructor
-    ##          works with the specific type.
-    ## 
     ## Since ThreadResult is a plain object, its lifetime can be
     ## tied to that of an async proc. In this case it could be
     ## freed before the other background thread is finished.

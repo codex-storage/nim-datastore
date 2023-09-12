@@ -32,7 +32,7 @@ method has*(
 
   try:
     has(ret, sig, self.tds, key)
-    await wait(sig)
+    wait(sig)
   finally:
     discard # ret.release()()
 
@@ -47,7 +47,7 @@ method delete*(
 
   try:
     delete(ret, sig, self.tds, key)
-    await wait(sig)
+    wait(sig)
   finally:
     discard # ret.release()()
 
@@ -78,7 +78,7 @@ method get*(
 
   try:
     get(ret, sig, self.tds, key)
-    await wait(sig)
+    wait(sig)
   finally:
     discard # ret.release()()
 
@@ -90,13 +90,16 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  let (ret, sig) = await newThreadResult(void)
+  var ret: TResult[void]
+  block:
+    let (rets, sig) = await newThreadResult(void)
+    ret = rets
 
-  try:
-    put(ret, sig, self.tds, key, data)
-    await wait(sig)
-  finally:
-    discard # ret.release()()
+    try:
+      put(ret, sig, self.tds, key, data)
+      wait(sig)
+    finally:
+      discard # ret.release()()
 
   return ret.convert(void)
 
@@ -145,7 +148,7 @@ method query*(
     if not iter[].it.finished:
       iterWrapper.readyForNext = false
       query(ret, sig, self.tds, iter)
-      await wait(sig)
+      wait(sig)
       iterWrapper.readyForNext = true
       # echo ""
       # print "query:post: ", ret[].results

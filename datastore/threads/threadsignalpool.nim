@@ -77,22 +77,52 @@ proc release*(sig: ThreadSignalPtr) {.raises: [].} =
       signalPoolFree.incl(sig)
       # echo "free:signalPoolUsed:size: ", signalPoolUsed.len()
 
+
 type
-  SignalObj* = object
-    val*: ThreadSignalPtr
+  SharedSignalPtr* = object
+    cnt: ptr int
+    buf*: ThreadSignalPtr
 
-  SharedSignalPtr* = SharedPtr[SignalObj] ##\
 
-proc `=destroy`*(sig: var SignalObj) =
-  echo "FREE SIG! ", sig.val.pointer.repr
-  sig.val.release()
+proc `$`*(data: SharedSignalPtr): string =
+  if data.buf.isNil:
+    result = "nil"
+  else:
+    result = data.buf.pointer.repr
+
+proc `=destroy`*(x: var SharedSignalPtr) =
+  if x.buf != nil and x.cnt != nil:
+    let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
+    if res == 0:
+      # for i in 0..<x.len: `=destroy`(x.data[i])
+      echo "SIGNAL: FREE: ", repr x.buf.pointer, " ", x.cnt[]
+      deallocShared(x.buf)
+      deallocShared(x.cnt)
+    else:
+      echo "SIGNAL: decr: ", repr x.buf.pointer, " ", x.cnt[]
+
+proc `=copy`*(a: var SharedSignalPtr; b: SharedSignalPtr) =
+  # do nothing for self-assignments:
+  if a.buf == b.buf: return
+  `=destroy`(a)
+  discard atomicAddFetch(b.cnt, 1, ATOMIC_RELAXED)
+  a.buf = b.buf
+  a.cnt = b.cnt
+  echo "SIGNAL: Copy: repr: ", b.cnt[],
+          " ", repr a.buf.pointer, 
+          " ", repr b.buf.pointer
+
+proc `incr`*(a: SharedSignalPtr) =
+  echo "SIGNAL: incr: ", atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
 
 proc newSharedSignalPtr*(): Future[SharedSignalPtr] {.async, raises: [].} =
-  let ts = await getThreadSignal()
-  return newSharedPtr(SignalObj(val: ts))
+  result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
+  result.buf = await getThreadSignal()
 
-proc fireSync*(sig: SharedSignalPtr): Result[bool, string] =
-  sig[].val.fireSync()
+template fireSync*(sig: SharedSignalPtr): untyped =
+  let ts: ThreadSignalPtr = sig.buf
+  ts.fireSync()
 
-proc wait*(sig: SharedSignalPtr): Future[void] =
-  sig[].val.wait()
+template wait*(sig: SharedSignalPtr): untyped =
+  let ts: ThreadSignalPtr = sig.buf
+  await ts.wait()
