@@ -8,7 +8,7 @@ import pkg/unittest2
 import pkg/questionable
 import pkg/questionable/results
 
-include ../../datastore/databuffer
+include datastore/threads/databuffer
 
 var
   shareVal: DataBuffer

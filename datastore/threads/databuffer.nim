@@ -1,4 +1,4 @@
-import threading/smartptrs
+import pkg/threading/smartptrs
 import std/hashes
 
 export hashes
