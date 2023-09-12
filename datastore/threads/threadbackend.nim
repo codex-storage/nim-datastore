@@ -12,6 +12,7 @@ import ../query
 import ./datastore
 import ./databuffer
 import ./threadresults
+import ./threadsignalpool
 
 # import pretty
 
@@ -70,6 +71,7 @@ type
 
 proc hasTask*(
   ret: TResult[bool],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
@@ -82,20 +84,22 @@ proc hasTask*(
       ret.failure(res.error())
     else:
       ret.success(res.get())
-    discard ret[].signal.fireSync()
+    discard signal.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
 proc has*(
   ret: TResult[bool],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = StringBuffer.new(key.id())
-  tds[].tp.spawn hasTask(ret, tds, bkey)
+  tds[].tp.spawn hasTask(ret, signal, tds, bkey)
 
 proc getTask*(
   ret: TResult[DataBuffer],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
@@ -109,21 +113,23 @@ proc getTask*(
       let db = DataBuffer.new res.get()
       ret.success(db)
 
-    discard ret[].signal.fireSync()
+    discard signal.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
 proc get*(
   ret: TResult[DataBuffer],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = StringBuffer.new(key.id())
-  tds[].tp.spawn getTask(ret, tds, bkey)
+  tds[].tp.spawn getTask(ret, signal, tds, bkey)
 
 
 proc putTask*(
   ret: TResult[void],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
   db: DataBuffer,
@@ -140,10 +146,11 @@ proc putTask*(
   else:
     ret.success()
 
-  discard ret[].signal.fireSync()
+  discard signal.fireSync()
 
 proc put*(
   ret: TResult[void],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   key: Key,
   data: seq[byte]
@@ -151,11 +158,12 @@ proc put*(
   let bkey = StringBuffer.new(key.id())
   let bval = DataBuffer.new(data)
 
-  tds[].tp.spawn putTask(ret, tds, bkey, bval)
+  tds[].tp.spawn putTask(ret, signal, tds, bkey, bval)
 
 
 proc deleteTask*(
   ret: TResult[void],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
@@ -170,22 +178,24 @@ proc deleteTask*(
   else:
     ret.success()
 
-  discard ret[].signal.fireSync()
+  discard signal.fireSync()
 
 # import pretty
 
 proc delete*(
   ret: TResult[void],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = StringBuffer.new(key.id())
-  tds[].tp.spawn deleteTask(ret, tds, bkey)
+  tds[].tp.spawn deleteTask(ret, signal, tds, bkey)
 
 # import os
 
 proc queryTask*(
   ret: TResult[QueryResponseBuffer],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   qiter: QueryIterPtr,
 ) =
@@ -205,11 +215,12 @@ proc queryTask*(
   except Exception as exc:
     ret.failure(exc)
 
-  discard ret[].signal.fireSync()
+  discard signal.fireSync()
 
 proc query*(
   ret: TResult[QueryResponseBuffer],
+  signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,
   qiter: QueryIterPtr,
 ) =
-  tds[].tp.spawn queryTask(ret, tds, qiter)
+  tds[].tp.spawn queryTask(ret, signal, tds, qiter)

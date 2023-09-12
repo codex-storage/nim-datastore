@@ -13,6 +13,7 @@ import ./key
 import ./query
 import ./datastore
 import ./threads/threadbackend
+import ./threads/threadsignalpool
 
 export key, query
 
@@ -27,13 +28,13 @@ method has*(
   key: Key
 ): Future[?!bool] {.async.} =
 
-  let ret = await newThreadResult(bool)
+  let (ret, sig) = await newThreadResult(bool)
 
   try:
-    has(ret, self.tds, key)
-    await wait(ret[].signal)
+    has(ret, sig, self.tds, key)
+    await wait(sig)
   finally:
-    ret.release()
+    discard # ret.release()()
 
   return ret.convert(bool)
 
@@ -42,13 +43,13 @@ method delete*(
   key: Key
 ): Future[?!void] {.async.} =
 
-  let ret = await newThreadResult(void)
+  let (ret, sig) = await newThreadResult(void)
 
   try:
-    delete(ret, self.tds, key)
-    await wait(ret[].signal)
+    delete(ret, sig, self.tds, key)
+    await wait(sig)
   finally:
-    ret.release()
+    discard # ret.release()()
 
   return ret.convert(void)
 
@@ -73,13 +74,13 @@ method get*(
   ## probably be switched to use a single ThreadSignal
   ## for the entire batch
 
-  let ret = await newThreadResult(ValueBuffer)
+  let (ret, sig) = await newThreadResult(ValueBuffer)
 
   try:
-    get(ret, self.tds, key)
-    await wait(ret[].signal)
+    get(ret, sig, self.tds, key)
+    await wait(sig)
   finally:
-    ret.release()
+    discard # ret.release()()
 
   return ret.convert(seq[byte])
 
@@ -89,13 +90,13 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  let ret = await newThreadResult(void)
+  let (ret, sig) = await newThreadResult(void)
 
   try:
-    put(ret, self.tds, key, data)
-    await wait(ret[].signal)
+    put(ret, sig, self.tds, key, data)
+    await wait(sig)
   finally:
-    ret.release()
+    discard # ret.release()()
 
   return ret.convert(void)
 
@@ -122,7 +123,7 @@ method query*(
   query: Query
 ): Future[?!QueryIter] {.async.} =
 
-  let ret = await newThreadResult(QueryResponseBuffer)
+  let (ret, sig) = await newThreadResult(QueryResponseBuffer)
 
   # echo "\n\n=== Query Start === "
 
@@ -143,8 +144,8 @@ method query*(
     iterWrapper.finished = iter[].it.finished
     if not iter[].it.finished:
       iterWrapper.readyForNext = false
-      query(ret, self.tds, iter)
-      await wait(ret[].signal)
+      query(ret, sig, self.tds, iter)
+      await wait(sig)
       iterWrapper.readyForNext = true
       # echo ""
       # print "query:post: ", ret[].results
@@ -157,7 +158,7 @@ method query*(
 
   proc dispose(): Future[?!void] {.async.} =
     iter[].it = nil # ensure our sharedptr doesn't try and dealloc
-    ret.release()
+    discard # ret.release()()
     return success()
 
   iterWrapper.next = next

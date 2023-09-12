@@ -11,6 +11,7 @@ import ./threadsignalpool
 export databuffer
 export smartptrs
 export threadsync
+export threadsignalpool
 
 type
   ThreadSafeTypes* = DataBuffer | void | bool | SharedPtr ##\
@@ -22,7 +23,7 @@ type
     ## Encapsulates both the results from a thread but also the cross
     ## thread signaling mechanism. This makes it easier to keep them 
     ## together.
-    signal*: ThreadSignalPtr
+    # signal*: SharedSignalPtr
     results*: Result[T, CatchableErrorBuffer]
 
   TResult*[T] = SharedPtr[ThreadResult[T]] ##\
@@ -57,7 +58,7 @@ proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
 
 proc newThreadResult*[T](
     tp: typedesc[T]
-): Future[TResult[T]] {.async.} =
+): Future[(TResult[T], SharedSignalPtr)] {.async.} =
   ## Creates a new TResult including getting
   ## a new ThreadSignalPtr from the pool.
   ## 
@@ -66,8 +67,8 @@ proc newThreadResult*[T](
     {.error: "only thread safe types can be used".}
 
   let res = newSharedPtr(ThreadResult[T])
-  res[].signal = await getThreadSignal()
-  res
+  let signal = await newSharedSignalPtr()
+  (res, signal)
 
 proc release*[T](res: TResult[T]) {.raises: [].} =
   ## release TResult and it's ThreadSignal
