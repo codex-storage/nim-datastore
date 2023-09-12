@@ -1,4 +1,5 @@
 import std/tables
+import std/sharedtables
 import std/sequtils
 import std/strutils
 import std/algorithm
@@ -18,13 +19,16 @@ push: {.upraises: [].}
 
 type
   MemoryDatastore* = ref object of Datastore
-    store*: Table[Key, seq[byte]]
+    store*: SharedTable[Key, seq[byte]]
 
 method has*(
   self: MemoryDatastore,
   key: Key): Future[?!bool] {.async.} =
 
-  return success self.store.hasKey(key)
+  self.store.withValue(key, value):
+    return success true
+  do:
+    return success(false)
 
 method delete*(
   self: MemoryDatastore,
@@ -108,8 +112,12 @@ method put*(
 #   return success iter
 
 method close*(self: MemoryDatastore): Future[?!void] {.async.} =
-  self.store.clear()
+  self.store.deinitSharedTable()
   return success()
 
-func new*(tp: type MemoryDatastore): MemoryDatastore =
-  MemoryDatastore()
+proc new*(tp: type MemoryDatastore): MemoryDatastore =
+  var
+    table: SharedTable[Key, seq[byte]]
+
+  table.init()
+  MemoryDatastore(store: table)
