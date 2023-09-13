@@ -5,8 +5,8 @@ import pkg/questionable/results
 import stew/results
 import pkg/upraises
 import pkg/taskpools
-import pkg/threading/smartptrs
 
+import ./sharedptr
 import ../key
 import ../query
 import ./datastore
@@ -14,8 +14,7 @@ import ./databuffer
 import ./threadresults
 
 # import pretty
-
-export key, query, smartptrs, databuffer
+export key, query, sharedptr, databuffer
 export threadresults
 
 push: {.upraises: [].}

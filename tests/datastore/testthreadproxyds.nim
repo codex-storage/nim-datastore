@@ -35,6 +35,7 @@ suite "Test Basic ThreadProxyDatastore":
     check res1.isOk
     # print "res1: ", res1
 
+
   test "check get":
     # echo "\n\n=== get ==="
     let res2 = await sds.get(key1)

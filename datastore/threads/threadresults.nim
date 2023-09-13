@@ -1,15 +1,15 @@
 
 import pkg/chronos/threadsync
-import pkg/threading/smartptrs
 import pkg/chronos
 import std/locks
 import std/sets
 
+import ./sharedptr
 import ./databuffer
 import ./threadsignalpool
 
 export databuffer
-export smartptrs
+export sharedptr
 export threadsync
 
 type

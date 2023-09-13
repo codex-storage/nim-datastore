@@ -7,7 +7,6 @@ import pkg/questionable/results
 import pkg/upraises
 import pkg/taskpools
 import pkg/stew/results
-import pkg/threading/smartptrs
 
 import ./key
 import ./query

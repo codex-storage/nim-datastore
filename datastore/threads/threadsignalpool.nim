@@ -1,13 +1,13 @@
 import pkg/chronos/threadsync
-import pkg/threading/smartptrs
 import pkg/chronos
 import std/locks
 import std/sets
 
 import ./databuffer
+import ./sharedptr
 
 export databuffer
-export smartptrs
+export sharedptr
 export threadsync
 
 const
