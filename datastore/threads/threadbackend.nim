@@ -147,8 +147,11 @@ proc putTask*(
     ret.success()
 
   discard signal.fireSync()
+  echo "PUT DONE:kb: ", kb.val.pointer.repr
+  echo "PUT DONE:db: ", db.val.pointer.repr
+  # GC_fullCollect()
 
-proc put*(
+proc puts*(
   ret: TResult[void],
   signal: SharedSignalPtr,
   tds: ThreadDatastorePtr,

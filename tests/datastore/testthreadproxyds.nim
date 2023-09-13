@@ -16,34 +16,40 @@ import ./querycommontests
 
 # import pretty
 
-suite "Test Basic ThreadProxyDatastore":
-  var
-    sds: ThreadProxyDatastore
-    mem: MemoryDatastore
-    key1: Key
-    data: seq[byte]
+proc testThreadProxy() =
 
-  setupAll:
-    mem = MemoryDatastore.new()
-    sds = newThreadProxyDatastore(mem).expect("should work")
-    key1 = Key.init("/a").tryGet
-    data = "value for 1".toBytes()
+  suite "Test Basic ThreadProxyDatastore":
+    var
+      sds: ThreadProxyDatastore
+      mem: MemoryDatastore
+      key1: Key
+      data: seq[byte]
 
-  test "check put":
-    # echo "\n\n=== put ==="
-    let res1 = await sds.put(key1, data)
-    check res1.isOk
-    # print "res1: ", res1
+    setupAll:
+      mem = MemoryDatastore.new()
+      sds = newThreadProxyDatastore(mem).expect("should work")
+      key1 = Key.init("/a").tryGet
+      data = "value for 1".toBytes()
 
-  # test "check get":
-  #   # echo "\n\n=== get ==="
-  #   let res2 = await sds.get(key1)
-  #   check res2.get() == data
-  #   var val = ""
-  #   for c in res2.get():
-  #     val &= char(c)
-  #   # print "get res2: ", $val
-    
+    test "check put":
+      for i in 1..2:
+        echo "\n\n=== put ==="
+        let res1 = await sds.put(key1, data)
+        check res1.isOk
+      # GC_fullCollect()
+      # print "res1: ", res1
+
+    # test "check get":
+    #   # echo "\n\n=== get ==="
+    #   let res2 = await sds.get(key1)
+    #   check res2.get() == data
+    #   var val = ""
+    #   for c in res2.get():
+    #     val &= char(c)
+    #   # print "get res2: ", $val
+      
+testThreadProxy()
+GC_fullCollect()
 
 # suite "Test Basic ThreadProxyDatastore":
 

@@ -41,17 +41,20 @@ proc `==`*(a, b: DataBuffer): bool =
   elif a[].buf == b[].buf: return true
   else: a.hash() == b.hash()
 
-proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
+proc new*[T: DataBuffer](tp: typedesc[T], size: int = 0): T =
   ## allocate new buffer with given size
-  newSharedPtr(DataBufferHolder(
+  result = newSharedPtr(DataBufferHolder(
     buf: cast[typeof(result[].buf)](allocShared0(size)),
     size: size,
   ))
+  echo "DataBuffer: ALLOC: ", repr result[].buf.pointer,
+        " kind: ", $(typeof(result)),
+        " sharePtr: ", result.val.pointer.repr
 
-proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuffer =
+proc new*[T: byte | char; B](tp: typedesc[B], data: openArray[T]): DataBuffer =
   ## allocate new buffer and copies indata from openArray
   ## 
-  result = DataBuffer.new(data.len)
+  result = B.new(data.len)
   if data.len() > 0:
     copyMem(result[].buf, unsafeAddr data[0], data.len)
 

@@ -90,16 +90,24 @@ proc `$`*(data: SharedSignalPtr): string =
   else:
     result = data.buf.pointer.repr
 
-proc `=destroy`*(x: var SharedSignalPtr) =
+proc `incr`*(a: SharedSignalPtr) =
+  echo "SIGNAL: manual incr: ", atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
+
+proc `decr`*(x: SharedSignalPtr) =
   if x.buf != nil and x.cnt != nil:
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      # for i in 0..<x.len: `=destroy`(x.data[i])
       echo "SIGNAL: FREE: ", repr x.buf.pointer, " ", x.cnt[]
       deallocShared(x.buf)
       deallocShared(x.cnt)
     else:
       echo "SIGNAL: decr: ", repr x.buf.pointer, " ", x.cnt[]
+
+proc `=destroy`*(x: var SharedSignalPtr) =
+  echo "SIGNAL: destroy: ", repr x.buf.pointer, " ", x.cnt.repr
+  echo "SIGNAL: destroy:st: ", $getStackTrace()
+
+  decr(x)
 
 proc `=copy`*(a: var SharedSignalPtr; b: SharedSignalPtr) =
   # do nothing for self-assignments:
@@ -108,16 +116,11 @@ proc `=copy`*(a: var SharedSignalPtr; b: SharedSignalPtr) =
   discard atomicAddFetch(b.cnt, 1, ATOMIC_RELAXED)
   a.buf = b.buf
   a.cnt = b.cnt
-  echo "SIGNAL: Copy: repr: ", b.cnt[],
-          " ", repr a.buf.pointer, 
-          " ", repr b.buf.pointer
-
-proc `incr`*(a: SharedSignalPtr) =
-  echo "SIGNAL: incr: ", atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
 
 proc newSharedSignalPtr*(): Future[SharedSignalPtr] {.async, raises: [].} =
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.buf = await getThreadSignal()
+  echo "SIGNAL: alloc: ", repr result.buf.pointer
 
 template fireSync*(sig: SharedSignalPtr): untyped =
   let ts: ThreadSignalPtr = sig.buf

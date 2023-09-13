@@ -84,24 +84,36 @@ method get*(
 
   return ret.convert(seq[byte])
 
+type
+  FutureAlloc* = ref object
+    data*: int
+
+proc faFinalizer*(fa: FutureAlloc) =
+  echo "FA FREE! ", cast[pointer](fa).repr
+
 method put*(
   self: ThreadProxyDatastore,
   key: Key,
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
-  var ret: TResult[void]
   block:
-    let (rets, sig) = await newThreadResult(void)
-    ret = rets
+    var fa: FutureAlloc
+    fa.new(faFinalizer)
+
+    echo "FA NEW! ", cast[pointer](fa).repr
+
+    let (ret, reallysignal) = await newThreadResult(void)
 
     try:
-      put(ret, sig, self.tds, key, data)
-      wait(sig)
+      puts(ret, reallysignal, self.tds, key, data)
+      wait(reallysignal)
     finally:
+      reallysignal.decr()
       discard # ret.release()()
 
-  return ret.convert(void)
+    result = ret.convert(void)
+
 
 method put*(
   self: ThreadProxyDatastore,
