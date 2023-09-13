@@ -48,6 +48,10 @@ proc runDestroyOnReleaseTest() =
   finally:
     a.release()
     check intref[] == 0
+    ## important a should be nil now!
+    ## to prevent future decr's from occuring
+    check a.isNil == true
+    a.decr()
 
 
 suite "Share buffer test":
@@ -85,6 +89,11 @@ suite "Share buffer test":
     finally:
       a.release()
       check intref[] == 0
+
+    ## important a should be nil now!
+    ## to prevent future decr's from occuring
+    check a.isNil == true
+    a.decr()
 
   test "test destroy release generic no proc":
     echo "\nintref setup:\n"
