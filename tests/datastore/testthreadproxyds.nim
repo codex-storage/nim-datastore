@@ -32,10 +32,11 @@ proc testThreadProxy() =
       data = "value for 1".toBytes()
 
     test "check put":
-      for i in 1..2:
+      for i in 1..20:
         echo "\n\n=== put ==="
         let res1 = await sds.put(key1, data)
         check res1.isOk
+        GC_fullCollect()
       # GC_fullCollect()
       # print "res1: ", res1
 

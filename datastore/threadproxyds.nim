@@ -100,7 +100,6 @@ method put*(
   block:
     var fa: FutureAlloc
     fa.new(faFinalizer)
-
     echo "FA NEW! ", cast[pointer](fa).repr
 
     let (ret, reallysignal) = await newThreadResult(void)

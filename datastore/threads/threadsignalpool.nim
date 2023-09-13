@@ -103,9 +103,11 @@ proc `decr`*(x: SharedSignalPtr) =
     else:
       echo "SIGNAL: decr: ", repr x.buf.pointer, " ", x.cnt[]
 
+import std/strutils
+
 proc `=destroy`*(x: var SharedSignalPtr) =
   echo "SIGNAL: destroy: ", repr x.buf.pointer, " ", x.cnt.repr
-  echo "SIGNAL: destroy:st: ", $getStackTrace()
+  echo "SIGNAL: destroy:st: ", ($getStackTrace()).split("\n").join(";")
 
   decr(x)
 
