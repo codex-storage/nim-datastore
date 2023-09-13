@@ -69,7 +69,7 @@ proc decr*[T](x: var SharedPtr[T]) =
     else:
       echoed "SharedPtr: decr: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
 
-proc release*[T](x: var SharedPtr[T]) =
+template release*[T](x: var SharedPtr[T]) =
   echoed "SharedPtr: release: ", $(typeof(T))
   x.decr()
   x.container = nil
@@ -80,7 +80,8 @@ proc `=destroy`*[T](x: var SharedPtr[T]) =
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
-  if src.container != nil and src.cnt != nil:
+  if src.container != nil:
+    echoed "SharedPtr: dup: ", src.container.pointer.repr, " cnt: ", src.container.cnt, " tp: ", $(typeof(T))
     discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
   result.container = src.container
   result.cnt = src.cnt
@@ -88,8 +89,8 @@ proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
 proc `=copy`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
   if src.container != nil:
     # echo "SharedPtr: copy: ", src.container.pointer.repr
-    echoed "SharedPtr: copy:src: ", src.container.pointer.repr, " cnt: ", src.container.cnt, " tp: ", $(typeof(T))
     discard atomicAddFetch(addr src.container.cnt, 1, ATOMIC_RELAXED)
+    echoed "SharedPtr: copy:src: ", src.container.pointer.repr, " cnt: ", src.container.cnt, " tp: ", $(typeof(T))
   if dest.container != nil:
     echoed "SharedPtr: copy:dest: ", dest.container.pointer.repr, " cnt: ", dest.container.cnt, " tp: ", $(typeof(T))
   `=destroy`(dest)

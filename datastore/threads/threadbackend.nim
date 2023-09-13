@@ -150,7 +150,7 @@ proc putTask*(
   echoed "putTask: FINISH\n"
 
 proc put*(
-  ret: TResult[void],
+  ret: var TResult[void],
   tds: ThreadDatastorePtr,
   key: Key,
   data: seq[byte]

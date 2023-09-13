@@ -90,7 +90,9 @@ method put*(
   echoed "put new request thr: ", $getThreadId()
   var ret = await newThreadResult(void)
 
-  try:
+  var answer: ?!void
+
+  block:
     put(ret, self.tds, key, data)
     echo "\n"
     echoed "wait put thr: ", $getThreadId()
@@ -100,12 +102,15 @@ method put*(
     echo "\n"
     await sleepAsync(400.milliseconds)
 
-    return ret.convert(void)
-  finally:
+    answer = ret.convert(void)
+  block:
     echo "\n"
     await sleepAsync(400.milliseconds)
     echoed "PUT RELEASE"
+    echo "PUT RELEASE"
     ret.release()
+  
+  return answer
 
 method put*(
   self: ThreadProxyDatastore,

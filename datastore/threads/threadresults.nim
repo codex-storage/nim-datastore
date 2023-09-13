@@ -61,6 +61,12 @@ proc newThreadResult*[T](
   res[].sig = await SharedSignal.new()
   res
 
+proc `=destroy`*[T](res: var ThreadResult[T]) {.raises: [].} =
+  ## release TResult and it's ThreadSignal
+  echoed "ThreadResult:destroy: ", res.addr.pointer.repr, " res: ", $(res)
+  res[].signal.release()
+  `=destroy`(res.results)
+
 # proc release*[T](res: var TResult[T]) {.raises: [].} =
 #   ## release TResult and it's ThreadSignal
 #   # res[].signal.release()
@@ -71,17 +77,17 @@ template wait*[T](res: TResult[T]): Future[void] =
 template fireSync*[T](res: TResult[T]): Result[bool, string] =
   res[].sig.fireSync()
 
-template success*[T](ret: TResult[T], value: T) =
+proc success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.ok(value)
 
-template success*[T: void](ret: TResult[T]) =
+proc success*[T: void](ret: TResult[T]) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.ok()
 
-template failure*[T](ret: TResult[T], exc: ref Exception) =
+proc failure*[T](ret: TResult[T], exc: ref Exception) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.err(exc.toBuffer())
@@ -97,6 +103,7 @@ proc convert*[T, S](ret: TResult[T],
     elif S is string:
       result.ok(ret[].results.get().toString())
     elif S is void:
+      echoed "TRESULT: OK"
       result.ok()
     else:
       result.ok(ret[].results.get())

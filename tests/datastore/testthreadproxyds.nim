@@ -37,8 +37,8 @@ proc threadTest() =
     test "check put":
       # echo "\n\n=== put ==="
       let res1 = await sds.put(key1, data)
-      check res1.isOk
       print "res1: ", res1
+      check res1.isOk
       # GC_fullCollect()
 
 proc main() =
