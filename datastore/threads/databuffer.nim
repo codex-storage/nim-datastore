@@ -18,9 +18,9 @@ type
 
   KeyBuffer* = DataBuffer
   ValueBuffer* = DataBuffer
-  StringBuffer* = DataBuffer
+  # StringBuffer* = DataBuffer
   CatchableErrorBuffer* = object
-    msg: StringBuffer
+    msg: DataBuffer
 
 
 proc `=destroy`*(x: var DataBufferHolder) =
@@ -78,8 +78,9 @@ proc toCatchable*(err: CatchableErrorBuffer): ref CatchableError =
 
 proc toBuffer*(err: ref Exception): CatchableErrorBuffer =
   ## convert exception to an object with StringBuffer
+  echoed "DataBuffer:toBuffer:err: ", err.msg
   return CatchableErrorBuffer(
-    msg: StringBuffer.new(err.msg)
+    msg: DataBuffer.new(err.msg)
   )
 
 import ../key
