@@ -8,7 +8,7 @@ import pkg/unittest2
 import pkg/questionable
 import pkg/questionable/results
 
-include ../../datastore/databuffer
+include pkg/datastore/threads/databuffer
 
 var
   shareVal: DataBuffer
@@ -26,8 +26,8 @@ proc thread1(val: int) {.thread.} =
       var myBytes = DataBuffer.new(@"hello world")
       myBytes2 = myBytes
 
-      echo "thread1: sending: ", myBytes
-      echo "mybytes2: ", myBytes2
+      echo "thread1: sending: ", $myBytes
+      echo "mybytes2: ", $myBytes2
 
       shareVal = myBytes
       echo "thread1: sent, left over: ", $myBytes
