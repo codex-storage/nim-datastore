@@ -9,7 +9,6 @@ import pkg/stew/byteutils
 
 import pkg/datastore
 
-
 template queryTests*(ds: Datastore, extended = true) {.dirty.} =
   var
     key1: Key
@@ -37,13 +36,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-    
-    var res: seq[QueryResponse]
-    while not iter.finished:
-      let val = await iter.next()
-      let qr = val.tryGet()
-      if qr.key.isSome:
-        res.add qr
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        while not iter.finished:
+          let (key, val) = (await iter.next()).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+          cnt.inc
+
+        res
 
     check:
       res.len == 3
@@ -67,8 +73,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      all = waitForAllQueryResults(await ds.query(q))
-      res = tryGet(await all)
+      iter = (await ds.query(q)).tryGet
+      res = block:
+        var res: seq[QueryResponse]
+        while not iter.finished:
+          let (key, val) = (await iter.next()).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+
+        res
 
     check:
       res.len == 3
@@ -81,6 +96,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       res[2].key.get == key3
       res[2].data.len == 0
 
+    (await iter.dispose()).tryGet
 
   test "Key should not query parent":
     let
@@ -91,7 +107,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     (await ds.put(key3, val3)).tryGet
 
     let
-      res = tryGet(await ds.query(q).waitForAllQueryResults())
+      iter = (await ds.query(q)).tryGet
+      res = block:
+        var res: seq[QueryResponse]
+        while not iter.finished:
+          let (key, val) = (await iter.next()).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+
+        res
 
     check:
       res.len == 2
@@ -100,6 +126,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       res[1].key.get == key3
       res[1].data == val3
+
+    (await iter.dispose()).tryGet
 
   test "Key should all list all keys at the same level":
     let
@@ -114,7 +142,16 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       iter = (await ds.query(q)).tryGet
 
     var
-      res = tryGet(await ds.query(q).waitForAllQueryResults())
+      res = block:
+        var res: seq[QueryResponse]
+        while not iter.finished:
+          let (key, val) = (await iter.next()).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+
+        res
 
     res.sort do (a, b: QueryResponse) -> int:
       cmp(a.key.get.id, b.key.get.id)
@@ -146,10 +183,15 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        res = tryGet(await ds.query(q).waitForAllQueryResults())
+        iter = (await ds.query(q)).tryGet
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
 
       check:
         res.len == 10
+
+      (await iter.dispose()).tryGet
 
     test "Should not apply offset":
       let
@@ -164,10 +206,22 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        res = tryGet(await ds.query(q).waitForAllQueryResults())
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var res: seq[QueryResponse]
+          while not iter.finished:
+            let (key, val) = (await iter.next()).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+
+          res
 
       check:
         res.len == 10
+
+      (await iter.dispose()).tryGet
 
     test "Should not apply offset and limit":
       let
@@ -182,7 +236,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         (await ds.put(key, val)).tryGet
 
       let
-        res = tryGet(await ds.query(q).waitForAllQueryResults())
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var res: seq[QueryResponse]
+          while not iter.finished:
+            let (key, val) = (await iter.next()).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+
+          res
 
       check:
         res.len == 5
@@ -195,6 +259,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         check:
           res[i].key.get == key
           res[i].data == val
+
+      (await iter.dispose()).tryGet
 
     test "Should apply sort order - descending":
       let
@@ -216,7 +282,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       kvs = kvs.reversed
       let
-        res = tryGet(await ds.query(q).waitForAllQueryResults())
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var res: seq[QueryResponse]
+          while not iter.finished:
+            let (key, val) = (await iter.next()).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+
+          res
 
       check:
         res.len == 100
@@ -225,3 +301,5 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         check:
           res[i].key.get == kvs[i].key.get
           res[i].data == kvs[i].data
+
+      (await iter.dispose()).tryGet
