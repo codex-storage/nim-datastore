@@ -72,8 +72,8 @@ proc hasTask*(
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
-  without key =? kb.toKey(), err:
-    ret.failure(err)
+
+  let key = kb.toKey()
 
   try:
     let res = waitFor tds[].ds.has(key)
@@ -90,7 +90,7 @@ proc has*(
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
-  let bkey = StringBuffer.new(key.id())
+  let bkey = KeyBuffer.new(key)
   tds[].tp.spawn hasTask(ret, tds, bkey)
 
 proc getTask*(
@@ -98,8 +98,7 @@ proc getTask*(
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
-  without key =? kb.toKey(), err:
-    ret.failure(err)
+  let key = kb.toKey()
   try:
     let res = waitFor tds[].ds.get(key)
     if res.isErr:
@@ -117,7 +116,7 @@ proc get*(
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
-  let bkey = StringBuffer.new(key.id())
+  let bkey = KeyBuffer.new(key)
   tds[].tp.spawn getTask(ret, tds, bkey)
 
 import std/os
@@ -131,12 +130,12 @@ proc putTask*(
 
   os.sleep(400)
   var ret = ret
-  echo "putTask: ", $getThreadId()
-  echo "putTask:kb: ", kb.toString
-  echo "putTask:db: ", db.toString
+  echo "\n"
+  echoed "putTask: ", $getThreadId()
+  echoed "putTask:kb: ", kb.toString
+  echoed "putTask:db: ", db.toString
 
-  without key =? kb.toKey(), err:
-    ret.failure(err)
+  let key = kb.toKey()
 
   let data = db.toSeq(byte)
   let res = (waitFor tds[].ds.put(key, data)).catch
@@ -148,7 +147,7 @@ proc putTask*(
 
   discard ret.fireSync()
   ret.release()
-  echo "putTask: FINISH\n"
+  echoed "putTask: FINISH\n"
 
 proc put*(
   ret: TResult[void],
@@ -156,11 +155,11 @@ proc put*(
   key: Key,
   data: seq[byte]
 ) =
-  echo "put request args: ", $getThreadId()
-  let bkey = StringBuffer.new(key.id())
+  echoed "put request args: ", $getThreadId()
+  let bkey = KeyBuffer.new(key)
   let bval = DataBuffer.new(data)
 
-  echo "spawn put request: ", $getThreadId()
+  echoed "spawn put request: ", $getThreadId()
   tds[].tp.spawn putTask(ret, tds, bkey, bval)
 
 
@@ -170,8 +169,7 @@ proc deleteTask*(
   kb: KeyBuffer,
 ) =
 
-  without key =? kb.toKey(), err:
-    ret.failure(err)
+  let key = kb.toKey()
 
   let res = (waitFor tds[].ds.delete(key)).catch
   # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
@@ -189,7 +187,7 @@ proc delete*(
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
-  let bkey = StringBuffer.new(key.id())
+  let bkey = KeyBuffer.new(key)
   tds[].tp.spawn deleteTask(ret, tds, bkey)
 
 # import os

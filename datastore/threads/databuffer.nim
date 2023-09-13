@@ -42,20 +42,21 @@ proc `==`*(a, b: DataBuffer): bool =
   elif a[].buf == b[].buf: return true
   else: a.hash() == b.hash()
 
-proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
+proc new*[D: DataBuffer](tp: typedesc[D], size: int = 0): D =
   ## allocate new buffer with given size
   result = newSharedPtr(DataBufferHolder(
     buf: cast[typeof(result[].buf)](allocShared0(size)),
     size: size,
   ))
   echoed "DataBuffer:new: ", result.unsafeRawPtr().repr,
+        " tp ", $(typeof(D)),
         " @ ", result[].buf.pointer.repr,
         " -> ", result.toString().repr
 
-proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuffer =
+proc new*[T: byte | char; D: DataBuffer](tp: typedesc[D], data: openArray[T]): D =
   ## allocate new buffer and copies indata from openArray
   ## 
-  result = DataBuffer.new(data.len)
+  result = D.new(data.len)
   if data.len() > 0:
     copyMem(result[].buf, unsafeAddr data[0], data.len)
 
@@ -85,6 +86,8 @@ import ../key
 import stew/results
 
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
-  KeyBuffer.new(key.id())
-proc toKey*(kb: KeyBuffer): Result[Key, ref CatchableError] =
-  Key.init(kb.toString())
+  result = KeyBuffer.new(key.id())
+  echoed "KeyBuffer:new: ", $result
+proc toKey*(kb: KeyBuffer): Key =
+  let res = Key.init(kb.toString())
+  res.expect("should always be valid")

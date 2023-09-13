@@ -112,7 +112,7 @@ method query*(
       iter.finished = true
       return success (Key.none, EmptyBytes)
 
-    let key = kb.toKey().expect("should not fail")
+    let key = kb.toKey()
     var ds: ValueBuffer
     if query.value:
       ds = self.store[kb]

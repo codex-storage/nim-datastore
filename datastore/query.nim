@@ -116,7 +116,7 @@ proc toBuffer*(q: Query): QueryBuffer =
 proc toQuery*(qb: QueryBuffer): Query =
   ## convert QueryBuffer to regular Query
   Query(
-    key: qb.key.toKey().expect("key expected"),
+    key: qb.key.toKey(),
     value: qb.value,
     limit: qb.limit,
     offset: qb.offset,
@@ -138,7 +138,7 @@ proc toQueryResponse*(qb: QueryResponseBuffer): QueryResponse =
   ## convert QueryReponseBuffer to regular QueryResponse
   let key =
     if qb.key.isNil: none(Key)
-    else: some qb.key.toKey().expect("key response should work")
+    else: some qb.key.toKey()
   let data =
     if qb.data.isNil: EmptyBytes
     else: qb.data.toSeq(byte)
