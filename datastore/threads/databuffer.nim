@@ -53,16 +53,13 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T]): DataBuffer =
   if data.len() > 0:
     copyMem(result[].buf, unsafeAddr data[0], data.len)
 
-proc toSequence(T: typedesc[byte | char], a: DataBuffer): seq[T] =
-  ## convert buffer to a seq type using copy and either a byte or char
-  result = newSeq[T](a.len)
-  copyMem(addr result[0], unsafeAddr a[].buf[0], a.len)
-
-converter toSeq*(a: DataBuffer): seq[byte] =
+converter toSeq*(self: DataBuffer): seq[byte] =
   ## convert buffer to a seq type using copy and either a byte or char
   ##
 
-  byte.toSequence(a)
+  result = newSeq[byte](self.len)
+  if self.len() > 0:
+    copyMem(addr result[0], unsafeAddr self[].buf[0], self.len)
 
 proc `@`*(self: DataBuffer): seq[byte] =
   ## Convert a buffer to a seq type using copy and
@@ -85,3 +82,9 @@ converter toBuffer*(err: ref CatchableError): DataBuffer =
   ##
 
   return DataBuffer.new(err.msg)
+
+proc `$`*(data: DataBuffer): string =
+  ## convert buffer to string type using copy
+  ##
+
+  data.toString()
