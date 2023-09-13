@@ -52,6 +52,7 @@ proc runDestroyOnReleaseTest() =
     ## to prevent future decr's from occuring
     check a.isNil == true
     a.decr()
+    a.release()
 
 
 suite "Share buffer test":
