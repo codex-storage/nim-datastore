@@ -30,7 +30,7 @@ method has*(
 
   try:
     has(ret, self.tds, key)
-    await wait(ret[].signal)
+    await wait(ret)
     return ret.convert(bool)
   finally:
     ret.release()
@@ -44,7 +44,7 @@ method delete*(
 
   try:
     delete(ret, self.tds, key)
-    await wait(ret[].signal)
+    await wait(ret)
   finally:
     ret.release()
 
@@ -75,7 +75,7 @@ method get*(
 
   try:
     get(ret, self.tds, key)
-    await wait(ret[].signal)
+    await wait(ret)
   finally:
     ret.release()
 
@@ -91,7 +91,7 @@ method put*(
 
   try:
     put(ret, self.tds, key, data)
-    await wait(ret[].signal)
+    await wait(ret)
 
     return ret.convert(void)
   finally:
@@ -143,7 +143,7 @@ method query*(
     if not iter[].it.finished:
       iterWrapper.readyForNext = false
       query(ret, self.tds, iter)
-      await wait(ret[].signal)
+      await wait(ret)
       iterWrapper.readyForNext = true
       # echo ""
       # print "query:post: ", ret[].results

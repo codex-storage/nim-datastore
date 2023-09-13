@@ -76,3 +76,26 @@ proc release*(sig: ThreadSignalPtr) {.raises: [].} =
       signalPoolUsed.excl(sig)
       signalPoolFree.incl(sig)
       # echo "free:signalPoolUsed:size: ", signalPoolUsed.len()
+
+
+type
+  SharedSignalObj* = object
+    sigptr*: ThreadSignalPtr
+
+  SharedSignal* = SharedPtr[SharedSignalObj]
+
+proc `=destroy`*[T](x: var SharedSignalObj) =
+  if x.sigptr != nil:
+    echo "ThreadSignalObj: destroy "
+    release(x.sigptr)
+    x.sigptr = nil
+
+proc new*(tp: typedesc[SharedSignal]): Future[SharedSignal] {.async.} =
+  result = newSharedPtr[SharedSignalObj](SharedSignalObj)
+  result[].sigptr = await getThreadSignal()
+
+proc wait*(sig: SharedSignal): Future[void] =
+  sig[].sigptr.wait()
+
+proc fireSync*(sig: SharedSignal): Result[bool, string] =
+  sig[].sigptr.fireSync()

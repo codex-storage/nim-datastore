@@ -81,7 +81,7 @@ proc hasTask*(
       ret.failure(res.error())
     else:
       ret.success(res.get())
-    discard ret[].signal.fireSync()
+    discard ret.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
@@ -108,7 +108,7 @@ proc getTask*(
       let db = DataBuffer.new res.get()
       ret.success(db)
 
-    discard ret[].signal.fireSync()
+    discard ret.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
@@ -139,7 +139,7 @@ proc putTask*(
   else:
     ret.success()
 
-  discard ret[].signal.fireSync()
+  discard ret.fireSync()
 
 proc put*(
   ret: TResult[void],
@@ -169,7 +169,7 @@ proc deleteTask*(
   else:
     ret.success()
 
-  discard ret[].signal.fireSync()
+  discard ret.fireSync()
 
 # import pretty
 
@@ -204,7 +204,7 @@ proc queryTask*(
   except Exception as exc:
     ret.failure(exc)
 
-  discard ret[].signal.fireSync()
+  discard ret.fireSync()
 
 proc query*(
   ret: TResult[QueryResponseBuffer],

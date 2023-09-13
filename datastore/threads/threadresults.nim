@@ -8,6 +8,7 @@ import ./sharedptr
 import ./databuffer
 import ./threadsignalpool
 
+export threadsignalpool
 export databuffer
 export sharedptr
 export threadsync
@@ -22,7 +23,7 @@ type
     ## Encapsulates both the results from a thread but also the cross
     ## thread signaling mechanism. This makes it easier to keep them 
     ## together.
-    signal*: ThreadSignalPtr
+    sig*: SharedSignal
     results*: Result[T, CatchableErrorBuffer]
 
   TResult*[T] = SharedPtr[ThreadResult[T]] ##\
@@ -57,13 +58,17 @@ proc newThreadResult*[T](
     {.error: "only thread safe types can be used".}
 
   let res = newSharedPtr(ThreadResult[T])
-  res[].signal = await getThreadSignal()
+  res[].sig = await SharedSignal.new()
   res
 
 proc release*[T](res: var TResult[T]) {.raises: [].} =
   ## release TResult and it's ThreadSignal
-  res[].signal.release()
+  # res[].signal.release()
   sharedptr.release(res)
+proc wait*[T](res: TResult[T]): Future[void] =
+  res[].sig.wait()
+proc fireSync*[T](res: TResult[T]): Result[bool, string] =
+  res[].sig.fireSync()
 
 proc success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate

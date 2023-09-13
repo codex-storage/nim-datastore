@@ -32,7 +32,7 @@ proc decr*[T](x: var SharedPtr[T]) =
   if x.val != nil and x.cnt != nil:
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
+      echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x[].cnt[], " tp: ", $(typeof(T))
       when compiles(`=destroy`(x.val)):
         echo "DECR FREE"
         `=destroy`(x.val)
@@ -50,7 +50,7 @@ proc release*[T](x: var SharedPtr[T]) =
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
   if x.val != nil:
-    echo "SharedPtr: destroy: ", repr x.val.pointer, " cnt: ", x.cnt.repr, " tp: ", $(typeof(T))
+    echo "SharedPtr: destroy: ", repr x.val.pointer.repr, " cnt: ", x.cnt.pointer.repr, " tp: ", $(typeof(T))
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
