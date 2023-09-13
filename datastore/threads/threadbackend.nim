@@ -120,6 +120,7 @@ proc get*(
   let bkey = StringBuffer.new(key.id())
   tds[].tp.spawn getTask(ret, tds, bkey)
 
+import std/os
 
 proc putTask*(
   ret: TResult[void],
@@ -128,6 +129,7 @@ proc putTask*(
   db: DataBuffer,
 ) =
 
+  os.sleep(400)
   var ret = ret
   echo "putTask: ", $getThreadId()
   echo "putTask:kb: ", kb.toString
