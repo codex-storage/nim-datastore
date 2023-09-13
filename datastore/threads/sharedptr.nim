@@ -24,31 +24,32 @@ type
     val*: ptr T
 
 proc incr*[T](a: SharedPtr[T]) =
-  let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
-  echo "SharedPtr: manual incr: ", res
+  if a.val != nil and a.cnt != nil:
+    let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
+    echo "SharedPtr: manual incr: ", res
 
 proc decr*[T](x: SharedPtr[T]) =
   if x.val != nil and x.cnt != nil:
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt[]
+      echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
       deallocShared(x.val)
       deallocShared(x.cnt)
     else:
-      echo "SharedPtr: decr: ", repr x.val.pointer, " ", x.cnt[]
+      echo "SharedPtr: decr: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
-  echo "SharedPtr: destroy: ", repr x.val.pointer, " ", x.cnt.repr
+  echo "SharedPtr: destroy: ", repr x.val.pointer, " ", x.cnt.repr, " tp: ", $(typeof(T))
   # echo "SharedPtr: destroy:st: ", ($getStackTrace()).split("\n").join(";")
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
-  if src.val != nil:
+  if src.val != nil and src.cnt != nil:
     discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
   result.val = src.val
 
 proc `=copy`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
-  if src.val != nil:
+  if src.val != nil and src.cnt != nil:
     # echo "SharedPtr: copy: ", src.val.pointer.repr
     discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
   `=destroy`(dest)
@@ -59,7 +60,7 @@ proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
   ## ownership of the object by reference counting.
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
-  int(result.val.counter) = 1
+  result.cnt[] = 1
   result.val.value = extract val
   echo "SharedPtr: alloc: ", result.val.pointer.repr, " tp: ", $(typeof(T))
 
