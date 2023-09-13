@@ -77,7 +77,7 @@ template newSharedPtr*[T](val: T): SharedPtr[T] =
 proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
   result.container = cast[typeof(result.container)](allocShared0(sizeof(result.container[])))
-  result.cnt[] = 1
+  result.container.cnt = 1
   echo "SharedPtr: alloc: ", result.container[].repr, " tp: ", $(typeof(T))
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
