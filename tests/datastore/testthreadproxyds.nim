@@ -16,24 +16,30 @@ import ./querycommontests
 
 # import pretty
 
-suite "Test Basic ThreadProxyDatastore":
-  var
-    sds: ThreadProxyDatastore
-    mem: MemoryDatastore
-    key1: Key
-    data: seq[byte]
+proc threadTest() =
+  suite "Test Basic ThreadProxyDatastore":
+    var
+      sds: ThreadProxyDatastore
+      mem: MemoryDatastore
+      key1: Key
+      data: seq[byte]
 
-  setupAll:
-    mem = MemoryDatastore.new()
-    sds = newThreadProxyDatastore(mem).expect("should work")
-    key1 = Key.init("/a").tryGet
-    data = "value for 1".toBytes()
+    setupAll:
+      mem = MemoryDatastore.new()
+      sds = newThreadProxyDatastore(mem).expect("should work")
+      key1 = Key.init("/a").tryGet
+      data = "value for 1".toBytes()
 
-  test "check put":
-    # echo "\n\n=== put ==="
-    let res1 = await sds.put(key1, data)
-    check res1.isOk
-    # print "res1: ", res1
+    test "check put":
+      # echo "\n\n=== put ==="
+      let res1 = await sds.put(key1, data)
+      check res1.isOk
+      # print "res1: ", res1
+      GC_fullCollect()
+
+threadTest()
+GC_fullCollect()
+
 
 #   test "check get":
 #     # echo "\n\n=== get ==="

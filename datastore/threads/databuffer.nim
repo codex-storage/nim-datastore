@@ -1,7 +1,9 @@
-import threading/smartptrs
 import std/hashes
 
+import ./sharedptr
+
 export hashes
+export sharedptr
 
 type
   DataBufferHolder* = object
@@ -30,7 +32,7 @@ proc `=destroy`*(x: var DataBufferHolder) =
 
 proc len*(a: DataBuffer): int = a[].size
 
-proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
+proc isNil*(a: DataBuffer): bool = sharedptr.isNil(a)
 
 proc hash*(a: DataBuffer): Hash =
   a[].buf.toOpenArray(0, a[].size-1).hash()

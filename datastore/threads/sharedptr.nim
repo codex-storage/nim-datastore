@@ -23,24 +23,29 @@ type
     cnt: ptr int
     val*: ptr T
 
-proc incr*[T](a: SharedPtr[T]) =
+proc incr*[T](a: var SharedPtr[T]) =
   if a.val != nil and a.cnt != nil:
     let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
     echo "SharedPtr: manual incr: ", res
 
-proc decr*[T](x: SharedPtr[T]) =
+proc decr*[T](x: var SharedPtr[T]) =
   if x.val != nil and x.cnt != nil:
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
       echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
+      when compiles(`=destroy`(x.val)):
+        echo "DECR FREE"
+        `=destroy`(x.val)
       deallocShared(x.val)
       deallocShared(x.cnt)
+      x.val = nil
+      x.cnt = nil
     else:
       echo "SharedPtr: decr: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
-  echo "SharedPtr: destroy: ", repr x.val.pointer, " ", x.cnt.repr, " tp: ", $(typeof(T))
-  # echo "SharedPtr: destroy:st: ", ($getStackTrace()).split("\n").join(";")
+  if x.val != nil:
+    echo "SharedPtr: destroy: ", repr x.val.pointer, " cnt: ", x.cnt.repr, " tp: ", $(typeof(T))
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
@@ -60,8 +65,8 @@ proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
   ## ownership of the object by reference counting.
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
-  result.cnt[] = 1
-  result.val.value = extract val
+  result.cnt[] = 0
+  result.val[] = extract val
   echo "SharedPtr: alloc: ", result.val.pointer.repr, " tp: ", $(typeof(T))
 
 template newSharedPtr*[T](val: T): SharedPtr[T] =
@@ -72,8 +77,8 @@ proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## so reading from it before writing to it is undefined behaviour!
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared0(sizeof(result.val[])))
-  result.cnt[] = 1
-  echo "SharedPtr: allocT: ", result.val.pointer.repr, " tp: ", $(typeof(T))
+  result.cnt[] = 0
+  echo "SharedPtr: alloc: ", result.val.pointer.repr, " tp: ", $(typeof(T))
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
   p.val == nil
