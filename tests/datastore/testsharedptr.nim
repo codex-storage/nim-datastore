@@ -10,10 +10,18 @@ include pkg/datastore/threads/sharedptr
 include pkg/datastore/threads/databuffer
 
 
-type TestObj = object
-  val: ref int
+type
+  TestObj = object
+    val: ref int
+
+  TestObjGen[T] = object
+    val: ref T
 
 proc `=destroy`(obj: var TestObj) =
+  echo "test obj destroy"
+  obj.val[] = 0
+
+proc `=destroy`[T: int](obj: var TestObjGen[T]) =
   echo "test obj destroy"
   obj.val[] = 0
 
@@ -76,4 +84,16 @@ suite "Share buffer test":
       check a[].val[] == 30
     finally:
       a.release()
+      check intref[] == 0
+
+  test "test destroy release generic no proc":
+    echo "\nintref setup:\n"
+    let intref: ref int = new(ref int)
+    intref[] = 30
+    var b: SharedPtr[TestObjGen[int]] = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref))
+    try:
+      echo "a[]: ", b[]
+      check b[].val[] == 30
+    finally:
+      b.release()
       check intref[] == 0
