@@ -33,7 +33,7 @@ proc echoed*(vals: varargs[string, `$`]) =
     let color = printThread()
     var i = 0
     if vals.len() mod 2 != 0:
-      stdout.styledWrite(fgBlue, vals[i])
+      stdout.styledWrite(color, vals[i])
       i.inc()
     while i + 1 < vals.len():
       stdout.styledWrite(color, vals[i], fgDefault, vals[i+1])
