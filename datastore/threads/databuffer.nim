@@ -44,10 +44,13 @@ proc `==`*(a, b: DataBuffer): bool =
 
 proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   ## allocate new buffer with given size
-  newSharedPtr(DataBufferHolder(
+  result = newSharedPtr(DataBufferHolder(
     buf: cast[typeof(result[].buf)](allocShared0(size)),
     size: size,
   ))
+  echo "DataBuffer:new: ", result.unsafeRawPtr().repr,
+        " @ ", result[].buf.pointer.repr & " thr: " & $getThreadId(),
+        " -> ", result.toString().repr
 
 proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuffer =
   ## allocate new buffer and copies indata from openArray
@@ -63,7 +66,7 @@ proc toSeq*[T: byte | char](a: DataBuffer, tp: typedesc[T]): seq[T] =
 
 proc toString*(data: DataBuffer): string =
   ## convert buffer to string type using copy
-  if data.isNil: return ""
+  if data.isNil: return "nil"
   result = newString(data.len())
   if data.len() > 0:
     copyMem(addr result[0], unsafeAddr data[].buf[0], data.len)

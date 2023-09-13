@@ -128,7 +128,10 @@ proc putTask*(
   db: DataBuffer,
 ) =
 
-  # var ret = ret
+  var ret = ret
+  echo "putTask: ", $getThreadId()
+  echo "putTask:kb: ", kb.toString
+  echo "putTask:db: ", db.toString
 
   without key =? kb.toKey(), err:
     ret.failure(err)
@@ -142,7 +145,8 @@ proc putTask*(
     ret.success()
 
   discard ret.fireSync()
-  # ret.release()
+  ret.release()
+  echo "putTask: FINISH\n"
 
 proc put*(
   ret: TResult[void],
@@ -150,9 +154,11 @@ proc put*(
   key: Key,
   data: seq[byte]
 ) =
+  echo "put request args: ", $getThreadId()
   let bkey = StringBuffer.new(key.id())
   let bval = DataBuffer.new(data)
 
+  echo "spawn put request: ", $getThreadId()
   tds[].tp.spawn putTask(ret, tds, bkey, bval)
 
 

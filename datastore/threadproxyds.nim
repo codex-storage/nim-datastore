@@ -87,14 +87,23 @@ method put*(
   data: seq[byte]
 ): Future[?!void] {.async.} =
 
+  echo "put new request thr: ", $getThreadId()
   var ret = await newThreadResult(void)
 
   try:
     put(ret, self.tds, key, data)
+    echo "\n"
+    echo "wait put thr: ", $getThreadId()
+    echo "\n"
+    await sleepAsync(400.milliseconds)
     await wait(ret)
+    echo "\n"
+    await sleepAsync(400.milliseconds)
 
     return ret.convert(void)
   finally:
+    echo "\n"
+    await sleepAsync(400.milliseconds)
     echo "PUT RELEASE"
     ret.release()
 

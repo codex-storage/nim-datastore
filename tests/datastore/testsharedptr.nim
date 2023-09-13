@@ -64,12 +64,13 @@ suite "Share buffer test":
 
   test "basics":
     echo "a1: ", $a1
-    check $a1 == "nil"
+    check $a1 == "nil\"\""
     check a1.isNil
-    check $a2 == "(value: 0, cnt: 2)"
+    # check $a2 == "(value: 0, cnt: 2)"
+    check split($(a2),'"')[1] == "(value: 0, cnt: 2)"
     check not a2.isNil
     check a2[] == 0
-    check $a3 == "(value: 0, cnt: 2)"
+    check split($(a3),'"')[1] == "(value: 0, cnt: 2)"
     check not a3.isNil
     check a3[] == 0
 
