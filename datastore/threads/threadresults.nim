@@ -63,7 +63,7 @@ proc newThreadResult*[T](
 proc release*[T](res: var TResult[T]) {.raises: [].} =
   ## release TResult and it's ThreadSignal
   res[].signal.release()
-  res.decr()
+  sharedptr.release(res)
 
 proc success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate

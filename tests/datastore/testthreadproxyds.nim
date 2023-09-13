@@ -32,10 +32,11 @@ proc threadTest() =
 
     test "check put":
       # echo "\n\n=== put ==="
-      let res1 = await sds.put(key1, data)
-      check res1.isOk
-      # print "res1: ", res1
-      GC_fullCollect()
+      for i in 1..3:
+        let res1 = await sds.put(key1, data)
+        check res1.isOk
+        # print "res1: ", res1
+        GC_fullCollect()
 
 threadTest()
 GC_fullCollect()

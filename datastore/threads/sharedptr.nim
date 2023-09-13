@@ -43,6 +43,11 @@ proc decr*[T](x: var SharedPtr[T]) =
     else:
       echo "SharedPtr: decr: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
 
+proc release*[T](x: var SharedPtr[T]) =
+  x.decr()
+  x.val = nil
+  x.cnt = nil
+
 proc `=destroy`*[T](x: var SharedPtr[T]) =
   if x.val != nil:
     echo "SharedPtr: destroy: ", repr x.val.pointer, " cnt: ", x.cnt.repr, " tp: ", $(typeof(T))
@@ -74,7 +79,6 @@ template newSharedPtr*[T](val: T): SharedPtr[T] =
 
 proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
-  ## so reading from it before writing to it is undefined behaviour!
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared0(sizeof(result.val[])))
   result.cnt[] = 0
