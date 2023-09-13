@@ -66,22 +66,22 @@ proc newThreadResult*[T](
 #   # res[].signal.release()
 #   sharedptr.release(res)
 
-proc wait*[T](res: TResult[T]): Future[void] =
+template wait*[T](res: TResult[T]): Future[void] =
   res[].sig.wait()
-proc fireSync*[T](res: TResult[T]): Result[bool, string] =
+template fireSync*[T](res: TResult[T]): Result[bool, string] =
   res[].sig.fireSync()
 
-proc success*[T](ret: TResult[T], value: T) =
+template success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.ok(value)
 
-proc success*[T: void](ret: TResult[T]) =
+template success*[T: void](ret: TResult[T]) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.ok()
 
-proc failure*[T](ret: TResult[T], exc: ref Exception) =
+template failure*[T](ret: TResult[T], exc: ref Exception) =
   ## convenience wrapper for `TResult` to replicate
   ## normal questionable api
   ret[].results.err(exc.toBuffer())

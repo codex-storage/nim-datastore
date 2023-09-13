@@ -129,7 +129,7 @@ proc putTask*(
 ) =
 
   os.sleep(400)
-  var ret = ret
+  # var ret = ret
   echo "\n"
   echoed "putTask: ", $getThreadId()
   echoed "putTask:kb: ", kb.toString
@@ -146,7 +146,7 @@ proc putTask*(
     ret.success()
 
   discard ret.fireSync()
-  ret.release()
+  # ret.release()
   echoed "putTask: FINISH\n"
 
 proc put*(

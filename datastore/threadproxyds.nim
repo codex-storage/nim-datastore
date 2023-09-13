@@ -188,7 +188,7 @@ method close*(
   self[].tds[].tp = nil # ensure our sharedptr doesn't try and dealloc
 
   self[].tds[].ds = nil # ensure our sharedptr doesn't try and dealloc
-  # self.tds.release()
+  self.tds.release()
 
 proc newThreadProxyDatastore*(
   ds: Datastore,
