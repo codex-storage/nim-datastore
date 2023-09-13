@@ -128,6 +128,8 @@ proc putTask*(
   db: DataBuffer,
 ) =
 
+  # var ret = ret
+
   without key =? kb.toKey(), err:
     ret.failure(err)
 
@@ -140,6 +142,7 @@ proc putTask*(
     ret.success()
 
   discard ret.fireSync()
+  # ret.release()
 
 proc put*(
   ret: TResult[void],

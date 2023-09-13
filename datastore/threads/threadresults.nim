@@ -61,10 +61,11 @@ proc newThreadResult*[T](
   res[].sig = await SharedSignal.new()
   res
 
-proc release*[T](res: var TResult[T]) {.raises: [].} =
-  ## release TResult and it's ThreadSignal
-  # res[].signal.release()
-  sharedptr.release(res)
+# proc release*[T](res: var TResult[T]) {.raises: [].} =
+#   ## release TResult and it's ThreadSignal
+#   # res[].signal.release()
+#   sharedptr.release(res)
+
 proc wait*[T](res: TResult[T]): Future[void] =
   res[].sig.wait()
 proc fireSync*[T](res: TResult[T]): Result[bool, string] =
