@@ -20,87 +20,80 @@ template checkNotNil(p: typed) =
 type
   SharedPtr*[T] = object
     ## Shared ownership reference counting pointer.
-    cnt: ptr int
-    val*: ptr T
+    container*: ptr tuple[value: T, cnt: int]
 
 proc incr*[T](a: var SharedPtr[T]) =
-  if a.val != nil and a.cnt != nil:
+  if a.container != nil and a.cnt != nil:
     let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
     echo "SharedPtr: manual incr: ", res
 
 proc decr*[T](x: var SharedPtr[T]) =
-  if x.val != nil and x.cnt != nil:
-    let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
+  if x.container != nil:
+    let res = atomicSubFetch(addr x.container.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt.repr, " tp: ", $(typeof(T))
+      echo "SharedPtr: FREE: ", x.container[].repr, " tp: ", $(typeof(T))
       when compiles(`=destroy`(x[])):
         echo "DECR FREE: ", $(typeof(x[]))
         `=destroy`(x[])
-      deallocShared(x.val)
-      deallocShared(x.cnt)
-      x.val = nil
-      x.cnt = nil
+      deallocShared(x.container)
+      x.container = nil
     else:
-      echo "SharedPtr: decr: ", repr x.val.pointer, " ", x.cnt.repr, " tp: ", $(typeof(T))
+      echo "SharedPtr: decr: ", x.container[].repr, " tp: ", $(typeof(T))
 
 proc release*[T](x: var SharedPtr[T]) =
   echo "SharedPtr: release: ", $(typeof(T))
   x.decr()
-  x.val = nil
-  x.cnt = nil
+  x.container = nil
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
-  if x.val != nil:
-    echo "SharedPtr: destroy: ", repr x.val.pointer.repr, " cnt: ", x.cnt.repr, " tp: ", $(typeof(T))
+  if x.container != nil:
+    echo "SharedPtr: destroy: ", x.container[].repr, " tp: ", $(typeof(T))
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
-  if src.val != nil and src.cnt != nil:
+  if src.container != nil and src.cnt != nil:
     discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
-  result.val = src.val
+  result.container = src.container
   result.cnt = src.cnt
 
 proc `=copy`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
-  if src.val != nil and src.cnt != nil:
-    # echo "SharedPtr: copy: ", src.val.pointer.repr
-    discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
+  if src.container != nil:
+    # echo "SharedPtr: copy: ", src.container.pointer.repr
+    discard atomicAddFetch(addr src.container.cnt, 1, ATOMIC_RELAXED)
   `=destroy`(dest)
-  dest.val = src.val
-  dest.cnt = src.cnt
+  dest.container = src.container
 
 proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
   ## Returns a shared pointer which shares,
   ## ownership of the object by reference counting.
-  result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
-  result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
-  result.cnt[] = 1
-  result.val[] = extract val
-  echo "SharedPtr: alloc: ", result.val.pointer.repr, " cnt: ", result.cnt.repr, " tp: ", $(typeof(T))
+  result.container = cast[typeof(result.container)](allocShared(sizeof(result.container[])))
+  result.container.cnt = 1
+  result.container.value = extract val
+  echo "SharedPtr: alloc: ", result.container[].repr, " tp: ", $(typeof(T))
 
 template newSharedPtr*[T](val: T): SharedPtr[T] =
   newSharedPtr(isolate(val))
 
 proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
-  result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
-  result.val = cast[typeof(result.val)](allocShared0(sizeof(result.val[])))
+  result.container = cast[typeof(result.container)](allocShared0(sizeof(result.container[])))
   result.cnt[] = 1
-  echo "SharedPtr: alloc: ", result.val.pointer.repr, " cnt: ", result.cnt.repr, " tp: ", $(typeof(T))
+  echo "SharedPtr: alloc: ", result.container[].repr, " tp: ", $(typeof(T))
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
-  p.val == nil
+  p.container == nil
 
 proc `[]`*[T](p: SharedPtr[T]): var T {.inline.} =
   checkNotNil(p)
-  p.val[]
+  p.container.value
 
 proc `[]=`*[T](p: SharedPtr[T], val: sink Isolated[T]) {.inline.} =
   checkNotNil(p)
-  p.val[] = extract val
+  p.container[] = extract val
 
 template `[]=`*[T](p: SharedPtr[T]; val: T) =
   `[]=`(p, isolate(val))
 
 proc `$`*[T](p: SharedPtr[T]): string {.inline.} =
-  if p.val == nil: "nil"
-  else: "(val: " & $p.val[] & ")"
+  if p.container == nil: "nil"
+  else: $p.container[]

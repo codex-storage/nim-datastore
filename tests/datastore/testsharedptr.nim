@@ -66,10 +66,10 @@ suite "Share buffer test":
     echo "a1: ", $a1
     check $a1 == "nil"
     check a1.isNil
-    check $a2 == "(val: 0)"
+    check $a2 == "(value: 0, cnt: 2)"
     check not a2.isNil
     check a2[] == 0
-    check $a3 == "(val: 0)"
+    check $a3 == "(value: 0, cnt: 2)"
     check not a3.isNil
     check a3[] == 0
 
