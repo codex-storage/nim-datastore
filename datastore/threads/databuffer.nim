@@ -27,7 +27,7 @@ proc `=destroy`*(x: var DataBufferHolder) =
   ## copy pointer implementation
   if x.buf != nil:
     # when isMainModule or true:
-    echo "databuffer: FREE: ", repr x.buf.pointer
+    echoed "databuffer: FREE: ", repr x.buf.pointer
     deallocShared(x.buf)
 
 proc len*(a: DataBuffer): int = a[].size
@@ -48,8 +48,8 @@ proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
     buf: cast[typeof(result[].buf)](allocShared0(size)),
     size: size,
   ))
-  echo "DataBuffer:new: ", result.unsafeRawPtr().repr,
-        " @ ", result[].buf.pointer.repr & " thr: " & $getThreadId(),
+  echoed "DataBuffer:new: ", result.unsafeRawPtr().repr,
+        " @ ", result[].buf.pointer.repr,
         " -> ", result.toString().repr
 
 proc new*[T: byte | char](tp: typedesc[DataBuffer], data: openArray[T]): DataBuffer =
