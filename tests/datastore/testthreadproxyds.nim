@@ -37,7 +37,11 @@ proc threadTest() =
       print "res1: ", res1
       GC_fullCollect()
 
-threadTest()
+proc main9) =
+  threadTest()
+  GC_fullCollect()
+
+main()
 GC_fullCollect()
 
 
