@@ -29,20 +29,24 @@ proc threadTest() =
       sds = newThreadProxyDatastore(mem).expect("should work")
       key1 = Key.init("/a").tryGet
       data = "value for 1".toBytes()
+    
+    teardownAll:
+      let res = await sds.close()
+      res.get()
 
     test "check put":
       # echo "\n\n=== put ==="
       let res1 = await sds.put(key1, data)
       check res1.isOk
       print "res1: ", res1
-      GC_fullCollect()
+      # GC_fullCollect()
 
-proc main9) =
+proc main() =
   threadTest()
-  GC_fullCollect()
+  # GC_fullCollect()
 
 main()
-GC_fullCollect()
+# GC_fullCollect()
 
 
 #   test "check get":

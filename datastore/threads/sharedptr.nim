@@ -62,6 +62,8 @@ proc decr*[T](x: var SharedPtr[T]) =
       when compiles(`=destroy`(x[])):
         echoed "SharedPtr:call:child:destructor: ", $(typeof(x[]))
         `=destroy`(x[])
+      else:
+        echoed "SharedPtr:NOT CALLED:child:destructor: ", $(typeof(x[]))
       deallocShared(x.container)
       x.container = nil
     else:
