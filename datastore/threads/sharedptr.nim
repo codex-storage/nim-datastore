@@ -17,6 +17,22 @@ template checkNotNil(p: typed) =
       if p.isNil:
         raiseNilAccess()
 
+import std/terminal
+proc echoed*(vals: varargs[string, `$`]) =
+  try:
+    var i = 0
+    if vals.len() mod 2 != 0:
+      stdout.styledWrite(fgBlue, vals[i])
+      i.inc()
+    while i + 1 < vals.len():
+      stdout.styledWrite(fgBlue, vals[i], fgYellow, vals[i+1])
+      i.inc(2)
+    stdout.styledWrite("\n")
+  except:
+    discard
+  finally:
+    discard
+
 type
   SharedPtr*[T] = object
     ## Shared ownership reference counting pointer.
@@ -25,29 +41,29 @@ type
 proc incr*[T](a: var SharedPtr[T]) =
   if a.container != nil and a.cnt != nil:
     let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
-    echo "SharedPtr: manual incr: ", res
+    echoed "SharedPtr: manual incr: ", res, " thr: ", $getThreadId()
 
 proc decr*[T](x: var SharedPtr[T]) =
   if x.container != nil:
     let res = atomicSubFetch(addr x.container.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
-      echo "SharedPtr: FREE: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
+      echoed "SharedPtr: FREE: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
       when compiles(`=destroy`(x[])):
-        echo "SharedPtr:call:child:destructor: ", $(typeof(x[]))
+        echoed "SharedPtr:call:child:destructor: ", $(typeof(x[]))
         `=destroy`(x[])
       deallocShared(x.container)
       x.container = nil
     else:
-      echo "SharedPtr: decr: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
+      echoed "SharedPtr: decr: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
 
 proc release*[T](x: var SharedPtr[T]) =
-  echo "SharedPtr: release: ", $(typeof(T))
+  echoed "SharedPtr: release: ", $(typeof(T))
   x.decr()
   x.container = nil
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
   if x.container != nil:
-    echo "SharedPtr: destroy: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
+    echoed "SharedPtr: destroy: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
   decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
@@ -69,7 +85,7 @@ proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
   result.container = cast[typeof(result.container)](allocShared(sizeof(result.container[])))
   result.container.cnt = 1
   result.container.value = extract val
-  echo "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T))
+  echoed "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
 
 template newSharedPtr*[T](val: T): SharedPtr[T] =
   newSharedPtr(isolate(val))
@@ -78,7 +94,7 @@ proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
   result.container = cast[typeof(result.container)](allocShared0(sizeof(result.container[])))
   result.container.cnt = 1
-  echo "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T))
+  echoed "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T)), " thr: ", $getThreadId()
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
   p.container == nil
