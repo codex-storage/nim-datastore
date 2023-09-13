@@ -32,8 +32,6 @@ proc `=destroy`*(x: var DataBufferHolder) =
 
 proc len*(a: DataBuffer): int = a[].size
 
-proc isNil*(a: DataBuffer): bool = sharedptr.isNil(a)
-
 proc hash*(a: DataBuffer): Hash =
   a[].buf.toOpenArray(0, a[].size-1).hash()
 

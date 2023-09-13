@@ -33,9 +33,9 @@ proc decr*[T](x: var SharedPtr[T]) =
     let res = atomicSubFetch(x.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
       echo "SharedPtr: FREE: ", repr x.val.pointer, " ", x.cnt[], " tp: ", $(typeof(T))
-      when compiles(`=destroy`(x.val)):
-        echo "DECR FREE"
-        `=destroy`(x.val)
+      when compiles(`=destroy`(x[])):
+        echo "DECR FREE: ", $(typeof(x[]))
+        `=destroy`(x[])
       deallocShared(x.val)
       deallocShared(x.cnt)
       x.val = nil
@@ -70,7 +70,7 @@ proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
   ## ownership of the object by reference counting.
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared(sizeof(result.val[])))
-  result.cnt[] = 0
+  result.cnt[] = 1
   result.val[] = extract val
   echo "SharedPtr: alloc: ", result.val.pointer.repr, " tp: ", $(typeof(T))
 
@@ -81,7 +81,7 @@ proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
   result.cnt = cast[ptr int](allocShared0(sizeof(result.cnt)))
   result.val = cast[typeof(result.val)](allocShared0(sizeof(result.val[])))
-  result.cnt[] = 0
+  result.cnt[] = 1
   echo "SharedPtr: alloc: ", result.val.pointer.repr, " tp: ", $(typeof(T))
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
