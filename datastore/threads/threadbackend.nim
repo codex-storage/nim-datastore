@@ -174,14 +174,19 @@ proc put*(
       echoed "spawn put request: ", $getThreadId()
       # this spawns the taskpool Task
       # but we can't wait on it directly - we use wait(ret[].sig)
+      echo "\n"
       tds[].tp.spawn putTask(sig, ret, tds, bkey, bval)
 
       wait(sig).
         then(proc () =
+          echo "\n"
+          os.sleep(400)
+          echoed "put request done "
           var ret = ret
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
+          echoed "put request cancelled "
           discard
         ).catch(proc(e: ref CatchableError) =
           doAssert false, "will not be triggered"
@@ -192,6 +197,8 @@ proc put*(
     res.err(e)
     putRes.complete(res)
   )
+
+  return putRes
 
 
 proc deleteTask*(
