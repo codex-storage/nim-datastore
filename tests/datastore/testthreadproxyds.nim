@@ -52,4 +52,4 @@ suite "Test Query ThreadDatastore":
     (await ds.close()).tryGet()
     taskPool.shutdown()
 
-  queryTests(ds, false)
+  queryTests(ds, true)

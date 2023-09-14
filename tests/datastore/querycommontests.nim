@@ -41,8 +41,8 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
           res: seq[QueryResponse]
           cnt = 0
 
-        while not iter.finished:
-          let (key, val) = (await iter.next()).tryGet
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
           if key.isNone:
             break
 
@@ -75,13 +75,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     let
       iter = (await ds.query(q)).tryGet
       res = block:
-        var res: seq[QueryResponse]
-        while not iter.finished:
-          let (key, val) = (await iter.next()).tryGet
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
           if key.isNone:
             break
 
           res.add((key, val))
+          cnt.inc
 
         res
 
@@ -109,13 +113,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
     let
       iter = (await ds.query(q)).tryGet
       res = block:
-        var res: seq[QueryResponse]
-        while not iter.finished:
-          let (key, val) = (await iter.next()).tryGet
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
           if key.isNone:
             break
 
           res.add((key, val))
+          cnt.inc
 
         res
 
@@ -143,13 +151,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     var
       res = block:
-        var res: seq[QueryResponse]
-        while not iter.finished:
-          let (key, val) = (await iter.next()).tryGet
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
           if key.isNone:
             break
 
           res.add((key, val))
+          cnt.inc
 
         res
 
@@ -184,9 +196,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+            cnt.inc
+
+          res
 
       check:
         res.len == 10
@@ -208,13 +231,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       let
         iter = (await ds.query(q)).tryGet
         res = block:
-          var res: seq[QueryResponse]
-          while not iter.finished:
-            let (key, val) = (await iter.next()).tryGet
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
             if key.isNone:
               break
 
             res.add((key, val))
+            cnt.inc
 
           res
 
@@ -238,13 +265,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       let
         iter = (await ds.query(q)).tryGet
         res = block:
-          var res: seq[QueryResponse]
-          while not iter.finished:
-            let (key, val) = (await iter.next()).tryGet
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
             if key.isNone:
               break
 
             res.add((key, val))
+            cnt.inc
 
           res
 
@@ -284,13 +315,17 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       let
         iter = (await ds.query(q)).tryGet
         res = block:
-          var res: seq[QueryResponse]
-          while not iter.finished:
-            let (key, val) = (await iter.next()).tryGet
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
             if key.isNone:
               break
 
             res.add((key, val))
+            cnt.inc
 
           res
 
