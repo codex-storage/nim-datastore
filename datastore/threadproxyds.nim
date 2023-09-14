@@ -81,16 +81,51 @@ method get*(
 
   return ret.convert(seq[byte])
 
+import ./threads/then
+import std/os
+
 method put*(
   self: ThreadProxyDatastore,
   key: Key,
   data: seq[byte]
-): Future[?!void] {.async.} =
+): Future[?!void] =
 
-  echoed "put new request thr: ", $getThreadId()
+  echoed "put request args: ", $getThreadId()
 
-  let res = await put(self.tds, key, data)
-  return res
+  let tds = self.tds
+  var putRes = newFuture[?!void]("threadbackend.put(tds, key, data)")
+  let sig = SharedSignal.new(2)
+
+  acquireSig(sig).
+    then(proc () =
+      echoed "got tresFut"
+      let
+        ret = newSharedPtr(ThreadResult[void])
+        bkey = KeyBuffer.new(key)
+        bval = DataBuffer.new(data)
+
+      tds[].tp.spawn putTask(sig, ret, tds, bkey, bval)
+
+      wait(sig).
+        then(proc () =
+          sig.decr()
+          os.sleep(400)
+          var ret = ret
+          let val = ret.convert(void)
+          putRes.complete(val)
+        ).cancelled(proc() =
+          sig.decr()
+        ).catch(proc(e: ref CatchableError) =
+          sig.decr()
+          doAssert false, "will not be triggered"
+        )
+  ).catch(proc(e: ref CatchableError) =
+    var res: ?!void
+    res.err(e)
+    putRes.complete(res)
+  )
+
+  return putRes
 
 method put*(
   self: ThreadProxyDatastore,
