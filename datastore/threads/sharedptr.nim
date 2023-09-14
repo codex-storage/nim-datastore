@@ -47,7 +47,7 @@ proc echoed*(vals: varargs[string, `$`]) =
 type
   SharedPtr*[T] = object
     ## Shared ownership reference counting pointer.
-    container*: ptr tuple[value: T, cnt: int]
+    container*: ptr tuple[value: T, cnt: int, manual: bool]
 
 proc incr*[T](a: var SharedPtr[T]) =
   if a.container != nil:
@@ -75,19 +75,19 @@ proc release*[T](x: var SharedPtr[T]) =
   x.container = nil
 
 proc `=destroy`*[T](x: var SharedPtr[T]) =
-  if x.container != nil:
+  if x.container != nil and not x.container.manual:
     echoed "SharedPtr: destroy: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
-  decr(x)
+    decr(x)
 
 proc `=dup`*[T](src: SharedPtr[T]): SharedPtr[T] =
-  if src.container != nil:
+  if src.container != nil and not src.container.manual:
     echoed "SharedPtr: dup: ", src.container.pointer.repr, " cnt: ", src.container.cnt, " tp: ", $(typeof(T))
     discard atomicAddFetch(src.cnt, 1, ATOMIC_RELAXED)
   result.container = src.container
   result.cnt = src.cnt
 
 proc `=copy`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
-  if src.container != nil:
+  if src.container != nil and not src.container.manual:
     # echo "SharedPtr: copy: ", src.container.pointer.repr
     discard atomicAddFetch(addr src.container.cnt, 1, ATOMIC_RELAXED)
     echoed "SharedPtr: copy:src: ", src.container.pointer.repr, " cnt: ", src.container.cnt, " tp: ", $(typeof(T))
@@ -96,21 +96,24 @@ proc `=copy`*[T](dest: var SharedPtr[T], src: SharedPtr[T]) =
   `=destroy`(dest)
   dest.container = src.container
 
-proc newSharedPtr*[T](val: sink Isolated[T]): SharedPtr[T] {.nodestroy.} =
+proc newSharedPtr*[T](val: sink Isolated[T], manualCount: Natural = 0): SharedPtr[T] {.nodestroy.} =
   ## Returns a shared pointer which shares,
   ## ownership of the object by reference counting.
   result.container = cast[typeof(result.container)](allocShared(sizeof(result.container[])))
-  result.container.cnt = 1
+  result.container.cnt = max(1, manualCount)
+  result.container.manual = manualCount > 0
   result.container.value = extract val
   echoed "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T))
 
 template newSharedPtr*[T](val: T): SharedPtr[T] =
   newSharedPtr(isolate(val))
 
-proc newSharedPtr*[T](t: typedesc[T]): SharedPtr[T] =
+proc newSharedPtr*[T](t: typedesc[T], manualCount: Natural = 0): SharedPtr[T] =
   ## Returns a shared pointer. It is not initialized,
+  ## ownership of the object by reference counting.
   result.container = cast[typeof(result.container)](allocShared0(sizeof(result.container[])))
-  result.container.cnt = 1
+  result.container.cnt = max(1, manualCount)
+  result.container.manual = manualCount > 0
   echoed "SharedPtr: alloc: ", result.container.pointer.repr, " cnt: ", result.container.cnt, " tp: ", $(typeof(T))
 
 proc isNil*[T](p: SharedPtr[T]): bool {.inline.} =
