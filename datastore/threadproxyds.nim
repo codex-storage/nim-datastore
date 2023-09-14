@@ -108,7 +108,7 @@ method put*(
       # wait for taskpool work to finish
       wait(sig).
         then(proc () =
-          os.sleep(200)
+          os.sleep(200) # sleep to help separate debugging output
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
