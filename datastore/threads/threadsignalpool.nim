@@ -84,9 +84,9 @@ type
 
   SharedSignal* = SharedPtr[SharedSignalObj]
 
-proc `=destroy`*[T](x: var SharedSignalObj) =
+proc `=destroy`*(x: var SharedSignalObj) =
   if x.sigptr != nil:
-    echo "ThreadSignalObj: destroy "
+    echoed "ThreadSignalObj: destroy "
     release(x.sigptr)
     x.sigptr = nil
 

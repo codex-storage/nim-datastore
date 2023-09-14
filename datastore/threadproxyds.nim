@@ -108,16 +108,13 @@ method put*(
       # wait for taskpool work to finish
       wait(sig).
         then(proc () =
-          # sig.decr()
-          os.sleep(400)
+          os.sleep(200)
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
-          # sig.decr()
+          # TODO: could try and prevent taskpool work before it starts?
           discard
         ).catch(proc(e: ref CatchableError) =
-          # sig.decr()
-          discard
           doAssert false, "will not be triggered"
         )
   ).catch(proc(e: ref CatchableError) =
