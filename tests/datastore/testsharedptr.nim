@@ -109,4 +109,18 @@ suite "Share buffer test":
       b.release()
       check intref[] == 0
     
+  test "test manual release / decr":
+    echo "\nintref setup:\n"
+    let intref: ref int = new(ref int)
+    intref[] = 40
+    var b = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref), manualCount = 2)
+    try:
+      echo "a[]: ", b[]
+      check b[].val[] == 40
+    finally:
+      b.decr()
+      check intref[] == 40
+      b.release()
+      check intref[] == 0
+    
   # TODO: add async test
