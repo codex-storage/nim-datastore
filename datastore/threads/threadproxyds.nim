@@ -21,7 +21,6 @@ import ../key
 import ../query
 import ../datastore
 
-import ./asyncsemaphore
 import ./databuffer
 
 type
@@ -36,15 +35,17 @@ type
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
     ds: Datastore
-    semaphore: AsyncSemaphore
     tasks: seq[Future[void]]
 
-template dispatchTask(self: ThreadDatastore, ctx: TaskCtx, runTask: proc): untyped =
+template dispatchTask(
+  self: ThreadDatastore,
+  ctx: TaskCtx,
+  runTask: proc): untyped =
+
   let
     fut = wait(ctx.signal)
 
   try:
-    await self.semaphore.acquire()
     runTask()
     self.tasks.add(fut)
     await fut
@@ -57,8 +58,6 @@ template dispatchTask(self: ThreadDatastore, ctx: TaskCtx, runTask: proc): untyp
       let idx = self.tasks.find(fut);
       idx != -1):
       self.tasks.del(idx)
-
-    self.semaphore.release()
 
 proc hasTask(
   ctx: ptr TaskCtx,
@@ -223,7 +222,7 @@ method close*(self: ThreadDatastore): Future[?!void] {.async.} =
 
   await self.ds.close()
 
-proc queryTask*(
+proc queryTask(
   ctx: ptr TaskCtx,
   iter: ptr QueryIter) =
 
@@ -303,5 +302,4 @@ func new*(
 
   success ThreadDatastore(
     tp: tp,
-    ds: ds,
-    semaphore: AsyncSemaphore.new(tp.numThreads - 1)) # one thread is needed for the task dispatcher
+    ds: ds)
