@@ -110,7 +110,6 @@ method put*(
         then(proc () =
           sig.decr()
           os.sleep(400)
-          var ret = ret
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
