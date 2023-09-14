@@ -21,20 +21,25 @@ import ../key
 import ../query
 import ../datastore
 
+import ./semaphore
+import ./asyncsemaphore
 import ./databuffer
 
 type
-  ThreadTypes = void | bool | SomeInteger | DataBuffer | tuple
+  ThreadTypes = void | bool | SomeInteger | DataBuffer | tuple | Atomic
   ThreadResult[T: ThreadTypes] = Result[T, DataBuffer]
 
   TaskCtx[T: ThreadTypes] = object
     ds: ptr Datastore
     res: ptr ThreadResult[T]
+    semaphore: ptr Semaphore
     signal: ThreadSignalPtr
 
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
     ds: Datastore
+    # semaphore: AsyncSemaphore
+    semaphore: Semaphore
     tasks: seq[Future[void]]
 
 template dispatchTask(
@@ -46,12 +51,16 @@ template dispatchTask(
     fut = wait(ctx.signal)
 
   try:
-    runTask()
+    # await self.semaphore.acquire()
     self.tasks.add(fut)
+    runTask()
     await fut
 
     if ctx.res[].isErr:
-      result = failure(ctx.res[].error())
+      result = failure(ctx.res[].error()) # TODO: fix this, result shouldn't be accessed
+  except CancelledError as exc:
+    echo "Cancelling future!"
+    raise exc
   finally:
     discard ctx.signal.close()
     if (
@@ -59,13 +68,17 @@ template dispatchTask(
       idx != -1):
       self.tasks.del(idx)
 
+    # self.semaphore.release()
+
 proc hasTask(
   ctx: ptr TaskCtx,
   key: ptr Key) =
 
   defer:
     discard ctx[].signal.fireSync()
+    ctx[].semaphore[].release()
 
+  ctx[].semaphore[].acquire()
   without ret =?
     (waitFor ctx[].ds[].has(key[])).catch and res =? ret, error:
     ctx[].res[].err(error)
@@ -76,12 +89,13 @@ proc hasTask(
 method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
   var
     signal = ThreadSignalPtr.new().valueOr:
-        return failure("Failed to create signal")
+        return failure(error())
 
     res = ThreadResult[bool]()
     ctx = TaskCtx[bool](
       ds: addr self.ds,
       res: addr res,
+      semaphore: addr self.semaphore,
       signal: signal)
 
   proc runTask() =
@@ -93,7 +107,9 @@ method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
 proc delTask(ctx: ptr TaskCtx, key: ptr Key) =
   defer:
     discard ctx[].signal.fireSync()
+    ctx[].semaphore[].release()
 
+  ctx[].semaphore[].acquire()
   without res =? (waitFor ctx[].ds[].delete(key[])).catch, error:
     ctx[].res[].err(error)
     return
@@ -106,12 +122,13 @@ method delete*(
 
   var
     signal = ThreadSignalPtr.new().valueOr:
-        return failure("Failed to create signal")
+        return failure(error())
 
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
       ds: addr self.ds,
       res: addr res,
+      semaphore: addr self.semaphore,
       signal: signal)
 
   proc runTask() =
@@ -120,7 +137,10 @@ method delete*(
   self.dispatchTask(ctx, runTask)
   return success()
 
-method delete*(self: ThreadDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(
+  self: ThreadDatastore,
+  keys: seq[Key]): Future[?!void] {.async.} =
+
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure err
@@ -130,15 +150,18 @@ method delete*(self: ThreadDatastore, keys: seq[Key]): Future[?!void] {.async.} 
 proc putTask(
   ctx: ptr TaskCtx,
   key: ptr Key,
-  data: DataBuffer,
+  # data: DataBuffer,
+  data: ptr UncheckedArray[byte],
   len: int) =
   ## run put in a thread task
   ##
 
   defer:
     discard ctx[].signal.fireSync()
+    ctx[].semaphore[].release()
 
-  without res =? (waitFor ctx[].ds[].put(key[], @data)).catch, error:
+  ctx[].semaphore[].acquire()
+  without res =? (waitFor ctx[].ds[].put(key[], @(data.toOpenArray(0, len - 1)))).catch, error:
     ctx[].res[].err(error)
     return
 
@@ -151,19 +174,20 @@ method put*(
 
   var
     signal = ThreadSignalPtr.new().valueOr:
-        return failure("Failed to create signal")
+        return failure(error())
 
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
       ds: addr self.ds,
       res: addr res,
+      semaphore: addr self.semaphore,
       signal: signal)
 
   proc runTask() =
     self.tp.spawn putTask(
       addr ctx,
       unsafeAddr key,
-      DataBuffer.new(data),
+      makeUncheckedArray(baseAddr data),
       data.len)
 
   self.dispatchTask(ctx, runTask)
@@ -187,7 +211,9 @@ proc getTask(
 
   defer:
     discard ctx[].signal.fireSync()
+    ctx[].semaphore[].release()
 
+  ctx[].semaphore[].acquire()
   without res =?
     (waitFor ctx[].ds[].get(key[])).catch and data =? res, error:
     ctx[].res[].err(error)
@@ -201,19 +227,23 @@ method get*(
 
   var
     signal = ThreadSignalPtr.new().valueOr:
-        return failure("Failed to create signal")
+        return failure(error())
 
   var
     res = ThreadResult[DataBuffer]()
     ctx = TaskCtx[DataBuffer](
       ds: addr self.ds,
       res: addr res,
+      semaphore: addr self.semaphore,
       signal: signal)
 
   proc runTask() =
     self.tp.spawn getTask(addr ctx, unsafeAddr key)
 
   self.dispatchTask(ctx, runTask)
+  if err =? res.errorOption:
+    return failure err
+
   return success(@(res.get()))
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
@@ -228,13 +258,15 @@ proc queryTask(
 
   defer:
     discard ctx[].signal.fireSync()
+    ctx[].semaphore[].release()
 
+  ctx[].semaphore[].acquire()
   without ret =? (waitFor iter[].next()).catch and res =? ret, error:
     ctx[].res[].err(error)
     return
 
   if res.key.isNone:
-    ctx[].res[].ok((false, DataBuffer.new(), DataBuffer.new()))
+    ctx[].res[].ok((false, default(DataBuffer), default(DataBuffer)))
     return
 
   var
@@ -275,6 +307,7 @@ method query*(
       ctx = TaskCtx[(bool, DataBuffer, DataBuffer)](
         ds: addr self.ds,
         res: addr res,
+        semaphore: addr self.semaphore,
         signal: signal)
 
     proc runTask() =
@@ -302,4 +335,6 @@ func new*(
 
   success ThreadDatastore(
     tp: tp,
-    ds: ds)
+    ds: ds,
+    # semaphore: AsyncSemaphore.new(tp.numThreads - 1)) # one thread is needed for the task dispatcher
+    semaphore: Semaphore.init((tp.numThreads - 1).uint)) # one thread is needed for the task dispatcher

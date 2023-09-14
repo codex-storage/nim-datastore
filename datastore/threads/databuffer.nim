@@ -19,8 +19,7 @@ proc `=destroy`*(x: var DataBufferHolder) =
   ##
 
   if x.buf != nil:
-    # when isMainModule or true:
-    #   echo "buffer: FREE: ", repr x.buf.pointer
+    # echo "buffer: FREE: ", repr x.buf.pointer
     deallocShared(x.buf)
 
 proc len*(a: DataBuffer): int = a[].size
@@ -77,14 +76,14 @@ converter toString*(data: DataBuffer): string =
   if data.len() > 0:
     copyMem(addr result[0], unsafeAddr data[].buf[0], data.len)
 
-converter toBuffer*(err: ref CatchableError): DataBuffer =
-  ## convert exception to an object with StringBuffer
-  ##
-
-  return DataBuffer.new(err.msg)
-
 proc `$`*(data: DataBuffer): string =
   ## convert buffer to string type using copy
   ##
 
   data.toString()
+
+converter toBuffer*(err: ref CatchableError): DataBuffer =
+  ## convert exception to an object with StringBuffer
+  ##
+
+  return DataBuffer.new(err.msg)
