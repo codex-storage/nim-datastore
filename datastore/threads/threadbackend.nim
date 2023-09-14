@@ -147,7 +147,7 @@ proc putTask*(
     ret.success()
 
   discard sig.fireSync()
-  # ret.release()
+  sig.decr()
   echoed "putTask: FINISH\n"
 
 import then
@@ -187,9 +187,11 @@ proc put*(
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
+          sig.decr()
           echoed "put request cancelled "
           discard
         ).catch(proc(e: ref CatchableError) =
+          sig.decr()
           doAssert false, "will not be triggered"
         )
   ).catch(proc(e: ref CatchableError) =

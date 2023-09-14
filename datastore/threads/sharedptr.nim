@@ -49,12 +49,12 @@ type
     ## Shared ownership reference counting pointer.
     container*: ptr tuple[value: T, cnt: int, manual: bool]
 
-proc incr*[T](a: var SharedPtr[T]) =
+proc incr*[T](a: SharedPtr[T]) =
   if a.container != nil:
     let res = atomicAddFetch(a.cnt, 1, ATOMIC_RELAXED)
     echoed "SharedPtr: incr: ", res
 
-proc decr*[T](x: var SharedPtr[T]) =
+proc decr*[T](x: SharedPtr[T]) =
   if x.container != nil:
     let res = atomicSubFetch(addr x.container.cnt, 1, ATOMIC_ACQUIRE)
     if res == 0:
@@ -65,7 +65,7 @@ proc decr*[T](x: var SharedPtr[T]) =
       else:
         echoed "SharedPtr:NOT CALLED:child:destructor: ", $(typeof(x[]))
       deallocShared(x.container)
-      x.container = nil
+      # x.container = nil # alas
     else:
       echoed "SharedPtr: decr: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
 

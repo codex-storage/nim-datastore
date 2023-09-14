@@ -50,8 +50,7 @@ proc new*[D: DataBuffer](tp: typedesc[D], size: int = 0): D =
   ))
   echoed "DataBuffer:new: ", result.unsafeRawPtr().repr,
         " tp ", $(typeof(D)),
-        " @ ", result[].buf.pointer.repr,
-        " -> ", result.toString().repr
+        " @ ", result[].buf.pointer.repr
 
 proc new*[T: byte | char; D: DataBuffer](tp: typedesc[D], data: openArray[T]): D =
   ## allocate new buffer and copies indata from openArray
