@@ -122,6 +122,7 @@ proc get*(
 import std/os
 
 proc putTask*(
+  sig: SharedSignal,
   ret: TResult[void],
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
@@ -145,22 +146,52 @@ proc putTask*(
   else:
     ret.success()
 
-  discard ret.fireSync()
+  discard sig.fireSync()
   # ret.release()
   echoed "putTask: FINISH\n"
 
+import then
+
 proc put*(
-  ret: var TResult[void],
   tds: ThreadDatastorePtr,
   key: Key,
   data: seq[byte]
-) =
-  echoed "put request args: ", $getThreadId()
-  let bkey = KeyBuffer.new(key)
-  let bval = DataBuffer.new(data)
+): Future[?!void] =
 
-  echoed "spawn put request: ", $getThreadId()
-  tds[].tp.spawn putTask(ret, tds, bkey, bval)
+  echoed "put request args: ", $getThreadId()
+
+  var putRes = newFuture[?!void]("threadbackend.put(tds, key, data)")
+  let sigFut = SharedSignal.new()
+
+  sigFut.
+    then(proc (sig: SharedSignal) =
+      echoed "got tresFut"
+      let
+        ret = newSharedPtr(ThreadResult[void])
+        bkey = KeyBuffer.new(key)
+        bval = DataBuffer.new(data)
+
+      echoed "spawn put request: ", $getThreadId()
+      # this spawns the taskpool Task
+      # but we can't wait on it directly - we use wait(ret[].sig)
+      tds[].tp.spawn putTask(sig, ret, tds, bkey, bval)
+
+      wait(sig).
+        then(proc () =
+          var ret = ret
+          let val = ret.convert(void)
+          putRes.complete(val)
+        ).cancelled(proc() =
+          discard
+        ).catch(proc(e: ref CatchableError) =
+          doAssert false, "will not be triggered"
+        )
+  ).catch(proc(e: ref CatchableError) =
+    echoed "err tresFut"
+    var res: ?!void
+    res.err(e)
+    putRes.complete(res)
+  )
 
 
 proc deleteTask*(

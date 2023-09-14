@@ -69,7 +69,7 @@ proc decr*[T](x: var SharedPtr[T]) =
     else:
       echoed "SharedPtr: decr: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
 
-template release*[T](x: var SharedPtr[T]) =
+proc release*[T](x: var SharedPtr[T]) =
   echoed "SharedPtr: release: ", $(typeof(T))
   x.decr()
   x.container = nil

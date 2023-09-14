@@ -94,21 +94,6 @@ method put*(
 
   block:
     put(ret, self.tds, key, data)
-    echo "\n"
-    echoed "wait put thr: ", $getThreadId()
-    echo "\n"
-    await sleepAsync(400.milliseconds)
-    await wait(ret)
-    echo "\n"
-    await sleepAsync(400.milliseconds)
-
-    answer = ret.convert(void)
-  block:
-    echo "\n"
-    await sleepAsync(400.milliseconds)
-    echoed "PUT RELEASE"
-    echo "PUT RELEASE"
-    ret.release()
   
   return answer
 
