@@ -88,14 +88,9 @@ method put*(
 ): Future[?!void] {.async.} =
 
   echoed "put new request thr: ", $getThreadId()
-  var ret = await newThreadResult(void)
 
-  var answer: ?!void
-
-  block:
-    put(ret, self.tds, key, data)
-  
-  return answer
+  let res = await put(self.tds, key, data)
+  return res
 
 method put*(
   self: ThreadProxyDatastore,
