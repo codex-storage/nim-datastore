@@ -58,7 +58,7 @@ proc newThreadResult*[T](
     {.error: "only thread safe types can be used".}
 
   let res = newSharedPtr(ThreadResult[T])
-  res[].sig = await SharedSignal.new()
+  res[].sig = await SharedSignal.new(0)
   res
 
 proc `=destroy`*[T](res: var ThreadResult[T]) {.raises: [].} =

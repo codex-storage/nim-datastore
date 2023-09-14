@@ -122,5 +122,6 @@ suite "Share buffer test":
       check intref[] == 40
       b.release()
       check intref[] == 0
-    
+
   # TODO: add async test
+

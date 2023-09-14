@@ -161,7 +161,7 @@ proc put*(
   echoed "put request args: ", $getThreadId()
 
   var putRes = newFuture[?!void]("threadbackend.put(tds, key, data)")
-  let sigFut = SharedSignal.new()
+  let sigFut = SharedSignal.new(2)
 
   sigFut.
     then(proc (sig: SharedSignal) =
@@ -179,6 +179,7 @@ proc put*(
 
       wait(sig).
         then(proc () =
+          sig.decr()
           echo "\n"
           os.sleep(400)
           echoed "put request done "
