@@ -91,31 +91,33 @@ method put*(
 ): Future[?!void] =
 
   echoed "put request args: ", $getThreadId()
-
   let tds = self.tds
   var putRes = newFuture[?!void]("threadbackend.put(tds, key, data)")
-  let sig = SharedSignal.new(2)
+  let sig = SharedSignal.new(0)
+  echoed "put:sig: ", sig.repr
 
   acquireSig(sig).
     then(proc () =
-      echoed "got tresFut"
       let
         ret = newSharedPtr(ThreadResult[void])
         bkey = KeyBuffer.new(key)
         bval = DataBuffer.new(data)
 
+      # queue taskpool work
       tds[].tp.spawn putTask(sig, ret, tds, bkey, bval)
-
+      # wait for taskpool work to finish
       wait(sig).
         then(proc () =
-          sig.decr()
+          # sig.decr()
           os.sleep(400)
           let val = ret.convert(void)
           putRes.complete(val)
         ).cancelled(proc() =
-          sig.decr()
+          # sig.decr()
+          discard
         ).catch(proc(e: ref CatchableError) =
-          sig.decr()
+          # sig.decr()
+          discard
           doAssert false, "will not be triggered"
         )
   ).catch(proc(e: ref CatchableError) =
