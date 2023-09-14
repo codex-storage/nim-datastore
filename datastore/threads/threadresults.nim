@@ -23,7 +23,6 @@ type
     ## Encapsulates both the results from a thread but also the cross
     ## thread signaling mechanism. This makes it easier to keep them 
     ## together.
-    sig*: SharedSignal
     results*: Result[T, CatchableErrorBuffer]
 
   TResult*[T] = SharedPtr[ThreadResult[T]] ##\
@@ -49,7 +48,7 @@ proc threadSafeType*[T: ThreadSafeTypes](tp: typedesc[T]) =
 
 proc newThreadResult*[T](
     tp: typedesc[T]
-): Future[TResult[T]] {.async.} =
+): TResult[T] =
   ## Creates a new TResult including getting
   ## a new ThreadSignalPtr from the pool.
   ## 
@@ -57,25 +56,7 @@ proc newThreadResult*[T](
   when not compiles(threadSafeType):
     {.error: "only thread safe types can be used".}
 
-  let res = newSharedPtr(ThreadResult[T])
-  res[].sig = await SharedSignal.new()
-  res
-
-proc `=destroy`*[T](res: var ThreadResult[T]) {.raises: [].} =
-  ## release TResult and it's ThreadSignal
-  echoed "ThreadResult:destroy: ", res.addr.pointer.repr, " res: ", $(res)
-  res[].signal.release()
-  `=destroy`(res.results)
-
-# proc release*[T](res: var TResult[T]) {.raises: [].} =
-#   ## release TResult and it's ThreadSignal
-#   # res[].signal.release()
-#   sharedptr.release(res)
-
-template wait*[T](res: TResult[T]): Future[void] =
-  res[].sig.wait()
-template fireSync*[T](res: TResult[T]): Result[bool, string] =
-  res[].sig.fireSync()
+  return newSharedPtr(ThreadResult[T])
 
 proc success*[T](ret: TResult[T], value: T) =
   ## convenience wrapper for `TResult` to replicate
