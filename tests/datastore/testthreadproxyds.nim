@@ -70,51 +70,33 @@ suite "Test Basics":
   
   basicStoreTests(sds, key, bytes, otherBytes)
 
-# suite "Test Basic ThreadProxyDatastore":
+suite "Test Query":
+  var
+    mem: MemoryDatastore
+    sds: ThreadProxyDatastore
 
-#   var
-#     memStore: MemoryDatastore
-#     ds: ThreadProxyDatastore
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  setup:
+    mem = MemoryDatastore.new()
+    sds = newThreadProxyDatastore(mem).expect("should work")
 
-#   setupAll:
-#     memStore = MemoryDatastore.new()
-#     ds = newThreadProxyDatastore(memStore).expect("should work")
+  queryTests(sds, false)
 
-#   teardownAll:
-#     (await memStore.close()).get()
+  test "query iter fails":
 
-#   basicStoreTests(ds, key, bytes, otherBytes)
+    expect FutureDefect:
+      let q = Query.init(key1)
 
-# suite "Test Query":
-#   var
-#     mem: MemoryDatastore
-#     sds: ThreadProxyDatastore
+      (await sds.put(key1, val1)).tryGet
+      (await sds.put(key2, val2)).tryGet
+      (await sds.put(key3, val3)).tryGet
 
-#   setup:
-#     mem = MemoryDatastore.new()
-#     sds = newThreadProxyDatastore(mem).expect("should work")
-
-#   queryTests(sds, false)
-
-#   test "query iter fails":
-
-#     expect FutureDefect:
-#       let q = Query.init(key1)
-
-#       (await sds.put(key1, val1)).tryGet
-#       (await sds.put(key2, val2)).tryGet
-#       (await sds.put(key3, val3)).tryGet
-
-#       let
-#         iter = (await sds.query(q)).tryGet
-#         res = (await allFinished(toSeq(iter)))
-#           .mapIt( it.read.tryGet )
-#           .filterIt( it.key.isSome )
+      let
+        iter = (await sds.query(q)).tryGet
+        res = (await allFinished(toSeq(iter)))
+          .mapIt( it.read.tryGet )
+          .filterIt( it.key.isSome )
       
-#       check res.len() > 0
+      check res.len() > 0
 
 
 # GC_fullCollect() # this fails due to MemoryStore already being freed...
