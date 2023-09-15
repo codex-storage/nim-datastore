@@ -103,4 +103,3 @@ proc wait*(sig: SharedSignal): Future[void] =
 
 proc fireSync*(sig: SharedSignal): Result[bool, string] =
   sig[].sigptr.fireSync()
-
