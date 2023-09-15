@@ -147,7 +147,7 @@ proc hasTask(ctx: ptr TaskCtx, key: ptr Key) =
   try:
     waitFor asyncHasTask(ctx, key)
   except CatchableError as exc:
-    trace "Unexpected exception thrown in asyncHasTask", error = error.msg
+    trace "Unexpected exception thrown in asyncHasTask", exc = exc.msg
     raiseAssert exc.msg
 
 method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
@@ -192,7 +192,7 @@ proc delTask(ctx: ptr TaskCtx, key: ptr Key) =
   try:
     waitFor asyncDelTask(ctx, key)
   except CatchableError as exc:
-    trace "Unexpected exception thrown in asyncDelTask", error = error.msg
+    trace "Unexpected exception thrown in asyncDelTask", exc = exc.msg
     raiseAssert exc.msg
 
 method delete*(
@@ -259,7 +259,7 @@ proc putTask(
   try:
     waitFor asyncPutTask(ctx, key, data, len)
   except CatchableError as exc:
-    trace "Unexpected exception thrown in asyncPutTask", error = error.msg
+    trace "Unexpected exception thrown in asyncPutTask", exc = exc.msg
     raiseAssert exc.msg
 
 method put*(
@@ -327,7 +327,7 @@ proc getTask(
   try:
     waitFor asyncGetTask(ctx, key)
   except CatchableError as exc:
-    trace "Unexpected exception thrown in asyncGetTask", error = error.msg
+    trace "Unexpected exception thrown in asyncGetTask", exc = exc.msg
     raiseAssert exc.msg
 
 method get*(
@@ -401,7 +401,7 @@ proc queryTask(
   try:
     waitFor asyncQueryTask(ctx, iter)
   except CatchableError as exc:
-    trace "Unexpected exception thrown in asyncQueryTask", error = error.msg
+    trace "Unexpected exception thrown in asyncQueryTask", exc = exc.msg
     raiseAssert exc.msg
 
 method query*(
