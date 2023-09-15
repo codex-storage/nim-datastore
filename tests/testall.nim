@@ -7,6 +7,7 @@ import
   ./datastore/testmountedds,
   ./datastore/testdatabuffer,
   ./datastore/testthreadproxyds,
+  ./datastore/testasyncsemaphore,
   ./datastore/testsemaphore
 
 {.warning[UnusedImport]: off.}
