@@ -39,6 +39,27 @@ suite "Test Basic ThreadDatastore with SQLite":
     taskPool.shutdown()
 
   basicStoreTests(ds, key, bytes, otherBytes)
+
+
+suite "Test Query ThreadDatastore with SQLite":
+
+  var
+    sqlStore: Datastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+
+  setup:
+    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    taskPool = Taskpool.new(countProcessors() * 2)
+    ds = ThreadDatastore.new(sqlStore, taskPool).tryGet()
+
+  teardown:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
+
   queryTests(ds, true)
 
 # suite "Test Basic ThreadDatastore with fsds":
