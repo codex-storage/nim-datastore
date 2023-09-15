@@ -7,8 +7,9 @@ import pkg/stew/byteutils
 import pkg/unittest2
 import pkg/questionable
 import pkg/questionable/results
+import pkg/datastore/key
 
-include ../../datastore/databuffer
+include ../../datastore/threads/databuffer
 
 var
   shareVal: DataBuffer
@@ -44,7 +45,7 @@ proc thread2(val: int) {.thread.} =
       echo "thread2: receiving "
       let msg: DataBuffer = shareVal
       echo "thread2: received: ", msg
-      check msg.toSeq(char) == @"hello world"
+      check string.fromBytes(msg.toSeq()) == "hello world"
       # os.sleep(100)
 
 proc runBasicTest() =
@@ -60,13 +61,19 @@ proc runBasicTest() =
   joinThreads(threads)
 
 suite "Share buffer test":
+  var
+    k1: Key
+    k2: Key
+    a: DataBuffer
+    b: DataBuffer
+    c: DataBuffer
 
   setup:
-    let k1 {.used.} = Key.init("/a/b").get()
-    let k2 {.used.} = Key.init("/a").get()
-    let a {.used.} = KeyBuffer.new(k1)
-    let b {.used.} = KeyBuffer.new(Key.init("/a/b").get)
-    let c {.used.} = KeyBuffer.new(k2)
+    k1 = Key.init("/a/b").tryGet()
+    k2 = Key.init("/a").tryGet()
+    a = DataBuffer.new($k1)
+    b = DataBuffer.new($Key.init("/a/b").tryGet())
+    c = DataBuffer.new($k2)
 
   test "creation":
     let db = DataBuffer.new("abc")
@@ -74,21 +81,27 @@ suite "Share buffer test":
     check db[].buf[0].char == 'a'
     check db[].buf[1].char == 'b'
     check db[].buf[2].char == 'c'
+
   test "equality":
     check a == b
+
   test "toString":
-    check a.toString() == "/a/b"
+    check $a == "/a/b"
+
   test "hash":
     check a.hash() == b.hash()
+
   test "hashes differ":
     check a.hash() != c.hash()
+
   test "key conversion":
-    check a.toKey().get() == k1
+    check Key.init(a).tryGet == k1
+
   test "seq conversion":
-    check a.toSeq(char) == @"/a/b"
+    check string.fromBytes(a.toSeq()) == "/a/b"
+
   test "seq conversion":
-    check a.toSeq(byte) == "/a/b".toBytes
+    check a.toSeq() == "/a/b".toBytes
 
   test "basic thread test":
     runBasicTest()
-
