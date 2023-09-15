@@ -7,10 +7,12 @@ import std/importutils
 
 import pkg/asynctest
 import pkg/chronos
+import pkg/chronos/threadsync
 import pkg/stew/results
 import pkg/stew/byteutils
 import pkg/taskpools
 import pkg/questionable/results
+import pkg/chronicles
 
 import pkg/datastore/sql
 import pkg/datastore/fsds
@@ -78,3 +80,85 @@ suite "Test Query ThreadDatastore with SQLite":
 #     ds: ThreadDatastore
 #     taskPool: Taskpool
 
+suite "Test ThreadDatastore":
+  var
+    sqlStore: Datastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+
+  privateAccess(ThreadDatastore) # expose private fields
+  privateAccess(TaskCtx) # expose private fields
+
+  setupAll:
+    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    taskPool = Taskpool.new(countProcessors() * 2)
+    ds = ThreadDatastore.new(sqlStore, taskPool).tryGet()
+
+  test "should monitor signal for cancellations and cancel":
+    var
+      signal = ThreadSignalPtr.new().tryGet()
+      res = ThreadResult[void]()
+      ctx = TaskCtx[void](
+        ds: addr sqlStore,
+        res: addr res,
+        signal: signal)
+      fut = newFuture[void]("signalMonitor")
+      threadArgs = (addr ctx, addr fut)
+
+    var
+      thread: Thread[type threadArgs]
+
+    proc threadTask(args: type threadArgs) =
+      var (ctx, fut) = args
+      proc asyncTask() {.async.} =
+        let
+          monitor = signalMonitor(ctx, fut[])
+
+        await monitor
+
+      waitFor asyncTask()
+
+    createThread(thread, threadTask, threadArgs)
+    ctx.cancelled = true
+    check: ctx.signal.fireSync.tryGet
+
+    joinThreads(thread)
+
+    check: fut.cancelled
+    check: ctx.signal.close().isOk
+
+  test "should monitor signal for cancellations and not cancel":
+    var
+      signal = ThreadSignalPtr.new().tryGet()
+      res = ThreadResult[void]()
+      ctx = TaskCtx[void](
+        ds: addr sqlStore,
+        res: addr res,
+        signal: signal)
+      fut = newFuture[void]("signalMonitor")
+      threadArgs = (addr ctx, addr fut)
+
+    var
+      thread: Thread[type threadArgs]
+
+    proc threadTask(args: type threadArgs) =
+      var (ctx, fut) = args
+      proc asyncTask() {.async.} =
+        let
+          monitor = signalMonitor(ctx, fut[])
+
+        await monitor
+
+      waitFor asyncTask()
+
+    createThread(thread, threadTask, threadArgs)
+    ctx.cancelled = false
+    check: ctx.signal.fireSync.tryGet
+
+    joinThreads(thread)
+
+    check: not fut.cancelled
+    check: ctx.signal.close().isOk
