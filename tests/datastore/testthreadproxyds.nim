@@ -62,6 +62,7 @@ suite "Test Query ThreadDatastore with SQLite":
 
   queryTests(ds, true)
 
+# TODO: needs a per key lock to work
 # suite "Test Basic ThreadDatastore with fsds":
 
 #   let
