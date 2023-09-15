@@ -6,6 +6,7 @@ import
   ./datastore/testtieredds,
   ./datastore/testmountedds,
   ./datastore/testmemoryds,
-  ./datastore/testthreadproxyds
+  ./datastore/testthreadproxyds,
+  ./datastore/testsemaphore
 
 {.warning[UnusedImport]: off.}
