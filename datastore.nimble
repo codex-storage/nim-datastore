@@ -16,7 +16,8 @@ requires "nim >= 1.6.14",
          "pretty",
          "threading",
          "taskpools",
-         "upraises >= 0.1.0 & < 0.2.0"
+         "upraises >= 0.1.0 & < 0.2.0",
+         "chronicles"
 
 task coverage, "generates code coverage report":
   var (output, exitCode) = gorgeEx("which lcov")
