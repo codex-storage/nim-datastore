@@ -37,20 +37,20 @@ suite "Test Basic ThreadProxyDatastore":
   test "check put":
     # echo "\n\n=== put ==="
     let res1 = await sds.put(key1, data)
-    echo "res1: ", res1.repr
+    # echo "res1: ", res1.repr
     check res1.isOk
 
   test "check get":
-    echo "\n\n=== get ==="
-    echo "get send key: ", key1.repr
+    # echo "\n\n=== get ==="
+    # echo "get send key: ", key1.repr
     let res2 = await sds.get(key1)
-    echo "get key post: ", key1.repr
-    echo "get res2: ", res2.repr
+    # echo "get key post: ", key1.repr
+    # echo "get res2: ", res2.repr
     # echo res2.get() == data
     var val = ""
     for c in res2.get():
       val &= char(c)
-    print "get res2: ", $val
+    # print "get res2: ", $val
 
     # echo "\n\n=== put cancel ==="
     # # let res1 = await sds.put(key1, "value for 1".toBytes())
