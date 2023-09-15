@@ -34,14 +34,13 @@ suite "Test Basic ThreadDatastore with SQLite":
   setupAll:
     sqlStore = SQLiteDatastore.new(Memory).tryGet()
     taskPool = Taskpool.new(countProcessors() * 2)
-    ds = ThreadDatastore.new(sqlStore, taskPool).tryGet()
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
   teardownAll:
     (await ds.close()).tryGet()
     taskPool.shutdown()
 
   basicStoreTests(ds, key, bytes, otherBytes)
-
 
 suite "Test Query ThreadDatastore with SQLite":
 
@@ -56,7 +55,7 @@ suite "Test Query ThreadDatastore with SQLite":
   setup:
     sqlStore = SQLiteDatastore.new(Memory).tryGet()
     taskPool = Taskpool.new(countProcessors() * 2)
-    ds = ThreadDatastore.new(sqlStore, taskPool).tryGet()
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
   teardown:
     (await ds.close()).tryGet()
@@ -64,23 +63,68 @@ suite "Test Query ThreadDatastore with SQLite":
 
   queryTests(ds, true)
 
-# TODO: needs a per key lock to work
-# suite "Test Basic ThreadDatastore with fsds":
+suite "Test Basic ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  var
+    fsStore: FSDatastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
 
-#   var
-#     fsStore: FSDatastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+  setupAll:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
 
-suite "Test ThreadDatastore":
+    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+    taskPool = Taskpool.new(countProcessors() * 2)
+    ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+
+  teardownAll:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
+
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+
+  basicStoreTests(fsStore, key, bytes, otherBytes)
+
+suite "Test Query ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+
+  var
+    fsStore: FSDatastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
+
+  setup:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
+
+    fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
+    taskPool = Taskpool.new(countProcessors() * 2)
+    ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+
+  teardown:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
+
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+
+  queryTests(ds, false)
+
+suite "Test ThreadDatastore cancelations":
   var
     sqlStore: Datastore
     ds: ThreadDatastore
@@ -95,9 +139,9 @@ suite "Test ThreadDatastore":
   setupAll:
     sqlStore = SQLiteDatastore.new(Memory).tryGet()
     taskPool = Taskpool.new(countProcessors() * 2)
-    ds = ThreadDatastore.new(sqlStore, taskPool).tryGet()
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  test "should monitor signal for cancellations and cancel":
+  test "Should monitor signal and cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
       res = ThreadResult[void]()
@@ -130,7 +174,7 @@ suite "Test ThreadDatastore":
     check: fut.cancelled
     check: ctx.signal.close().isOk
 
-  test "should monitor signal for cancellations and not cancel":
+  test "Should monitor and not cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
       res = ThreadResult[void]()
