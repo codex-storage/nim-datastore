@@ -111,7 +111,7 @@ proc getTask*(
   kb: KeyBuffer,
 ) =
   echo "\n"
-  echoed "getTask: ", $getThreadId()
+  echoed "getTask: ", $getThreadId(), " kb: ", kb.repr
   let key = kb.toKey()
   echoed "getTask: key: ", $key
   try:

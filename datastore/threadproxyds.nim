@@ -82,6 +82,9 @@ method get*(
   var ret = newThreadResult(ValueBuffer)
   proc submitGet() =
     let bkey = KeyBuffer.new(key)
+    echo "\n"
+    echo "get:bkey: ", $key, " => ", bkey.toString(), " :: ", bkey.repr()
+    echo "\n"
     self.tds[].tp.spawn getTask(sig, ret, self.tds, bkey)
 
   submitGet()

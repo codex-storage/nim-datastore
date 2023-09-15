@@ -97,6 +97,8 @@ proc acquireSig*(sig: SharedSignal): Future[void] {.async.} =
   sig[].sigptr = await getThreadSignal()
 
 proc wait*(sig: SharedSignal): Future[void] =
+  assert sig.isNil == false
+  assert sig[].sigptr != nil
   sig[].sigptr.wait()
 
 proc fireSync*(sig: SharedSignal): Result[bool, string] =

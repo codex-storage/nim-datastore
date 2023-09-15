@@ -42,15 +42,15 @@ proc `==`*(a, b: DataBuffer): bool =
   elif a[].buf == b[].buf: return true
   else: a.hash() == b.hash()
 
-proc new*[D: DataBuffer](tp: typedesc[D], size: int = 0): D =
+proc new*(tp: typedesc[DataBuffer], size: int = 0): DataBuffer =
   ## allocate new buffer with given size
   result = newSharedPtr(DataBufferHolder(
     buf: cast[typeof(result[].buf)](allocShared0(size)),
     size: size,
   ))
-  echoed "DataBuffer:new: ", result.unsafeRawPtr().repr,
-        " tp ", $(typeof(D)),
-        " @ ", result[].buf.pointer.repr
+  # echoed "DataBuffer:new: ", result.unsafeRawPtr().repr,
+  #       " tp ", $(typeof(D)),
+  #       " @ ", result[].buf.pointer.repr
 
 proc new*[T: byte | char; D: DataBuffer](tp: typedesc[D], data: openArray[T]): D =
   ## allocate new buffer and copies indata from openArray
@@ -86,7 +86,8 @@ import ../key
 import stew/results
 
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
-  result = KeyBuffer.new(key.id())
+  let ks = key.id()
+  result = KeyBuffer.new(ks)
   echoed "KeyBuffer:new: ", $result
 proc toKey*(kb: KeyBuffer): Key =
   let res = Key.init(kb.toString())

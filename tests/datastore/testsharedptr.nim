@@ -97,6 +97,7 @@ proc testSuite() =
       check a.isNil == true
       a.decr()
 
+
     test "test destroy release generic no proc":
       # echo "\nintref setup:\n"
       let intref: ref int = new(ref int)
