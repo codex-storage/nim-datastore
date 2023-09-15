@@ -188,7 +188,7 @@ method query*(
   var
     iter = QueryIter.new()
 
-  let lock = newAsyncLock()
+  var lock = newAsyncLock() # serialize querying under threads
   proc next(): Future[?!QueryResponse] {.async.} =
     defer:
       if lock.locked:
