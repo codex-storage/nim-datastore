@@ -57,7 +57,7 @@ proc incr*[T](a: SharedPtr[T]) =
 
 proc decr*[T](x: SharedPtr[T]) =
   if x.container != nil:
-    let res = atomicSubFetch(addr x.container.cnt, 1, ATOMIC_ACQUIRE)
+    let res = atomicSubFetch(addr x.container.cnt, 1, ATOMIC_RELEASE)
     if res == 0:
       echoed "SharedPtr: FREE: ", x.container.pointer.repr, " cnt: ", x.container.cnt, " tp: ", $(typeof(T))
       when compiles(`=destroy`(x[])):
