@@ -151,9 +151,19 @@ method query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
+  let lock = newAsyncLock()
   proc next(): Future[?!QueryResponse] {.async.} =
+    defer:
+      if lock.locked:
+        lock.release()
+
+    if lock.locked:
+      return failure (ref DatastoreError)(msg: "Should always await query features")
+
     if iter.finished:
-      return failure(newException(QueryEndedError, "Calling next on a finished query!"))
+      return failure((ref QueryEndedError)(msg: "Calling next on a finished query!"))
+
+    await lock.acquire()
 
     let
       v = sqlite3_step(s)

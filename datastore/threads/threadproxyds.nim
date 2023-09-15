@@ -287,6 +287,9 @@ method query*(
       if lock.locked:
         lock.release()
 
+    if lock.locked:
+      return failure (ref DatastoreError)(msg: "Should always await query features")
+
     if iter.finished == true:
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 

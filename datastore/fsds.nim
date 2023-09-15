@@ -188,9 +188,22 @@ method query*(
   var
     iter = QueryIter.new()
 
+  let lock = newAsyncLock()
   proc next(): Future[?!QueryResponse] {.async.} =
+    defer:
+      if lock.locked:
+        lock.release()
+
+    if lock.locked:
+      return failure (ref DatastoreError)(msg: "Should always await query features")
+
     let
       path = walker()
+
+    if iter.finished:
+      return failure "iterator is finished"
+
+    await lock.acquire()
 
     if finished(walker):
       iter.finished = true
