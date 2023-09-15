@@ -26,16 +26,17 @@ method has*(
   key: Key
 ): Future[?!bool] {.async.} =
 
-  var ret = newThreadResult(bool)
   let sig = SharedSignal.new(0)
+  await sig.acquireSig()
 
-  try:
-    await sig.acquireSig()
-    sig.has(ret, self.tds, key)
-    await sig.wait()
-    return ret.convert(bool)
-  finally:
-    ret.release()
+  var ret = newThreadResult(bool)
+  proc submitHas() =
+    let bkey = KeyBuffer.new(key)
+    self.tds[].tp.spawn hasTask(sig, ret, self.tds, bkey)
+
+  submitHas()
+  await sig.wait()
+  return ret.convert(bool)
 
 method delete*(
   self: ThreadProxyDatastore,
@@ -43,15 +44,15 @@ method delete*(
 ): Future[?!void] {.async.} =
 
   let sig = SharedSignal.new(0)
+  await sig.acquireSig()
+
   var ret = newThreadResult(void)
+  proc submitDelete() =
+    let bkey = KeyBuffer.new(key)
+    self.tds[].tp.spawn deleteTask(sig, ret, self.tds, bkey)
 
-  try:
-    await sig.acquireSig()
-    sig.delete(ret, self.tds, key)
-    await sig.wait()
-  finally:
-    ret.release()
-
+  submitDelete()
+  await sig.wait()
   return ret.convert(void)
 
 method delete*(
@@ -76,18 +77,17 @@ method get*(
   ## for the entire batch
 
   let sig = SharedSignal.new(0)
+  await sig.acquireSig()
+
   var ret = newThreadResult(ValueBuffer)
+  proc submitGet() =
+    let bkey = KeyBuffer.new(key)
+    self.tds[].tp.spawn getTask(sig, ret, self.tds, bkey)
 
-  try:
-    sig.get(ret, self.tds, key)
-    await sig.wait()
-  finally:
-    ret.release()
-
+  submitGet()
+  await sig.wait()
   return ret.convert(seq[byte])
 
-import ./threads/then
-import std/os
 
 method put*(
   self: ThreadProxyDatastore,
@@ -126,8 +126,6 @@ method put*(
       return failure err
 
   return success()
-
-import pretty
 
 method query*(
   self: ThreadProxyDatastore,

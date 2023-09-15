@@ -86,14 +86,23 @@ proc hasTask*(
   except CatchableError as err:
     ret.failure(err)
 
-proc has*(
+proc deleteTask*(
   sig: SharedSignal,
-  ret: TResult[bool],
+  ret: TResult[void],
   tds: ThreadDatastorePtr,
-  key: Key,
+  kb: KeyBuffer,
 ) =
-  let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn hasTask(sig, ret, tds, bkey)
+
+  let key = kb.toKey()
+
+  let res = (waitFor tds[].ds.delete(key)).catch
+  # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
+  if res.isErr:
+    ret.failure(res.error())
+  else:
+    ret.success()
+
+  discard sig.fireSync()
 
 proc getTask*(
   sig: SharedSignal,
@@ -113,15 +122,6 @@ proc getTask*(
     discard sig.fireSync()
   except CatchableError as err:
     ret.failure(err)
-
-proc get*(
-  sig: SharedSignal,
-  ret: TResult[DataBuffer],
-  tds: ThreadDatastorePtr,
-  key: Key,
-) =
-  let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn getTask(sig, ret, tds, bkey)
 
 import std/os
 
@@ -153,39 +153,6 @@ proc putTask*(
   discard sig.fireSync()
   sig.decr()
   echoed "putTask: FINISH\n"
-
-
-
-proc deleteTask*(
-  sig: SharedSignal,
-  ret: TResult[void],
-  tds: ThreadDatastorePtr,
-  kb: KeyBuffer,
-) =
-
-  let key = kb.toKey()
-
-  let res = (waitFor tds[].ds.delete(key)).catch
-  # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
-  if res.isErr:
-    ret.failure(res.error())
-  else:
-    ret.success()
-
-  discard sig.fireSync()
-
-# import pretty
-
-proc delete*(
-  sig: SharedSignal,
-  ret: TResult[void],
-  tds: ThreadDatastorePtr,
-  key: Key,
-) =
-  let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn deleteTask(sig, ret, tds, bkey)
-
-# import os
 
 proc queryTask*(
   sig: SharedSignal,
