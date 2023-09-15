@@ -37,7 +37,8 @@ type
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
     ds: Datastore
-    semaphore: Semaphore # semaphore is used for backpressure to avoid exhausting file descriptors
+    semaphore: Semaphore    # semaphore is used for backpressure \
+                            # to avoid exhausting file descriptors
     tasks: seq[Future[void]]
 
 template dispatchTask(
@@ -278,7 +279,7 @@ method query*(
     return failure error
 
   var
-    iter = QueryIter.init()
+    iter = QueryIter.new()
 
   let lock = newAsyncLock()
   proc next(): Future[?!QueryResponse] {.async.} =
