@@ -26,11 +26,13 @@ method has*(
   key: Key
 ): Future[?!bool] {.async.} =
 
-  var ret = await newThreadResult(bool)
+  var ret = newThreadResult(bool)
+  let sig = SharedSignal.new(0)
 
   try:
-    has(ret, self.tds, key)
-    await wait(ret)
+    await sig.acquireSig()
+    sig.has(ret, self.tds, key)
+    await sig.wait()
     return ret.convert(bool)
   finally:
     ret.release()
@@ -40,11 +42,13 @@ method delete*(
   key: Key
 ): Future[?!void] {.async.} =
 
-  var ret = await newThreadResult(void)
+  let sig = SharedSignal.new(0)
+  var ret = newThreadResult(void)
 
   try:
-    delete(ret, self.tds, key)
-    await wait(ret)
+    await sig.acquireSig()
+    sig.delete(ret, self.tds, key)
+    await sig.wait()
   finally:
     ret.release()
 
@@ -71,11 +75,12 @@ method get*(
   ## probably be switched to use a single ThreadSignal
   ## for the entire batch
 
-  var ret = await newThreadResult(ValueBuffer)
+  let sig = SharedSignal.new(0)
+  var ret = newThreadResult(ValueBuffer)
 
   try:
-    get(ret, self.tds, key)
-    await wait(ret)
+    sig.get(ret, self.tds, key)
+    await sig.wait()
   finally:
     ret.release()
 
@@ -148,7 +153,9 @@ method query*(
   query: Query
 ): Future[?!QueryIter] {.async.} =
 
-  var ret = await newThreadResult(QueryResponseBuffer)
+  let sig = SharedSignal.new(0)
+  await sig.acquireSig()
+  var ret = newThreadResult(QueryResponseBuffer)
 
   # echo "\n\n=== Query Start === "
 
@@ -169,8 +176,8 @@ method query*(
     iterWrapper.finished = iter[].it.finished
     if not iter[].it.finished:
       iterWrapper.readyForNext = false
-      query(ret, self.tds, iter)
-      await wait(ret)
+      sig.query(ret, self.tds, iter)
+      await sig.wait()
       iterWrapper.readyForNext = true
       # echo ""
       # print "query:post: ", ret[].results

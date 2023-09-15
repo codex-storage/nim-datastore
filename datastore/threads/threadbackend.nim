@@ -68,6 +68,7 @@ type
   QueryIterPtr* = SharedPtr[QueryIterStore]
 
 proc hasTask*(
+  sig: SharedSignal,
   ret: TResult[bool],
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
@@ -81,19 +82,21 @@ proc hasTask*(
       ret.failure(res.error())
     else:
       ret.success(res.get())
-    discard ret.fireSync()
+    discard sig.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
 proc has*(
+  sig: SharedSignal,
   ret: TResult[bool],
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn hasTask(ret, tds, bkey)
+  tds[].tp.spawn hasTask(sig, ret, tds, bkey)
 
 proc getTask*(
+  sig: SharedSignal,
   ret: TResult[DataBuffer],
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
@@ -107,17 +110,18 @@ proc getTask*(
       let db = DataBuffer.new res.get()
       ret.success(db)
 
-    discard ret.fireSync()
+    discard sig.fireSync()
   except CatchableError as err:
     ret.failure(err)
 
 proc get*(
+  sig: SharedSignal,
   ret: TResult[DataBuffer],
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn getTask(ret, tds, bkey)
+  tds[].tp.spawn getTask(sig, ret, tds, bkey)
 
 import std/os
 
@@ -153,6 +157,7 @@ proc putTask*(
 
 
 proc deleteTask*(
+  sig: SharedSignal,
   ret: TResult[void],
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
@@ -167,21 +172,23 @@ proc deleteTask*(
   else:
     ret.success()
 
-  discard ret.fireSync()
+  discard sig.fireSync()
 
 # import pretty
 
 proc delete*(
+  sig: SharedSignal,
   ret: TResult[void],
   tds: ThreadDatastorePtr,
   key: Key,
 ) =
   let bkey = KeyBuffer.new(key)
-  tds[].tp.spawn deleteTask(ret, tds, bkey)
+  tds[].tp.spawn deleteTask(sig, ret, tds, bkey)
 
 # import os
 
 proc queryTask*(
+  sig: SharedSignal,
   ret: TResult[QueryResponseBuffer],
   tds: ThreadDatastorePtr,
   qiter: QueryIterPtr,
@@ -202,11 +209,12 @@ proc queryTask*(
   except Exception as exc:
     ret.failure(exc)
 
-  discard ret.fireSync()
+  discard sig.fireSync()
 
 proc query*(
+  sig: SharedSignal,
   ret: TResult[QueryResponseBuffer],
   tds: ThreadDatastorePtr,
   qiter: QueryIterPtr,
 ) =
-  tds[].tp.spawn queryTask(ret, tds, qiter)
+  tds[].tp.spawn queryTask(sig, ret, tds, qiter)
