@@ -25,9 +25,6 @@ suite "Datastore (base)":
 
   test "query":
     expect Defect:
-      let 
+      let
         q = Query.init(key)
-        all = waitForAllQueryResults(await ds.query(q))
-        res = tryGet(await all)
-      for n in res:
-        discard
+      discard (await ds.query(q)).tryGet
