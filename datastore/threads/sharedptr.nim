@@ -17,32 +17,33 @@ template checkNotNil(p: typed) =
       if p.isNil:
         raiseNilAccess()
 
-import std/terminal
-import std/locks
-var elock: Lock
-elock.initLock()
 
-proc echoed*(vals: varargs[string, `$`]) =
-  proc printThread(): ForegroundColor = 
-    let tclr = [fgRed, fgGreen, fgBlue, fgMagenta, fgCyan]
-    let tid = getThreadId()
-    let color = tclr[(tid mod (tclr.len() - 1))]
-    stdout.styledWrite(styleBright, fgWhite, "(thr: ", color, $tid, fgWhite, ")  ")
-    color
-  try:
-    let color = printThread()
-    var i = 0
-    if vals.len() mod 2 != 0:
-      stdout.styledWrite(color, vals[i])
-      i.inc()
-    while i + 1 < vals.len():
-      stdout.styledWrite(color, vals[i], fgDefault, vals[i+1])
-      i.inc(2)
-    stdout.styledWrite("\n")
-  except:
+when not defined(datastoreEchoString):
+  proc echoed*(vals: varargs[string, `$`]) =
     discard
-  finally:
-    discard
+else:
+  import std/terminal
+  proc echoed*(vals: varargs[string, `$`]) =
+    proc printThread(): ForegroundColor = 
+      let tclr = [fgRed, fgGreen, fgBlue, fgMagenta, fgCyan]
+      let tid = getThreadId()
+      let color = tclr[(tid mod (tclr.len() - 1))]
+      stdout.styledWrite(styleBright, fgWhite, "(thr: ", color, $tid, fgWhite, ")  ")
+      color
+    try:
+      let color = printThread()
+      var i = 0
+      if vals.len() mod 2 != 0:
+        stdout.styledWrite(color, vals[i])
+        i.inc()
+      while i + 1 < vals.len():
+        stdout.styledWrite(color, vals[i], fgDefault, vals[i+1])
+        i.inc(2)
+      stdout.styledWrite("\n")
+    except:
+      discard
+    finally:
+      discard
 
 type
   SharedPtr*[T] = object

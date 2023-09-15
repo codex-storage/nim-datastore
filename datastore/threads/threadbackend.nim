@@ -110,7 +110,10 @@ proc getTask*(
   tds: ThreadDatastorePtr,
   kb: KeyBuffer,
 ) =
+  echo "\n"
+  echoed "getTask: ", $getThreadId()
   let key = kb.toKey()
+  echoed "getTask: key: ", $key
   try:
     let res = waitFor tds[].ds.get(key)
     if res.isErr:
@@ -133,7 +136,7 @@ proc putTask*(
   db: DataBuffer,
 ) =
 
-  # os.sleep(400)
+  # os.sleep(1_000)
   # var ret = ret
   echo "\n"
   echoed "putTask: ", $getThreadId()

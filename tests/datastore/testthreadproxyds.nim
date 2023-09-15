@@ -41,10 +41,12 @@ suite "Test Basic ThreadProxyDatastore":
     check res1.isOk
 
   test "check get":
-    # echo "\n\n=== get ==="
+    echo "\n\n=== get ==="
+    print "get send key: ", key1
     let res2 = await sds.get(key1)
-    check res2.get() == data
+    print "get key post: ", key1
     print "get res2: ", res2
+    check res2.get() == data
     var val = ""
     for c in res2.get():
       val &= char(c)

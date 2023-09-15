@@ -18,32 +18,32 @@ type
     val: ref T
 
 proc `=destroy`(obj: var TestObj) =
-  echo "test obj destroy"
+  # echo "test obj destroy"
   obj.val[] = 0
 
 proc `=destroy`[T: int](obj: var TestObjGen[T]) =
-  echo "test obj destroy"
+  # echo "test obj destroy"
   obj.val[] = 0
 
 proc destroyTest(intref: ref int) =
   let a: SharedPtr[TestObj] = newSharedPtr(unsafeIsolate TestObj(val: intref))
-  echo "a[]: ", a[]
+  # echo "a[]: ", a[]
   check a[].val[] == 10
 
 proc runDestroyTest() =
-  echo "\nintref setup:\n"
+  # echo "\nintref setup:\n"
   let intref: ref int = new(ref int)
   intref[] = 10
   destroyTest(intref)
   check intref[] == 0
 
 proc runDestroyOnReleaseTest() =
-  echo "\nintref setup:\n"
+  # echo "\nintref setup:\n"
   let intref: ref int = new(ref int)
   intref[] = 20
   var a: SharedPtr[TestObj] = newSharedPtr(unsafeIsolate TestObj(val: intref))
   try:
-    echo "a[]: ", a[]
+    # echo "a[]: ", a[]
     check a[].val[] == 20
   finally:
     a.release()
@@ -81,12 +81,12 @@ suite "Share buffer test":
     runDestroyOnReleaseTest()
 
   test "test destroy release no proc":
-    echo "\nintref setup:\n"
+    # echo "\nintref setup:\n"
     let intref: ref int = new(ref int)
     intref[] = 30
     var a: SharedPtr[TestObj] = newSharedPtr(unsafeIsolate TestObj(val: intref))
     try:
-      echo "a[]: ", a[]
+      # echo "a[]: ", a[]
       check a[].val[] == 30
     finally:
       a.release()
@@ -98,24 +98,24 @@ suite "Share buffer test":
     a.decr()
 
   test "test destroy release generic no proc":
-    echo "\nintref setup:\n"
+    # echo "\nintref setup:\n"
     let intref: ref int = new(ref int)
     intref[] = 30
     var b: SharedPtr[TestObjGen[int]] = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref))
     try:
-      echo "a[]: ", b[]
+      # echo "a[]: ", b[]
       check b[].val[] == 30
     finally:
       b.release()
       check intref[] == 0
     
   test "test manual release / decr":
-    echo "\nintref setup:\n"
+    # echo "\nintref setup:\n"
     let intref: ref int = new(ref int)
     intref[] = 40
     var b = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref), manualCount = 2)
     try:
-      echo "a[]: ", b[]
+      # echo "a[]: ", b[]
       check b[].val[] == 40
     finally:
       b.decr()
