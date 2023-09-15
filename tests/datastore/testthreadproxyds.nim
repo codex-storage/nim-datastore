@@ -39,6 +39,7 @@ suite "Test Basic ThreadDatastore with SQLite":
     taskPool.shutdown()
 
   basicStoreTests(ds, key, bytes, otherBytes)
+  queryTests(ds, true)
 
 # suite "Test Basic ThreadDatastore with fsds":
 
@@ -55,4 +56,3 @@ suite "Test Basic ThreadDatastore with SQLite":
 #     ds: ThreadDatastore
 #     taskPool: Taskpool
 
-  queryTests(ds, true)
