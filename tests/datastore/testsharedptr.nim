@@ -54,74 +54,79 @@ proc runDestroyOnReleaseTest() =
     a.decr()
     a.release()
 
+proc testSuite() =
+  suite "Share buffer test":
 
-suite "Share buffer test":
+    setup:
+      var a1 {.used.}: SharedPtr[int]
+      let a2 {.used.} = newSharedPtr(0)
+      let a3 {.used.} = a2
 
-  setup:
-    var a1 {.used.}: SharedPtr[int]
-    let a2 {.used.} = newSharedPtr(0)
-    let a3 {.used.} = a2
+    test "basics":
+      # echo "a1: ", $a1
+      check $a1 == "nil\"\""
+      check a1.isNil
+      # check $a2 == "(value: 0, cnt: 2)"
+      check split($(a2),'"')[1] == "(value: 0, cnt: 2, manual: false)"
+      check not a2.isNil
+      check a2[] == 0
+      check split($(a3),'"')[1] == "(value: 0, cnt: 2, manual: false)"
+      check not a3.isNil
+      check a3[] == 0
 
-  test "basics":
-    echo "a1: ", $a1
-    check $a1 == "nil\"\""
-    check a1.isNil
-    # check $a2 == "(value: 0, cnt: 2)"
-    check split($(a2),'"')[1] == "(value: 0, cnt: 2, manual: false)"
-    check not a2.isNil
-    check a2[] == 0
-    check split($(a3),'"')[1] == "(value: 0, cnt: 2, manual: false)"
-    check not a3.isNil
-    check a3[] == 0
+    test "test destroy procs":
+      runDestroyTest()
 
-  test "test destroy procs":
-    runDestroyTest()
+    test "test destroy release":
+      runDestroyOnReleaseTest()
 
-  test "test destroy release":
-    runDestroyOnReleaseTest()
+    test "test destroy release no proc":
+      # echo "\nintref setup:\n"
+      let intref: ref int = new(ref int)
+      intref[] = 30
+      var a: SharedPtr[TestObj] = newSharedPtr(unsafeIsolate TestObj(val: intref))
+      try:
+        # echo "a[]: ", a[]
+        check a[].val[] == 30
+      finally:
+        a.release()
+        check intref[] == 0
 
-  test "test destroy release no proc":
-    # echo "\nintref setup:\n"
-    let intref: ref int = new(ref int)
-    intref[] = 30
-    var a: SharedPtr[TestObj] = newSharedPtr(unsafeIsolate TestObj(val: intref))
-    try:
-      # echo "a[]: ", a[]
-      check a[].val[] == 30
-    finally:
-      a.release()
-      check intref[] == 0
+      ## important a should be nil now!
+      ## to prevent future decr's from occuring
+      check a.isNil == true
+      a.decr()
 
-    ## important a should be nil now!
-    ## to prevent future decr's from occuring
-    check a.isNil == true
-    a.decr()
+    test "test destroy release generic no proc":
+      # echo "\nintref setup:\n"
+      let intref: ref int = new(ref int)
+      intref[] = 30
+      var b: SharedPtr[TestObjGen[int]] = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref))
+      try:
+        # echo "a[]: ", b[]
+        check b[].val[] == 30
+      finally:
+        b.release()
+        check intref[] == 0
+      
+    test "test manual release / decr":
+      # echo "\nintref setup:\n"
+      let intref: ref int = new(ref int)
+      intref[] = 40
+      var b = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref), manualCount = 2)
+      try:
+        # echo "a[]: ", b[]
+        check b[].val[] == 40
+      finally:
+        b.decr()
+        check intref[] == 40
+        b.release()
+        check intref[] == 0
 
-  test "test destroy release generic no proc":
-    # echo "\nintref setup:\n"
-    let intref: ref int = new(ref int)
-    intref[] = 30
-    var b: SharedPtr[TestObjGen[int]] = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref))
-    try:
-      # echo "a[]: ", b[]
-      check b[].val[] == 30
-    finally:
-      b.release()
-      check intref[] == 0
-    
-  test "test manual release / decr":
-    # echo "\nintref setup:\n"
-    let intref: ref int = new(ref int)
-    intref[] = 40
-    var b = newSharedPtr(unsafeIsolate TestObjGen[int](val: intref), manualCount = 2)
-    try:
-      # echo "a[]: ", b[]
-      check b[].val[] == 40
-    finally:
-      b.decr()
-      check intref[] == 40
-      b.release()
-      check intref[] == 0
+    # TODO: add async test
 
-  # TODO: add async test
-
+when isMainModule:
+  for i in 1..10_000:
+    testSuite()
+else:
+  testSuite()
