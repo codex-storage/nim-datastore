@@ -26,7 +26,7 @@ method has*(
   key: Key
 ): Future[?!bool] {.async.} =
 
-  let sig = SharedSignal.new(0)
+  let sig = SharedSignal.new()
   await sig.acquireSig()
 
   var ret = newThreadResult(bool)
@@ -43,7 +43,7 @@ method delete*(
   key: Key
 ): Future[?!void] {.async.} =
 
-  let sig = SharedSignal.new(0)
+  let sig = SharedSignal.new()
   await sig.acquireSig()
 
   var ret = newThreadResult(void)
@@ -76,7 +76,7 @@ method get*(
   ## probably be switched to use a single ThreadSignal
   ## for the entire batch
 
-  let sig = SharedSignal.new(0)
+  let sig = SharedSignal.new()
   await sig.acquireSig()
 
   var ret = newThreadResult(ValueBuffer)
@@ -96,7 +96,7 @@ method put*(
 ): Future[?!void] {.async.} =
 
   echoed "put request args: ", $getThreadId()
-  let sig = SharedSignal.new(0)
+  let sig = SharedSignal.new()
   await sig.acquireSig()
 
   let ret = newSharedPtr(ThreadResult[void])
@@ -132,7 +132,7 @@ method query*(
   query: Query
 ): Future[?!QueryIter] {.async.} =
 
-  let sig = SharedSignal.new(0)
+  let sig = SharedSignal.new()
   await sig.acquireSig()
   var ret = newThreadResult(QueryResponseBuffer)
 
@@ -204,7 +204,7 @@ proc newThreadProxyDatastore*(
   var self = ThreadProxyDatastore()
   var value = newSharedPtr(ThreadDatastore)
   # let dsCell = protect(cast[pointer](ds))
-  GC_ref(ds) ## TODO: is this needed?
+  # GC_ref(ds) ## TODO: is this needed?
 
   try:
     value[].ds = ds

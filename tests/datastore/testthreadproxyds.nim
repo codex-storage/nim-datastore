@@ -40,23 +40,21 @@ suite "Test Basic ThreadProxyDatastore":
     print "res1: ", res1
     check res1.isOk
 
+  test "check get":
+    # echo "\n\n=== get ==="
+    let res2 = await sds.get(key1)
+    check res2.get() == data
+    print "get res2: ", res2
+    var val = ""
+    for c in res2.get():
+      val &= char(c)
+    print "get res2: ", $val
 
-# GC_fullCollect() # this fails due to MemoryStore already being freed...
-
-#   test "check get":
-#     # echo "\n\n=== get ==="
-#     let res2 = await sds.get(key1)
-#     check res2.get() == data
-#     var val = ""
-#     for c in res2.get():
-#       val &= char(c)
-#     # print "get res2: ", $val
-
-#     # echo "\n\n=== put cancel ==="
-#     # # let res1 = await sds.put(key1, "value for 1".toBytes())
-#     # let res3 = sds.put(key1, "value for 1".toBytes())
-#     # res3.cancel()
-#     # # print "res3: ", res3
+    # echo "\n\n=== put cancel ==="
+    # # let res1 = await sds.put(key1, "value for 1".toBytes())
+    # let res3 = sds.put(key1, "value for 1".toBytes())
+    # res3.cancel()
+    # # print "res3: ", res3
 
 # suite "Test Basic ThreadProxyDatastore":
 
@@ -104,3 +102,5 @@ suite "Test Basic ThreadProxyDatastore":
       
 #       check res.len() > 0
 
+
+# GC_fullCollect() # this fails due to MemoryStore already being freed...

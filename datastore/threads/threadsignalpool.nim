@@ -90,9 +90,8 @@ proc `=destroy`*(x: var SharedSignalObj) =
     release(x.sigptr)
     x.sigptr = nil
 
-proc new*(tp: typedesc[SharedSignal],
-          count: int): SharedSignal =
-  result = newSharedPtr[SharedSignalObj](SharedSignalObj, manualCount = count)
+proc new*(tp: typedesc[SharedSignal]): SharedSignal =
+  result = newSharedPtr[SharedSignalObj](SharedSignalObj)
 
 proc acquireSig*(sig: SharedSignal): Future[void] {.async.} =
   sig[].sigptr = await getThreadSignal()
