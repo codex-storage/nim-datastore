@@ -22,7 +22,6 @@ import ../query
 import ../datastore
 
 import ./semaphore
-import ./asyncsemaphore
 import ./databuffer
 
 type
@@ -38,8 +37,7 @@ type
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
     ds: Datastore
-    # semaphore: AsyncSemaphore
-    semaphore: Semaphore
+    semaphore: Semaphore # semaphore is used for backpressure to avoid exhausting file descriptors
     tasks: seq[Future[void]]
 
 template dispatchTask(
@@ -51,7 +49,6 @@ template dispatchTask(
     fut = wait(ctx.signal)
 
   try:
-    # await self.semaphore.acquire()
     self.tasks.add(fut)
     runTask()
     await fut
@@ -67,8 +64,6 @@ template dispatchTask(
       let idx = self.tasks.find(fut);
       idx != -1):
       self.tasks.del(idx)
-
-    # self.semaphore.release()
 
 proc hasTask(
   ctx: ptr TaskCtx,
@@ -336,5 +331,4 @@ func new*(
   success ThreadDatastore(
     tp: tp,
     ds: ds,
-    # semaphore: AsyncSemaphore.new(tp.numThreads - 1)) # one thread is needed for the task dispatcher
-    semaphore: Semaphore.init((tp.numThreads - 1).uint)) # one thread is needed for the task dispatcher
+    semaphore: Semaphore.init((tp.numThreads - 1).uint))
