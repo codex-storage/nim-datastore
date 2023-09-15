@@ -16,38 +16,32 @@ import ./querycommontests
 
 import pretty
 
-proc threadTest() =
-  suite "Test Basic ThreadProxyDatastore":
-    var
-      sds: ThreadProxyDatastore
-      mem: MemoryDatastore
-      key1: Key
-      data: seq[byte]
+suite "Test Basic ThreadProxyDatastore":
+  var
+    sds: ThreadProxyDatastore
+    mem: MemoryDatastore
+    key1: Key
+    data: seq[byte]
 
-    setupAll:
-      mem = MemoryDatastore.new()
-      sds = newThreadProxyDatastore(mem).expect("should work")
-      key1 = Key.init("/a").tryGet
-      data = "value for 1".toBytes()
-    
-    teardownAll:
-      let res = await sds.close()
-      res.get()
+  setupAll:
+    mem = MemoryDatastore.new()
+    sds = newThreadProxyDatastore(mem).expect("should work")
+    key1 = Key.init("/a").tryGet
+    data = "value for 1".toBytes()
+  
+  teardownAll:
+    let res = await sds.close()
+    res.get()
+    echo "teardown done"
 
-    test "check put":
-      # echo "\n\n=== put ==="
-      let res1 = await sds.put(key1, data)
-      print "res1: ", res1
-      check res1.isOk
-      # GC_fullCollect()
+  test "check put":
+    # echo "\n\n=== put ==="
+    let res1 = await sds.put(key1, data)
+    print "res1: ", res1
+    check res1.isOk
 
-proc main() =
-  threadTest()
-  # GC_fullCollect()
 
-main()
-# GC_fullCollect()
-
+# GC_fullCollect() # this fails due to MemoryStore already being freed...
 
 #   test "check get":
 #     # echo "\n\n=== get ==="

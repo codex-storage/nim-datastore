@@ -195,6 +195,8 @@ method close*(
 
   self[].tds[].ds = nil # ensure our sharedptr doesn't try and dealloc
   self.tds.release()
+  echo "close done"
+  # dispose(dsCell)
 
 proc newThreadProxyDatastore*(
   ds: Datastore,
@@ -203,7 +205,8 @@ proc newThreadProxyDatastore*(
 
   var self = ThreadProxyDatastore()
   var value = newSharedPtr(ThreadDatastore)
-  # GC_ref(ds) ## TODO: is this needed?
+  # let dsCell = protect(cast[pointer](ds))
+  GC_ref(ds) ## TODO: is this needed?
 
   try:
     value[].ds = ds
