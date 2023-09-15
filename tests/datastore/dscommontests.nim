@@ -58,8 +58,8 @@ proc basicStoreTests*(
     for k in batch:
       check: not (await ds.has(k)).tryGet
 
-  # test "handle missing key":
-  #   let key = Key.init("/missing/key").tryGet()
+  test "handle missing key":
+    let key = Key.init("/missing/key").tryGet()
 
-  #   # expect(ResultFailure):
-  #   discard (await ds.get(key)).tryGet() # non existing key
+    # TODO: map error correctly from threadproxy
+    check (await ds.get(key)).isErr() # non existing key
