@@ -88,7 +88,9 @@ import stew/results
 proc new*(tp: typedesc[KeyBuffer], key: Key): KeyBuffer =
   let ks = key.id()
   result = KeyBuffer.new(ks)
-  echoed "KeyBuffer:new: ", $result
+  # echoed "KeyBuffer:new: ", $result
 proc toKey*(kb: KeyBuffer): Key =
-  let res = Key.init(kb.toString())
+  let ks = kb.toString()
+  # echo "toKey: ", ks
+  let res = Key.init(ks)
   res.expect("should always be valid")

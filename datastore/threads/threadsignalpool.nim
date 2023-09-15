@@ -11,8 +11,8 @@ export sharedptr
 export threadsync
 
 const
-  SignalPoolSize {.intdefine.} = 1024
-  SignalPoolRetries {.intdefine.} = 100
+  SignalPoolSize {.intdefine.} = 100
+  SignalPoolRetries {.intdefine.} = 1000
 
 var
   signalPoolLock: Lock

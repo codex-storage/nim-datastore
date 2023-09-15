@@ -137,9 +137,9 @@ proc putTask*(
 
   # os.sleep(1_000)
   # var ret = ret
-  echoed "putTask: ", $getThreadId()
-  echoed "putTask:kb: ", kb.toString
-  echoed "putTask:db: ", db.toString
+  # echoed "putTask: ", $getThreadId()
+  # echo "putTask:kb: ", kb.toString
+  # echo "putTask:db: ", db.toString
 
   let key = kb.toKey()
 

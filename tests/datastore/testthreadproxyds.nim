@@ -16,87 +16,99 @@ import ./querycommontests
 
 import pretty
 
-suite "Test Basic ThreadProxyDatastore":
-  var
-    sds: ThreadProxyDatastore
-    mem: MemoryDatastore
-    key1: Key
-    data: seq[byte]
+proc testThreadProxy() =
+  suite "Test Basic ThreadProxyDatastore":
+    var
+      sds: ThreadProxyDatastore
+      mem: MemoryDatastore
+      key1: Key
+      data: seq[byte]
 
-  setupAll:
-    mem = MemoryDatastore.new()
-    sds = newThreadProxyDatastore(mem).expect("should work")
-    key1 = Key.init("/a").tryGet
-    data = "value for 1".toBytes()
-  
-  teardownAll:
-    let res = await sds.close()
-    res.get()
-    echo "teardown done"
+    setupAll:
+      mem = MemoryDatastore.new()
+      sds = newThreadProxyDatastore(mem).expect("should work")
+      key1 = Key.init("/a").tryGet
+      data = "value for 1".toBytes()
 
-  test "check put":
-    # echo "\n\n=== put ==="
-    let res1 = await sds.put(key1, data)
-    # echo "res1: ", res1.repr
-    check res1.isOk
+    teardownAll:
+      let res = await sds.close()
+      res.get()
+      echo "teardown done"
 
-  test "check get":
-    # echo "\n\n=== get ==="
-    # echo "get send key: ", key1.repr
-    let res2 = await sds.get(key1)
-    # echo "get key post: ", key1.repr
-    # echo "get res2: ", res2.repr
-    # echo res2.get() == data
-    var val = ""
-    for c in res2.get():
-      val &= char(c)
-    # print "get res2: ", $val
+    test "check put":
+      # echo "\n\n=== put ==="
+      let res1 = await sds.put(key1, data)
+      # echo "res1: ", res1.repr
+      check res1.isOk
 
-suite "Test Basics":
-  var
-    mem = MemoryDatastore.new()
-    sds = newThreadProxyDatastore(mem).expect("should work")
+    test "check get":
+      # echo "\n\n=== get ==="
+      # echo "get send key: ", key1.repr
+      let res2 = await sds.get(key1)
+      # echo "get key post: ", key1.repr
+      # echo "get res2: ", res2.repr
+      # echo res2.get() == data
+      var val = ""
+      for c in res2.get():
+        val &= char(c)
+      # print "get res2: ", $val
 
-  let
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+proc testThreadProxyBasics() =
+  suite "Test Basics":
+    var
+      mem = MemoryDatastore.new()
+      sds = newThreadProxyDatastore(mem).expect("should work")
 
-    # echo "\n\n=== put cancel ==="
-    # # let res1 = await sds.put(key1, "value for 1".toBytes())
-    # let res3 = sds.put(key1, "value for 1".toBytes())
-    # res3.cancel()
-    # # print "res3: ", res3
-  
-  basicStoreTests(sds, key, bytes, otherBytes)
+    let
+      key = Key.init("/a/b").tryGet()
+      bytes = "some bytes".toBytes
+      otherBytes = "some other bytes".toBytes
 
-suite "Test Query":
-  var
-    mem: MemoryDatastore
-    sds: ThreadProxyDatastore
+      # echo "\n\n=== put cancel ==="
+      # # let res1 = await sds.put(key1, "value for 1".toBytes())
+      # let res3 = sds.put(key1, "value for 1".toBytes())
+      # res3.cancel()
+      # # print "res3: ", res3
 
-  setup:
-    mem = MemoryDatastore.new()
-    sds = newThreadProxyDatastore(mem).expect("should work")
+    basicStoreTests(sds, key, bytes, otherBytes)
 
-  queryTests(sds, false)
+proc testThreadProxyQuery() =
+  suite "Test Query":
+    var
+      mem: MemoryDatastore
+      sds: ThreadProxyDatastore
 
-  test "query iter fails":
+    setup:
+      mem = MemoryDatastore.new()
+      sds = newThreadProxyDatastore(mem).expect("should work")
 
-    expect FutureDefect:
-      let q = Query.init(key1)
+    queryTests(sds, false)
 
-      (await sds.put(key1, val1)).tryGet
-      (await sds.put(key2, val2)).tryGet
-      (await sds.put(key3, val3)).tryGet
+    test "query iter fails":
 
-      let
-        iter = (await sds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
-      
-      check res.len() > 0
+      expect FutureDefect:
+        let q = Query.init(key1)
 
+        (await sds.put(key1, val1)).tryGet
+        (await sds.put(key2, val2)).tryGet
+        (await sds.put(key3, val3)).tryGet
+
+        let
+          iter = (await sds.query(q)).tryGet
+          res = (await allFinished(toSeq(iter)))
+            .mapIt(it.read.tryGet)
+            .filterIt(it.key.isSome)
+
+        check res.len() > 0
+
+when isMainModule:
+  for i in 1..100:
+    testThreadProxy()
+    testThreadProxyBasics()
+    # testThreadProxyQuery()
+else:
+  testThreadProxy()
+  testThreadProxyBasics()
+  testThreadProxyQuery()
 
 # GC_fullCollect() # this fails due to MemoryStore already being freed...
