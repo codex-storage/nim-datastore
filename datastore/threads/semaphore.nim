@@ -44,10 +44,11 @@ proc release*(self: var Semaphore) {.inline.} =
   if self.count <= 0:
     self.count += 1
     self.cond.signal()
-  self.lock.release()
 
   doAssert not (self.count > self.size),
     "Semaphore count is greather than size: " & $self.size & " count is: " & $self.count
+
+  self.lock.release()
 
 template withSemaphore*(self: var Semaphore, body: untyped) =
   self.acquire()
