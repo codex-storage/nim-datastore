@@ -93,42 +93,23 @@ method put*(
   self: ThreadProxyDatastore,
   key: Key,
   data: seq[byte]
-): Future[?!void] =
+): Future[?!void] {.async.} =
 
   echoed "put request args: ", $getThreadId()
-  let tds = self.tds
-  var putRes = newFuture[?!void]("threadbackend.put(tds, key, data)")
   let sig = SharedSignal.new(0)
-  echoed "put:sig: ", sig.repr
+  await sig.acquireSig()
 
-  acquireSig(sig).
-    then(proc () =
-      let
-        ret = newSharedPtr(ThreadResult[void])
-        bkey = KeyBuffer.new(key)
-        bval = DataBuffer.new(data)
+  let ret = newSharedPtr(ThreadResult[void])
+  proc submitPut(): ?!void =
+    let bkey = KeyBuffer.new(key)
+    let bval = DataBuffer.new(data)
+    # queue taskpool work
+    self.tds[].tp.spawn putTask(sig, ret, self.tds, bkey, bval)
+  
+  submitPut()
+  await sig.wait()
+  return ret.convert(void)
 
-      # queue taskpool work
-      tds[].tp.spawn putTask(sig, ret, tds, bkey, bval)
-      # wait for taskpool work to finish
-      wait(sig).
-        then(proc () =
-          os.sleep(200) # sleep to help separate debugging output
-          let val = ret.convert(void)
-          putRes.complete(val)
-        ).cancelled(proc() =
-          # TODO: could try and prevent taskpool work before it starts?
-          discard
-        ).catch(proc(e: ref CatchableError) =
-          doAssert false, "will not be triggered"
-        )
-  ).catch(proc(e: ref CatchableError) =
-    var res: ?!void
-    res.err(e)
-    putRes.complete(res)
-  )
-
-  return putRes
 
 method put*(
   self: ThreadProxyDatastore,
