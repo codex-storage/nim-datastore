@@ -19,7 +19,7 @@ template checkNotNil(p: typed) =
 
 
 when not defined(datastoreEchoedThread):
-  proc echoed*(vals: varargs[string]) =
+  template echoed*(vals: varargs[untyped]) =
     discard
 else:
   import std/terminal

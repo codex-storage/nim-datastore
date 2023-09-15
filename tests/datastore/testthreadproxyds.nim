@@ -52,11 +52,23 @@ suite "Test Basic ThreadProxyDatastore":
       val &= char(c)
     # print "get res2: ", $val
 
+suite "Test Basics":
+  var
+    mem = MemoryDatastore.new()
+    sds = newThreadProxyDatastore(mem).expect("should work")
+
+  let
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+
     # echo "\n\n=== put cancel ==="
     # # let res1 = await sds.put(key1, "value for 1".toBytes())
     # let res3 = sds.put(key1, "value for 1".toBytes())
     # res3.cancel()
     # # print "res3: ", res3
+  
+  basicStoreTests(sds, key, bytes, otherBytes)
 
 # suite "Test Basic ThreadProxyDatastore":
 

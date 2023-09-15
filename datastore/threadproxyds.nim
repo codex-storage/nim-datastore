@@ -211,7 +211,7 @@ proc newThreadProxyDatastore*(
 
   try:
     value[].ds = ds
-    value[].tp = Taskpool.new(num_threads = 6)
+    value[].tp = Taskpool.new(num_threads = 2)
   except Exception as exc:
     return err((ref DatastoreError)(msg: exc.msg))
 
