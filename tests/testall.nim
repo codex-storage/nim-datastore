@@ -5,6 +5,7 @@ import
   ./datastore/testsql,
   ./datastore/testtieredds,
   ./datastore/testmountedds,
+  ./datastore/testdatabuffer,
   ./datastore/testthreadproxyds,
   ./datastore/testsemaphore
 
