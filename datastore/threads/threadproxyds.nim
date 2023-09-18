@@ -61,13 +61,27 @@ proc new*[T](
     ctx: typedesc[TaskCtx[T]],
     ds: Datastore,
 ): ref TaskCtx[T] =
-  # let res = cast[ptr TaskCtx[T]](allocShared0(sizeof(TaskCtx[T])))
   result = (ref TaskCtx[T])()
-  result.ds = unsafeAddr ds
+  result.ds = unsafeAddr(ds) ## 
+    ## doing this appears to break. previously it was using `addr(ds)`
+    ## and reverting to those lets the tests get further. 
+    ## 
+    ## however, that seems to mean that `addr(ds)` we're taking the 
+    ## address of the `var ds: Datastore` location, and not the actual
+    ## Datastore:ObjectType. As in `ds: ptr(ref Datastore:ObjectType)`. 
+    ## 
+    ## so doing the `unsafeAddr` would mean we're taking the ptr location
+    ## of the `ds` argument, which is a temporary stack location.
+    ## 
+    ## not sure how to fix this while using GC types
+
   echo ""
   echo "TaskCtx:new: ", "addrOf: ", addrOf(result).pointer.repr
   echo "TaskCtx:new: ", "head:ptr: ", unsafeAddr(result.head).pointer.repr
-  echo "TaskCtx:new: ", " result:repr:\n", result.repr
+  echo "TaskCtx:new: ", " result:ds:ptr: ", result.ds.pointer.repr
+
+  echo "TaskCtx:new: ds orig:\n\t", ds.repr
+  echo "TaskCtx:new:\n\t", " result:repr:\n", result.repr
   echo ""
 
 template withLocks(
@@ -99,7 +113,7 @@ template dispatchTask(
   key: ?Key = Key.none,
   runTask: proc): untyped =
   try:
-    # GC_ref(ctx)
+    GC_ref(ctx)
     await self.semaphore.acquire()
     ctx[].signal = ThreadSignalPtr.new().valueOr:
       result = failure(error())
@@ -121,12 +135,12 @@ template dispatchTask(
       # but for now it'd at least be better to leak than possibly
       # corrupt memory since it's easier to detect and fix leaks
       warn "request was cancelled while thread task is running", exc = exc.msg
-      # GC_ref(ctx)
+      GC_ref(ctx)
     ctx.cancelled.store(true, moAcquireRelease)
     await ctx.signal.fire()
     raise exc
   finally:
-    # GC_unref(ctx)
+    GC_unref(ctx)
     discard ctx.signal.close()
     self.semaphore.release()
 
