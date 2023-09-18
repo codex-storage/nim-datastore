@@ -23,47 +23,47 @@ import ./querycommontests
 
 const NumThreads = 200 # IO threads aren't attached to CPU count
 
-# suite "Test Basic ThreadDatastore with SQLite":
+suite "Test Basic ThreadDatastore with SQLite":
 
-#   var
-#     sqlStore: Datastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  var
+    sqlStore: Datastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   setupAll:
-#     sqlStore = SQLiteDatastore.new(Memory).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+  setupAll:
+    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    taskPool = Taskpool.new(NumThreads)
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+  teardownAll:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
 
-#   basicStoreTests(ds, key, bytes, otherBytes)
+  basicStoreTests(ds, key, bytes, otherBytes)
 
-# suite "Test Query ThreadDatastore with SQLite":
+suite "Test Query ThreadDatastore with SQLite":
 
-#   var
-#     sqlStore: Datastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  var
+    sqlStore: Datastore
+    ds: ThreadDatastore
+    taskPool: Taskpool
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   setup:
-#     sqlStore = SQLiteDatastore.new(Memory).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+  setup:
+    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    taskPool = Taskpool.new(NumThreads)
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-#   teardown:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+  teardown:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
 
-#   queryTests(ds, true)
+  queryTests(ds, true)
 
 suite "Test Basic ThreadDatastore with fsds":
   let
