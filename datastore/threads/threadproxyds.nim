@@ -52,21 +52,23 @@ type
     queryLock: AsyncLock      # global query lock, this is only really \
                               # needed for the fsds, but it is expensive!
 
-template addrOf*[T](ctx: ptr TaskCtx[T]): ptr TaskCtx[T] =
-  ctx
+proc addrOf*[T](ctx: ref TaskCtx[T]): ptr TaskCtx[T] =
+  cast[ptr TaskCtx[T]](ctx)
 
 proc new*[T](
     ctx: typedesc[TaskCtx[T]],
     ds: Datastore,
     signal: ThreadSignalPtr,
-): ptr TaskCtx[T] =
-  let res = cast[ptr TaskCtx[T]](allocShared0(sizeof(TaskCtx[T])))
-  res[].ds = unsafeAddr ds
+): ref TaskCtx[T] =
+  # let res = cast[ptr TaskCtx[T]](allocShared0(sizeof(TaskCtx[T])))
+  let res = (ref TaskCtx[T])()
+  res.ds = unsafeAddr ds
+  res.signal = signal
   res
 
 template withLocks(
   self: ThreadDatastore,
-  ctx: ptr TaskCtx,
+  ctx: ref TaskCtx,
   key: ?Key = Key.none,
   fut: Future[void],
   body: untyped) =
@@ -89,7 +91,7 @@ template withLocks(
 
 template dispatchTask(
   self: ThreadDatastore,
-  ctx: ptr TaskCtx,
+  ctx: ref TaskCtx,
   key: ?Key = Key.none,
   runTask: proc): untyped =
 
@@ -110,6 +112,7 @@ template dispatchTask(
         # but for now it'd at least be better to leak than possibly
         # corrupt memory since it's easier to detect and fix leaks
         warn "request was cancelled while thread task is running", exc = exc.msg
+        GC_ref(ctx)
       ctx.cancelled.store(true, moAcquireRelease)
       await ctx.signal.fire()
       raise exc
