@@ -4,6 +4,7 @@ import std/os
 import std/cpuinfo
 import std/algorithm
 import std/importutils
+import std/atomics
 
 import pkg/asynctest
 import pkg/chronos
@@ -146,11 +147,11 @@ suite "Test ThreadDatastore cancelations":
   test "Should monitor signal and cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
-      ctx = TaskCtx[void](
-        ds: addr sqlStore,
-        signal: signal)
+      ctx = TaskCtx[void].new(
+        ds= sqlStore,
+        signal= signal)
       fut = newFuture[void]("signalMonitor")
-      threadArgs = (cast[ptr TaskCtx[void]](ctx), addr fut)
+      threadArgs: (ptr TaskCtx[void], ptr Future[void]) = (addrOf(ctx), addr fut)
 
     var
       thread: Thread[type threadArgs]
@@ -166,7 +167,7 @@ suite "Test ThreadDatastore cancelations":
       waitFor asyncTask()
 
     createThread(thread, threadTask, threadArgs)
-    ctx.cancelled = true
+    ctx.cancelled.store(true, moAcquireRelease)
     check: ctx.signal.fireSync.tryGet
 
     joinThreads(thread)
@@ -177,13 +178,11 @@ suite "Test ThreadDatastore cancelations":
   test "Should monitor and not cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
-      res = ThreadResult[void]()
-      ctx = TaskCtx[void](
-        ds: addr sqlStore,
-        res: addr res,
-        signal: signal)
+      ctx = TaskCtx[void].new(
+        ds= sqlStore,
+        signal= signal)
       fut = newFuture[void]("signalMonitor")
-      threadArgs = (addr ctx, addr fut)
+      threadArgs = (addrOf ctx, addr fut)
 
     var
       thread: Thread[type threadArgs]
@@ -199,7 +198,7 @@ suite "Test ThreadDatastore cancelations":
       waitFor asyncTask()
 
     createThread(thread, threadTask, threadArgs)
-    ctx.cancelled = false
+    ctx.cancelled.store(false, moAcquireRelease)
     check: ctx.signal.fireSync.tryGet
 
     joinThreads(thread)

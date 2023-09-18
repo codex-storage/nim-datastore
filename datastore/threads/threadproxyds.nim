@@ -53,7 +53,8 @@ type
                               # needed for the fsds, but it is expensive!
 
 proc addrOf*[T](ctx: ref TaskCtx[T]): ptr TaskCtx[T] =
-  cast[ptr TaskCtx[T]](ctx)
+  result = cast[ptr TaskCtx[T]](ctx)
+  echo "ADDR_OF: ", result.pointer.repr
 
 proc new*[T](
     ctx: typedesc[TaskCtx[T]],
