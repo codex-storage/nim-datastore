@@ -62,8 +62,8 @@ proc new*[T](
     ds: Datastore,
 ): ref TaskCtx[T] =
   result = (ref TaskCtx[T])()
-  result.ds = unsafeAddr(ds) ## 
-    ## doing this appears to break. previously it was using `addr(ds)`
+  result.ds = unsafeAddr(ds) ##\
+    ## doing this appears to break things. previously it was using `addr(ds)`
     ## and reverting to those lets the tests get further. 
     ## 
     ## however, that seems to mean that `addr(ds)` we're taking the 
