@@ -137,6 +137,7 @@ template dispatchTask(
       # could do a spinlock here until the other side cancels,
       # but for now it'd at least be better to leak than possibly
       # corrupt memory since it's easier to detect and fix leaks
+      # and they won't corrupt random bits of memory
       warn "request was cancelled while thread task is running", exc = exc.msg
       GC_ref(ctx)
     ctx.cancelled.store(true, moAcquireRelease)
