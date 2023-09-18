@@ -74,6 +74,9 @@ proc new*[T](
     ## of the `ds` argument, which is a temporary stack location.
     ## 
     ## not sure how to fix this while using GC types
+    ## just taking the address of the var location sorta works, but
+    ## crashes now as well, but later. likely due to datastore now being
+    ## on two GC heaps?
 
   echo ""
   echo "TaskCtx:new: ", "addrOf: ", addrOf(result).pointer.repr
