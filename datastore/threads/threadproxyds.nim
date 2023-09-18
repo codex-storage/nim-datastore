@@ -59,12 +59,10 @@ proc addrOf*[T](ctx: ref TaskCtx[T]): ptr TaskCtx[T] =
 proc new*[T](
     ctx: typedesc[TaskCtx[T]],
     ds: Datastore,
-    signal: ThreadSignalPtr,
 ): ref TaskCtx[T] =
   # let res = cast[ptr TaskCtx[T]](allocShared0(sizeof(TaskCtx[T])))
   let res = (ref TaskCtx[T])()
   res.ds = unsafeAddr ds
-  res.signal = signal
   res
 
 template withLocks(
@@ -97,7 +95,7 @@ template dispatchTask(
   runTask: proc): untyped =
   try:
     await self.semaphore.acquire()
-    ctx.signal = ThreadSignalPtr.new().valueOr:
+    ctx[].signal = ThreadSignalPtr.new().valueOr:
       result = failure(error())
       return
 
@@ -176,9 +174,7 @@ method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
     signal = ThreadSignalPtr.new().valueOr:
         return failure(error())
 
-    ctx = TaskCtx[bool].new(
-      ds = self.ds,
-      signal = signal)
+    ctx = TaskCtx[bool].new( ds = self.ds)
 
   proc runTask() =
     self.tp.spawn hasTask(addrOf(ctx), unsafeAddr key)
@@ -216,9 +212,7 @@ method delete*(
     signal = ThreadSignalPtr.new().valueOr:
         return failure(error())
 
-    ctx = TaskCtx[void].new(
-      ds= self.ds,
-      signal= signal)
+    ctx = TaskCtx[void].new( ds= self.ds)
 
   proc runTask() =
     self.tp.spawn delTask(addrOf(ctx), unsafeAddr key)
@@ -277,9 +271,7 @@ method put*(
     signal = ThreadSignalPtr.new().valueOr:
         return failure(error())
 
-    ctx = TaskCtx[void].new(
-      ds= self.ds,
-      signal= signal)
+    ctx = TaskCtx[void].new( ds= self.ds)
 
   proc runTask() =
     self.tp.spawn putTask(
@@ -334,9 +326,7 @@ method get*(
   self: ThreadDatastore,
   key: Key): Future[?!seq[byte]] {.async.} =
   var
-    ctx = TaskCtx[DataBuffer].new(
-      ds= self.ds,
-      signal= signal)
+    ctx = TaskCtx[DataBuffer].new(ds= self.ds)
 
   proc runTask() =
     self.tp.spawn getTask(addrOf(ctx), unsafeAddr key)
@@ -418,9 +408,7 @@ method query*(
       signal = ThreadSignalPtr.new().valueOr:
         return failure("Failed to create signal")
 
-      ctx = TaskCtx[(bool, DataBuffer, DataBuffer)].new(
-        ds= self.ds,
-        signal= signal)
+      ctx = TaskCtx[(bool, DataBuffer, DataBuffer)].new( ds= self.ds)
 
     proc runTask() =
       self.tp.spawn queryTask(addrOf(ctx), addr childIter)
