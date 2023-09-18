@@ -35,12 +35,12 @@ type
   ThreadResult[T: ThreadTypes] = Result[T, DataBuffer]
 
   TaskCtx[T: ThreadTypes] = ref object
-    ds: ptr Datastore
-    res: ThreadResult[T]
+    ds*: ptr Datastore
+    res*: ThreadResult[T]
     cancelled: Atomic[bool]
     isActive: Atomic[bool]
     semaphore: AsyncSemaphore
-    signal: ThreadSignalPtr
+    signal*: ThreadSignalPtr
 
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
