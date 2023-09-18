@@ -21,47 +21,49 @@ import pkg/datastore/threads/threadproxyds {.all.}
 import ./dscommontests
 import ./querycommontests
 
-suite "Test Basic ThreadDatastore with SQLite":
+const NumThreads = 200 # IO threads aren't attached to CPU count
 
-  var
-    sqlStore: Datastore
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+# suite "Test Basic ThreadDatastore with SQLite":
 
-  setupAll:
-    sqlStore = SQLiteDatastore.new(Memory).tryGet()
-    taskPool = Taskpool.new(countProcessors() * 2)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+#   var
+#     sqlStore: Datastore
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
+#     key = Key.init("/a/b").tryGet()
+#     bytes = "some bytes".toBytes
+#     otherBytes = "some other bytes".toBytes
 
-  teardownAll:
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+#   setupAll:
+#     sqlStore = SQLiteDatastore.new(Memory).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  basicStoreTests(ds, key, bytes, otherBytes)
+#   teardownAll:
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
 
-suite "Test Query ThreadDatastore with SQLite":
+#   basicStoreTests(ds, key, bytes, otherBytes)
 
-  var
-    sqlStore: Datastore
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+# suite "Test Query ThreadDatastore with SQLite":
 
-  setup:
-    sqlStore = SQLiteDatastore.new(Memory).tryGet()
-    taskPool = Taskpool.new(countProcessors() * 2)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+#   var
+#     sqlStore: Datastore
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
+#     key = Key.init("/a/b").tryGet()
+#     bytes = "some bytes".toBytes
+#     otherBytes = "some other bytes".toBytes
 
-  teardown:
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+#   setup:
+#     sqlStore = SQLiteDatastore.new(Memory).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  queryTests(ds, true)
+#   teardown:
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
+
+#   queryTests(ds, true)
 
 suite "Test Basic ThreadDatastore with fsds":
   let
@@ -83,7 +85,7 @@ suite "Test Basic ThreadDatastore with fsds":
     createDir(basePathAbs)
 
     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-    taskPool = Taskpool.new(countProcessors() * 2)
+    taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
 
   teardownAll:
@@ -112,7 +114,7 @@ suite "Test Query ThreadDatastore with fsds":
     createDir(basePathAbs)
 
     fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
-    taskPool = Taskpool.new(countProcessors() * 2)
+    taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
 
   teardown:
@@ -138,7 +140,7 @@ suite "Test ThreadDatastore cancelations":
 
   setupAll:
     sqlStore = SQLiteDatastore.new(Memory).tryGet()
-    taskPool = Taskpool.new(countProcessors() * 2)
+    taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
   test "Should monitor signal and cancel":

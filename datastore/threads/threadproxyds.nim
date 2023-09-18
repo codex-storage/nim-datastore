@@ -46,13 +46,10 @@ type
     ds: Datastore
     semaphore: AsyncSemaphore # semaphore is used for backpressure \
                               # to avoid exhausting file descriptors
-    case withLocks: bool
-    of true:
-      tasks: Table[Key, Future[void]]
-      queryLock: AsyncLock      # global query lock, this is only really \
-                                # needed for the fsds, but it is expensive!
-    else:
-      futs: seq[Future[void]]   # keep a list of the futures to the signals around
+    withLocks: bool
+    tasks: Table[Key, Future[void]]
+    queryLock: AsyncLock      # global query lock, this is only really \
+                              # needed for the fsds, but it is expensive!
 
 template withLocks(
   self: ThreadDatastore,
@@ -61,27 +58,21 @@ template withLocks(
   fut: Future[void],
   body: untyped) =
   try:
-    case self.withLocks:
-    of true:
-      if key.isSome and
-        key.get in self.tasks:
+    if key.isSome and key.get in self.tasks:
+      if self.withLocks:
         await self.tasks[key.get]
-        await self.queryLock.acquire() # lock query or wait to finish
+      self.tasks[key.get] = fut # we alway want to store the future, but only await if we're using locks
 
-        self.tasks[key.get] = fut
-    else:
-      self.futs.add(fut)
+    if self.withLocks:
+      await self.queryLock.acquire()  # only lock if it's required (fsds)
 
     body
   finally:
-    case self.withLocks:
-    of true:
-      if key.isSome:
+    if self.withLocks:
+      if key.isSome and key.get in self.tasks:
         self.tasks.del(key.get)
-        if self.queryLock.locked:
-          self.queryLock.release()
-    else:
-      self.futs.keepItIf(it != fut)
+      if self.queryLock.locked:
+        self.queryLock.release()
 
 template dispatchTask(
   self: ThreadDatastore,
@@ -359,13 +350,8 @@ method get*(
   return success(@(res.get()))
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
-  var futs = if self.withLocks:
-      self.tasks.values.toSeq # toSeq(...) doesn't work here???
-    else:
-      self.futs
-
-  for fut in futs:
-    await fut.cancelAndWait()
+  for fut in self.tasks.values.toSeq:
+    await fut.cancelAndWait() # probably want to store the signal, instead of the future (or both?)
 
   await self.ds.close()
 
@@ -418,18 +404,9 @@ method query*(
     defer:
       locked = false
       self.semaphore.release()
-      case self.withLocks:
-      of true:
-        if self.queryLock.locked:
-          self.queryLock.release()
-      else:
-        discard
 
     trace "About to query"
     await self.semaphore.acquire()
-    if self.withLocks:
-      await self.queryLock.acquire()
-
     if locked:
       return failure (ref DatastoreError)(msg: "Should always await query features")
 
