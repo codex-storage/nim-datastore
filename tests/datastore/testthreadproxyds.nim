@@ -150,7 +150,7 @@ suite "Test ThreadDatastore cancelations":
         ds: addr sqlStore,
         signal: signal)
       fut = newFuture[void]("signalMonitor")
-      threadArgs: (ptr TaskCtx, ptr Future[void]) = (unsafeAddr ctx[], addr fut)
+      threadArgs = (cast[ptr TaskCtx[void]](ctx), addr fut)
 
     var
       thread: Thread[type threadArgs]
