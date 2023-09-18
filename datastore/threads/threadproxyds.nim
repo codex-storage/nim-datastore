@@ -235,6 +235,8 @@ proc asyncPutTask(
   key: ptr Key,
   data: ptr UncheckedArray[byte],
   len: int) {.async.} =
+
+  echo "PUT TASK: ", ctx.repr
   defer:
     discard ctx[].signal.fireSync()
 
