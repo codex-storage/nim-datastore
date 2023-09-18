@@ -1,5 +1,6 @@
 import threading/smartptrs
 import std/hashes
+import pkg/stew/ptrops
 
 export hashes
 
@@ -50,7 +51,9 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T]): DataBuffer =
   ##
   result = DataBuffer.new(data.len)
   if data.len() > 0:
-    copyMem(result[].buf, unsafeAddr data[0], data.len)
+    # TODO: we might want to copy data, otherwise the GC might
+    # release it on stack-unwind
+    copyMem(result[].buf, baseAddr data, data.len)
 
 converter toSeq*(self: DataBuffer): seq[byte] =
   ## convert buffer to a seq type using copy and either a byte or char
@@ -58,7 +61,7 @@ converter toSeq*(self: DataBuffer): seq[byte] =
 
   result = newSeq[byte](self.len)
   if self.len() > 0:
-    copyMem(addr result[0], unsafeAddr self[].buf[0], self.len)
+    copyMem(addr result[0], addr self[].buf[0], self.len)
 
 proc `@`*(self: DataBuffer): seq[byte] =
   ## Convert a buffer to a seq type using copy and
@@ -74,7 +77,7 @@ converter toString*(data: DataBuffer): string =
   if data.isNil: return ""
   result = newString(data.len())
   if data.len() > 0:
-    copyMem(addr result[0], unsafeAddr data[].buf[0], data.len)
+    copyMem(addr result[0], addr data[].buf[0], data.len)
 
 proc `$`*(data: DataBuffer): string =
   ## convert buffer to string type using copy
