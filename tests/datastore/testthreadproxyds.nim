@@ -147,9 +147,7 @@ suite "Test ThreadDatastore cancelations":
   test "Should monitor signal and cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
-      ctx = TaskCtx[void].new(
-        ds= sqlStore,
-        signal= signal)
+      ctx = TaskCtx[void].new( ds= sqlStore)
       fut = newFuture[void]("signalMonitor")
       threadArgs: (ptr TaskCtx[void], ptr Future[void]) = (addrOf(ctx), addr fut)
 
@@ -178,9 +176,7 @@ suite "Test ThreadDatastore cancelations":
   test "Should monitor and not cancel":
     var
       signal = ThreadSignalPtr.new().tryGet()
-      ctx = TaskCtx[void].new(
-        ds= sqlStore,
-        signal= signal)
+      ctx = TaskCtx[void].new( ds= sqlStore)
       fut = newFuture[void]("signalMonitor")
       threadArgs = (addrOf ctx, addr fut)
 
