@@ -51,6 +51,16 @@ type
     queryLock: AsyncLock      # global query lock, this is only really \
                               # needed for the fsds, but it is expensive!
 
+proc new*[T](
+    ctx: typedesc[TaskCtx[T]],
+    ds: Datastore,
+    res: ptr ThreadResult[T],
+): TaskCtx[T] =
+  result = TaskCtx[T]()
+  result.ds = unsafeAddr(ds) ##\
+    ## doing this appears to break things. previously it was using `addr(ds)`
+
+
 template withLocks(
   self: ThreadDatastore,
   ctx: TaskCtx,
@@ -147,11 +157,12 @@ proc hasTask(ctx: ptr TaskCtx, key: ptr Key) =
     raiseAssert exc.msg
 
 method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
+  let ds = self.ds
   var
     res = ThreadResult[bool]()
-    ctx = TaskCtx[bool](
-      ds: addr self.ds,
-      res: addr res)
+    ctx = TaskCtx[bool].new(
+      ds= ds,
+      res= addr res)
 
   proc runTask() =
     self.tp.spawn hasTask(addr ctx, unsafeAddr key)
@@ -185,11 +196,12 @@ proc delTask(ctx: ptr TaskCtx, key: ptr Key) =
 method delete*(
   self: ThreadDatastore,
   key: Key): Future[?!void] {.async.} =
+  let ds = self.ds
   var
     res = ThreadResult[void]()
-    ctx = TaskCtx[void](
-      ds: addr self.ds,
-      res: addr res)
+    ctx = TaskCtx[void].new(
+      ds= ds,
+      res= addr res)
 
   proc runTask() =
     self.tp.spawn delTask(addr ctx, unsafeAddr key)
@@ -244,11 +256,12 @@ method put*(
   self: ThreadDatastore,
   key: Key,
   data: seq[byte]): Future[?!void] {.async.} =
+  let ds = self.ds
   var
     res = ThreadResult[void]()
-    ctx = TaskCtx[void](
-      ds: addr self.ds,
-      res: addr res)
+    ctx = TaskCtx[void].new(
+      ds= ds,
+      res= addr res)
 
   proc runTask() =
     self.tp.spawn putTask(
@@ -302,11 +315,12 @@ proc getTask(
 method get*(
   self: ThreadDatastore,
   key: Key): Future[?!seq[byte]] {.async.} =
+  let ds = self.ds
   var
     res = ThreadResult[DataBuffer]()
-    ctx = TaskCtx[DataBuffer](
-      ds: addr self.ds,
-      res: addr res)
+    ctx = TaskCtx[DataBuffer].new(
+      ds= ds,
+      res= addr res)
 
   proc runTask() =
     self.tp.spawn getTask(addr ctx, unsafeAddr key)
@@ -361,6 +375,7 @@ proc queryTask(
 method query*(
   self: ThreadDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
+  let ds = self.ds
   without var childIter =? await self.ds.query(query), error:
     return failure error
 
