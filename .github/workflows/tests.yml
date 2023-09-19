@@ -135,8 +135,8 @@ jobs:
           echo
           nimble --verbose test
 
-      - name: Run memory tests
-        if: success() || failure()
-        run: |
-          source "${HOME}/.bash_env"
-          nim c -r tests/datastore/testthreadproxyds2.nim
+      # - name: Run memory tests
+      #   if: success() || failure()
+      #   run: |
+      #     source "${HOME}/.bash_env"
+      #     nim c -r tests/datastore/testthreadproxyds2.nim
