@@ -35,7 +35,7 @@ type
   ThreadResult[T: ThreadTypes] = Result[T, DataBuffer]
 
   TaskCtx[T: ThreadTypes] = object
-    ds: ptr Datastore
+    ds: Datastore
     res: ptr ThreadResult[T]
     cancelled: bool
     semaphore: AsyncSemaphore
@@ -130,7 +130,7 @@ proc asyncHasTask(
     discard ctx[].signal.fireSync()
 
   let
-    fut = ctx[].ds[].has(key[])
+    fut = ctx[].ds.has(key[])
 
   asyncSpawn signalMonitor(ctx, fut)
   without ret =? (await fut).catch and res =? ret, error:
@@ -150,7 +150,7 @@ method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
   var
     res = ThreadResult[bool]()
     ctx = TaskCtx[bool](
-      ds: addr self.ds,
+      ds: self.ds,
       res: addr res)
 
   proc runTask() =
@@ -164,7 +164,7 @@ proc asyncDelTask(ctx: ptr TaskCtx[void], key: ptr Key) {.async.} =
     discard ctx[].signal.fireSync()
 
   let
-    fut = ctx[].ds[].delete(key[])
+    fut = ctx[].ds.delete(key[])
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch, error:
@@ -188,7 +188,7 @@ method delete*(
   var
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
-      ds: addr self.ds,
+      ds: self.ds,
       res: addr res)
 
   proc runTask() =
@@ -216,7 +216,7 @@ proc asyncPutTask(
     discard ctx[].signal.fireSync()
 
   let
-    fut = ctx[].ds[].put(key[], @(data.toOpenArray(0, len - 1)))
+    fut = ctx[].ds.put(key[], @(data.toOpenArray(0, len - 1)))
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch, error:
@@ -247,7 +247,7 @@ method put*(
   var
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
-      ds: addr self.ds,
+      ds: self.ds,
       res: addr res)
 
   proc runTask() =
@@ -277,7 +277,7 @@ proc asyncGetTask(
     discard ctx[].signal.fireSync()
 
   let
-    fut = ctx[].ds[].get(key[])
+    fut = ctx[].ds.get(key[])
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch and data =? res, error:
@@ -305,7 +305,7 @@ method get*(
   var
     res = ThreadResult[DataBuffer]()
     ctx = TaskCtx[DataBuffer](
-      ds: addr self.ds,
+      ds: self.ds,
       res: addr res)
 
   proc runTask() =
@@ -387,7 +387,7 @@ method query*(
     var
       res = ThreadResult[(bool, DataBuffer, DataBuffer)]()
       ctx = TaskCtx[(bool, DataBuffer, DataBuffer)](
-        ds: addr self.ds,
+        ds: self.ds,
         res: addr res)
 
     proc runTask() =

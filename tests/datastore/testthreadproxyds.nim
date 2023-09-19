@@ -148,7 +148,7 @@ suite "Test ThreadDatastore cancelations":
       signal = ThreadSignalPtr.new().tryGet()
       res = ThreadResult[void]()
       ctx = TaskCtx[void](
-        ds: addr sqlStore,
+        ds: sqlStore,
         res: addr res,
         signal: signal)
       fut = newFuture[void]("signalMonitor")
@@ -181,7 +181,7 @@ suite "Test ThreadDatastore cancelations":
       signal = ThreadSignalPtr.new().tryGet()
       res = ThreadResult[void]()
       ctx = TaskCtx[void](
-        ds: addr sqlStore,
+        ds: sqlStore,
         res: addr res,
         signal: signal)
       fut = newFuture[void]("signalMonitor")
