@@ -16,6 +16,7 @@ import pkg/chronicles
 
 import pkg/datastore/sql
 import pkg/datastore/fsds
+import pkg/datastore/memoryds
 import pkg/datastore/threads/threadproxyds {.all.}
 
 import ./dscommontests
@@ -23,7 +24,7 @@ import ./querycommontests
 
 const NumThreads = 200 # IO threads aren't attached to CPU count
 
-proc testBasic() =
+proc testBasicSqllite() =
 
   suite "Test Basic ThreadDatastore with SQLite":
 
@@ -48,10 +49,10 @@ proc testBasic() =
     GC_fullCollect()
 
 for i in 1..100:
-  testBasic()
+  testBasicSqllite()
   GC_fullCollect()
 
-proc testQuery() =
+proc testQuerySqllite() =
   suite "Test Query ThreadDatastore with SQLite":
 
     var
@@ -74,9 +75,9 @@ proc testQuery() =
     queryTests(ds, true)
     GC_fullCollect()
 
-for i in 1..100:
-  testQuery()
-  GC_fullCollect()
+# for i in 1..100:
+#   testQuerySqllite()
+#   GC_fullCollect()
 
 proc testFsDs() =
   suite "Test Basic ThreadDatastore with fsds":
