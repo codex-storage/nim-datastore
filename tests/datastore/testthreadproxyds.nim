@@ -48,7 +48,7 @@ proc testBasicSqllite() =
     basicStoreTests(ds, key, bytes, otherBytes)
     GC_fullCollect()
 
-for i in 1..100:
+for i in 1..200:
   testBasicSqllite()
   GC_fullCollect()
 
@@ -75,9 +75,9 @@ proc testQuerySqllite() =
     queryTests(ds, true)
     GC_fullCollect()
 
-# for i in 1..100:
-#   testQuerySqllite()
-#   GC_fullCollect()
+for i in 1..200:
+  testQuerySqllite()
+  GC_fullCollect()
 
 proc testFsDs() =
   suite "Test Basic ThreadDatastore with fsds":
