@@ -155,6 +155,9 @@ method put*(
   return success()
 
 proc dirWalker(path: string): iterator: string {.gcsafe.} =
+  var localPath {.threadvar.}
+
+  localPath = path
   return iterator(): string =
     try:
       for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
