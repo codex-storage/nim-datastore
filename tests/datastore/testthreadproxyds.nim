@@ -38,6 +38,9 @@ suite "Test Basic ThreadDatastore with SQLite":
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
+  teardown:
+    GC_fullCollect()
+
   teardownAll:
     (await ds.close()).tryGet()
     taskPool.shutdown()
@@ -60,6 +63,8 @@ suite "Test Query ThreadDatastore with SQLite":
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
   teardown:
+    GC_fullCollect()
+
     (await ds.close()).tryGet()
     taskPool.shutdown()
 
@@ -87,6 +92,9 @@ suite "Test Basic ThreadDatastore with fsds":
     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+
+  teardown:
+    GC_fullCollect()
 
   teardownAll:
     (await ds.close()).tryGet()
@@ -118,6 +126,7 @@ suite "Test Query ThreadDatastore with fsds":
     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
 
   teardown:
+    GC_fullCollect()
     (await ds.close()).tryGet()
     taskPool.shutdown()
 
@@ -142,6 +151,13 @@ suite "Test ThreadDatastore cancelations":
     sqlStore = SQLiteDatastore.new(Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+
+  teardown:
+    GC_fullCollect()
+
+  teardownAll:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
 
   test "Should monitor signal and cancel":
     var
