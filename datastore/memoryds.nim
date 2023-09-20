@@ -22,7 +22,6 @@ import std/locks
 type
   SimpleTable*[N: static int] = object
     data*: array[N, tuple[used: bool, key: KeyBuffer, val: ValueBuffer]]
-    curr*: int
 
 proc hasKey*[N](table: var SimpleTable[N], key: KeyBuffer): bool =
   for (u, k, _) in table.data:
@@ -36,6 +35,11 @@ proc `[]`*[N](table: var SimpleTable[N], key: KeyBuffer): ValueBuffer {.raises: 
   raise newException(KeyError, "no such key")
 
 proc `[]=`*[N](table: var SimpleTable[N], key: KeyBuffer, value: ValueBuffer) =
+  for item in table.data.mitems():
+    if item.key == key:
+      item = (true, key, value)
+      return
+  # key not found, find free item
   for item in table.data.mitems():
     if item.used == false:
       item = (true, key, value)
@@ -63,16 +67,20 @@ when isMainModule:
   suite "simple table":
 
     var table: SimpleTable[10]
-    let k1 = KeyBuffer.new("test")
+    let k1 = KeyBuffer.new("k1")
+    let k2 = KeyBuffer.new("k2")
     let v1 = ValueBuffer.new("hello world!")
+    let v2 = ValueBuffer.new("other val")
 
     test "put":
       table[k1] = v1
+      table[k2] = v2
     test "hasKey":
       check table.hasKey(k1)
+      check table.hasKey(k2)
     test "get":
-      let res = table[k1]
-      check res.toString == "hello world!"
+      check table[k1].toString == "hello world!"
+      check table[k2].toString == "other val"
     test "delete":
       var res: ValueBuffer
       check table.pop(k1, res)
@@ -80,6 +88,11 @@ when isMainModule:
       expect KeyError:
         let res = table[k1]
         check res.toString == "hello world!"
+    test "put new":
+      table[k1] = v1
+      table[k1] = v2
+      let res = table[k1]
+      check res.toString == "other val"
 
 type
   MemoryDatastore* = ref object of Datastore
