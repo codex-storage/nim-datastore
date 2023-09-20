@@ -17,9 +17,11 @@ export key, query
 
 push: {.upraises: [].}
 
-type
+import std/locks
 
+type
   MemoryDatastore* = ref object of Datastore
+    lock*: Lock
     store*: Table[KeyBuffer, ValueBuffer]
 
 method has*(
@@ -28,7 +30,8 @@ method has*(
 ): Future[?!bool] {.async.} =
 
   let dk = KeyBuffer.new(key)
-  return success self.store.hasKey(dk)
+  withLock(self.lock):
+    return success self.store.hasKey(dk)
 
 method delete*(
     self: MemoryDatastore,
@@ -37,7 +40,8 @@ method delete*(
 
   let dk = KeyBuffer.new(key)
   var val: ValueBuffer
-  discard self.store.pop(dk, val)
+  withLock(self.lock):
+    discard self.store.pop(dk, val)
   return success()
 
 method delete*(
@@ -56,11 +60,12 @@ method get*(
 ): Future[?!seq[byte]] {.async.} =
 
   let dk = KeyBuffer.new(key)
-  if self.store.hasKey(dk):
-    let res = self.store[dk].toSeq(byte)
-    return success res
-  else:
-    return failure (ref DatastoreError)(msg: "no such key")
+  withLock(self.lock):
+    if self.store.hasKey(dk):
+      let res = self.store[dk].toSeq(byte)
+      return success res
+    else:
+      return failure (ref DatastoreError)(msg: "no such key")
 
 method put*(
     self: MemoryDatastore,
@@ -70,7 +75,8 @@ method put*(
 
   let dk = KeyBuffer.new(key)
   let dv = ValueBuffer.new(data)
-  self.store[dk] = dv
+  withLock(self.lock):
+    self.store[dk] = dv
   return success()
 
 method put*(
@@ -114,8 +120,9 @@ method query*(
 
     let key = kb.toKey()
     var ds: ValueBuffer
-    if query.value:
-      ds = self.store[kb]
+    withLock(self.lock):
+      if query.value:
+        ds = self.store[kb]
     let data = if ds.isNil: EmptyBytes else: ds.toSeq(byte)
 
     return success (key.some, data)
@@ -129,4 +136,5 @@ method close*(self: MemoryDatastore): Future[?!void] {.async.} =
 
 func new*(tp: typedesc[MemoryDatastore]): MemoryDatastore =
   var self = tp()
+  self.lock.initLock()
   return self

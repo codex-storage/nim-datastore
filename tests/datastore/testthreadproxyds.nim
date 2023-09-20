@@ -16,6 +16,7 @@ import ./querycommontests
 
 import pretty
 
+
 proc testThreadProxy() =
   suite "Test Basic ThreadProxyDatastore":
     var
