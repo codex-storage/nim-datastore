@@ -6,6 +6,7 @@ import
   ./datastore/testtieredds,
   ./datastore/testmountedds,
   ./datastore/testdatabuffer,
+  ./datastore/testthreadproxyds2,
   ./datastore/testthreadproxyds,
   ./datastore/testasyncsemaphore,
   ./datastore/testsemaphore
