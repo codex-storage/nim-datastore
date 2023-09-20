@@ -137,10 +137,6 @@ proc signalMonitor[T](ctx: ptr TaskCtx, fut: Future[T]) {.async.} =
 proc asyncHasTask(
   ctx: ptr TaskCtx[bool],
   key: ptr Key) {.async.} =
-  defer:
-    if not ctx.isNil:
-      discard ctx[].signal.fireSync()
-
   if ctx.isNil:
     trace "ctx is nil"
     return
@@ -156,6 +152,10 @@ proc asyncHasTask(
   ctx[].res[].ok(res)
 
 proc hasTask(ctx: ptr TaskCtx, key: ptr Key) =
+  defer:
+    if not ctx.isNil:
+      discard ctx[].signal.fireSync()
+
   try:
     waitFor asyncHasTask(ctx, key)
   except CatchableError as exc:
@@ -164,21 +164,18 @@ proc hasTask(ctx: ptr TaskCtx, key: ptr Key) =
 
 method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
   var
+    key = key
     res = ThreadResult[bool]()
     ctx = TaskCtx[bool](
       ds: self.ds,
       res: addr res)
 
   proc runTask() =
-    self.tp.spawn hasTask(addr ctx, unsafeAddr key)
+    self.tp.spawn hasTask(addr ctx, addr key)
 
   return self.dispatchTask(ctx, key.some, runTask)
 
 proc asyncDelTask(ctx: ptr TaskCtx[void], key: ptr Key) {.async.} =
-  defer:
-    if not ctx.isNil:
-      discard ctx[].signal.fireSync()
-
   if ctx.isNil:
     trace "ctx is nil"
     return
@@ -196,6 +193,10 @@ proc asyncDelTask(ctx: ptr TaskCtx[void], key: ptr Key) {.async.} =
   return
 
 proc delTask(ctx: ptr TaskCtx, key: ptr Key) =
+  defer:
+    if not ctx.isNil:
+      discard ctx[].signal.fireSync()
+
   try:
     waitFor asyncDelTask(ctx, key)
   except CatchableError as exc:
@@ -206,13 +207,14 @@ method delete*(
   self: ThreadDatastore,
   key: Key): Future[?!void] {.async.} =
   var
+    key = key
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
       ds: self.ds,
       res: addr res)
 
   proc runTask() =
-    self.tp.spawn delTask(addr ctx, unsafeAddr key)
+    self.tp.spawn delTask(addr ctx, addr key)
 
   return self.dispatchTask(ctx, key.some, runTask)
 
@@ -231,9 +233,6 @@ proc asyncPutTask(
   key: ptr Key,
   data: ptr UncheckedArray[byte],
   len: int) {.async.} =
-  defer:
-    if not ctx.isNil:
-      discard ctx[].signal.fireSync()
 
   if ctx.isNil:
     trace "ctx is nil"
@@ -258,6 +257,10 @@ proc putTask(
   ## run put in a thread task
   ##
 
+  defer:
+    if not ctx.isNil:
+      discard ctx[].signal.fireSync()
+
   try:
     waitFor asyncPutTask(ctx, key, data, len)
   except CatchableError as exc:
@@ -269,6 +272,8 @@ method put*(
   key: Key,
   data: seq[byte]): Future[?!void] {.async.} =
   var
+    key = key
+    data = data
     res = ThreadResult[void]()
     ctx = TaskCtx[void](
       ds: self.ds,
@@ -277,8 +282,8 @@ method put*(
   proc runTask() =
     self.tp.spawn putTask(
       addr ctx,
-      unsafeAddr key,
-      makeUncheckedArray(baseAddr data),
+      addr key,
+      makeUncheckedArray(addr data[0]),
       data.len)
 
   return self.dispatchTask(ctx, key.some, runTask)
@@ -296,10 +301,6 @@ method put*(
 proc asyncGetTask(
   ctx: ptr TaskCtx[DataBuffer],
   key: ptr Key) {.async.} =
-  defer:
-    if not ctx.isNil:
-      discard ctx[].signal.fireSync()
-
   if ctx.isNil:
     trace "ctx is nil"
     return
@@ -322,6 +323,10 @@ proc getTask(
   ## Run get in a thread task
   ##
 
+  defer:
+    if not ctx.isNil:
+      discard ctx[].signal.fireSync()
+
   try:
     waitFor asyncGetTask(ctx, key)
   except CatchableError as exc:
@@ -332,13 +337,14 @@ method get*(
   self: ThreadDatastore,
   key: Key): Future[?!seq[byte]] {.async.} =
   var
+    key = key
     res = ThreadResult[DataBuffer]()
     ctx = TaskCtx[DataBuffer](
       ds: self.ds,
       res: addr res)
 
   proc runTask() =
-    self.tp.spawn getTask(addr ctx, unsafeAddr key)
+    self.tp.spawn getTask(addr ctx, addr key)
 
   return self.dispatchTask(ctx, key.some, runTask)
 
@@ -351,9 +357,6 @@ method close*(self: ThreadDatastore): Future[?!void] {.async.} =
 proc asyncQueryTask(
   ctx: ptr TaskCtx,
   iter: ptr QueryIter) {.async.} =
-  defer:
-    if not ctx.isNil:
-      discard ctx[].signal.fireSync()
 
   if ctx.isNil or iter.isNil:
     trace "ctx is nil"
@@ -382,6 +385,10 @@ proc asyncQueryTask(
 proc queryTask(
   ctx: ptr TaskCtx,
   iter: ptr QueryIter) =
+
+  defer:
+    if not ctx.isNil:
+      discard ctx[].signal.fireSync()
 
   try:
     waitFor asyncQueryTask(ctx, iter)
