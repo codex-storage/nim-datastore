@@ -6,6 +6,8 @@ import pkg/questionable/results
 
 import ./key
 import ./types
+
+export types
 export options, SortOrder
 
 type
@@ -17,7 +19,6 @@ type
     sort*: SortOrder  # Sort order - not available in all backends
 
   QueryResponse* = tuple[key: ?Key, data: seq[byte]]
-  QueryEndedError* = object of DatastoreError
 
   GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe.}
   IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
