@@ -61,5 +61,5 @@ proc basicStoreTests*(
   test "handle missing key":
     let key = Key.init("/missing/key").tryGet()
 
-    # TODO: map error correctly from threadproxy
-    check (await ds.get(key)).isErr() # non existing key
+    expect(DatastoreKeyNotFound):
+      discard (await ds.get(key)).tryGet() # non existing key
