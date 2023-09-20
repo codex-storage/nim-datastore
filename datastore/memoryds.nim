@@ -20,9 +20,71 @@ push: {.upraises: [].}
 import std/locks
 
 type
+  SimpleTable*[N: static int] = object
+    data*: array[N, tuple[used: bool, key: KeyBuffer, val: ValueBuffer]]
+    curr*: int
+
+proc hasKey*[N](table: var SimpleTable[N], key: KeyBuffer): bool =
+  for (u, k, _) in table.data:
+    if u and key == k:
+      return true
+
+proc `[]`*[N](table: var SimpleTable[N], key: KeyBuffer): ValueBuffer {.raises: [KeyError].} =
+  for item in table.data:
+    if item.used and item.key == key:
+      return item.val
+  raise newException(KeyError, "no such key")
+
+proc `[]=`*[N](table: var SimpleTable[N], key: KeyBuffer, value: ValueBuffer) =
+  for item in table.data.mitems():
+    if item.used == false:
+      item = (true, key, value)
+      return
+
+proc clear*[N](table: var SimpleTable[N]) =
+  for item in table.data.mitems():
+    item.used = false
+
+proc pop*[N](table: var SimpleTable[N], key: KeyBuffer, value: var ValueBuffer): bool =
+  for item in table.data.mitems():
+    if item.used and item.key == key:
+      value = item.val
+      item.used = false
+      return true
+
+iterator keys*[N](table: var SimpleTable[N]): KeyBuffer =
+  for (u, k, _) in table.data:
+    if u:
+      yield k
+
+when isMainModule:
+  import unittest2
+
+  suite "simple table":
+
+    var table: SimpleTable[10]
+    let k1 = KeyBuffer.new("test")
+    let v1 = ValueBuffer.new("hello world!")
+
+    test "put":
+      table[k1] = v1
+    test "hasKey":
+      check table.hasKey(k1)
+    test "get":
+      let res = table[k1]
+      check res.toString == "hello world!"
+    test "delete":
+      var res: ValueBuffer
+      check table.pop(k1, res)
+      check res.toString == "hello world!"
+      expect KeyError:
+        let res = table[k1]
+        check res.toString == "hello world!"
+
+type
   MemoryDatastore* = ref object of Datastore
     lock*: Lock
-    store*: Table[KeyBuffer, ValueBuffer]
+    store*: SimpleTable[10_000]
 
 method has*(
     self: MemoryDatastore,
