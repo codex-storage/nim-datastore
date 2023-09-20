@@ -142,7 +142,8 @@ proc asyncHasTask(
     return
 
   let
-    fut = ctx[].ds.has(key[])
+    key = key[]
+    fut = ctx[].ds.has(key)
 
   asyncSpawn signalMonitor(ctx, fut)
   without ret =? (await fut).catch and res =? ret, error:
@@ -181,7 +182,8 @@ proc asyncDelTask(ctx: ptr TaskCtx[void], key: ptr Key) {.async.} =
     return
 
   let
-    fut = ctx[].ds.delete(key[])
+    key = key[]
+    fut = ctx[].ds.delete(key)
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch, error:
@@ -239,7 +241,9 @@ proc asyncPutTask(
     return
 
   let
-    fut = ctx[].ds.put(key[], @(data.toOpenArray(0, len - 1)))
+    key = key[]
+    data = @(data.toOpenArray(0, len - 1))
+    fut = ctx[].ds.put(key, data)
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch, error:
@@ -306,7 +310,8 @@ proc asyncGetTask(
     return
 
   let
-    fut = ctx[].ds.get(key[])
+    key = key[]
+    fut = ctx[].ds.get(key)
 
   asyncSpawn signalMonitor(ctx, fut)
   without res =? (await fut).catch and data =? res, error:
@@ -314,7 +319,7 @@ proc asyncGetTask(
     ctx[].res[].err(error)
     return
 
-  trace "Got data in get", data
+  trace "Got data in get"
   ctx[].res[].ok(DataBuffer.new(data))
 
 proc getTask(
