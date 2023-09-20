@@ -103,7 +103,7 @@ proc testThreadProxyQuery() =
         check res.len() > 0
 
 when isMainModule:
-  for i in 1..1:
+  for i in 1..100:
     testThreadProxy()
     testThreadProxyBasics()
     # testThreadProxyQuery()
