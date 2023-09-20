@@ -11,15 +11,17 @@ import pkg/stew/results
 import ./key
 import ./query
 import ./datastore
+import ./datastore2
+import ./threads/sharedptr
 import ./threads/threadbackend
 
-export key, query
+export key, query, sharedptr
 
 push: {.upraises: [].}
 
 type
-  ThreadProxyDatastore* = ref object of Datastore
-    tds: ThreadDatastorePtr
+  ThreadProxyDatastore*[T] = ref object of Datastore
+    tds: SharedPtr[ThreadDatastore[T]]
 
 method has*(
   self: ThreadProxyDatastore,
@@ -199,13 +201,13 @@ method close*(
   echo "close done"
   # dispose(dsCell)
 
-proc newThreadProxyDatastore*(
-  ds: Datastore,
-): ?!ThreadProxyDatastore =
+proc newThreadProxyDatastore*[T](
+  ds: Datastore2[T],
+): ?!ThreadProxyDatastore[T] =
   ## create a new 
 
-  var self = ThreadProxyDatastore()
-  var value = newSharedPtr(ThreadDatastore)
+  var self = ThreadProxyDatastore[T]()
+  var value = newSharedPtr(ThreadDatastore[T])
   # let dsCell = protect(cast[pointer](ds))
   # GC_ref(ds) ## TODO: is this needed?
 

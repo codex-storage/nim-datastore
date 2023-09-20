@@ -9,7 +9,8 @@ import pkg/taskpools
 import ./sharedptr
 import ../key
 import ../query
-import ./datastore
+import ../datastore
+import ../datastore2
 import ./databuffer
 import ./threadresults
 
@@ -57,20 +58,19 @@ push: {.upraises: [].}
 ##
 
 type
-  ThreadDatastore* = object
+  ThreadDatastore*[T] = object
     tp*: Taskpool
-    ds*: Datastore
+    ds*: Datastore2[T]
 
-  ThreadDatastorePtr* = SharedPtr[ThreadDatastore]
 
   QueryIterStore* = object
     it*: QueryIter
   QueryIterPtr* = SharedPtr[QueryIterStore]
 
-proc hasTask*(
+proc hasTask*[T](
   sig: SharedSignal,
   ret: TResult[bool],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   kb: KeyBuffer,
 ) =
 
@@ -86,10 +86,10 @@ proc hasTask*(
   except CatchableError as err:
     ret.failure(err)
 
-proc deleteTask*(
+proc deleteTask*[T](
   sig: SharedSignal,
   ret: TResult[void],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   kb: KeyBuffer,
 ) =
 
@@ -104,10 +104,10 @@ proc deleteTask*(
 
   discard sig.fireSync()
 
-proc getTask*(
+proc getTask*[T](
   sig: SharedSignal,
   ret: TResult[DataBuffer],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   kb: KeyBuffer,
 ) =
   echoed "getTask: ", $getThreadId(), " kb: ", kb.repr
@@ -127,10 +127,10 @@ proc getTask*(
 
 import std/os
 
-proc putTask*(
+proc putTask*[T](
   sig: SharedSignal,
   ret: TResult[void],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   kb: KeyBuffer,
   db: DataBuffer,
 ) =
@@ -141,10 +141,10 @@ proc putTask*(
   # echo "putTask:kb: ", kb.toString
   # echo "putTask:db: ", db.toString
 
-  let key = kb.toKey()
+  let key = kb
 
-  let data = db.toSeq(byte)
-  let res = (waitFor tds[].ds.put(key, data)).catch
+  let data = db
+  let res = tds[].ds.put(tds[].ds, key, data)
   # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
   if res.isErr:
     ret.failure(res.error())
@@ -155,10 +155,10 @@ proc putTask*(
   sig.decr()
   echoed "putTask: FINISH\n"
 
-proc queryTask*(
+proc queryTask*[T](
   sig: SharedSignal,
   ret: TResult[QueryResponseBuffer],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   qiter: QueryIterPtr,
 ) =
 
@@ -179,10 +179,10 @@ proc queryTask*(
 
   discard sig.fireSync()
 
-proc query*(
+proc query*[T](
   sig: SharedSignal,
   ret: TResult[QueryResponseBuffer],
-  tds: ThreadDatastorePtr,
+  tds: SharedPtr[ThreadDatastore[T]],
   qiter: QueryIterPtr,
 ) =
   tds[].tp.spawn queryTask(sig, ret, tds, qiter)

@@ -21,14 +21,11 @@ export key, query
 push: {.upraises: [].}
 
 type
-  MemoryDatastore* = object of Datastore2
+  MemoryDatastore* = object
     lock*: Lock
     store*: SimpleTable[10_000]
 
-proc has*(
-    self: var MemoryDatastore,
-    key: KeyBuffer
-): ?!bool =
+proc has*(self: var MemoryDatastore, key: KeyBuffer): ?!bool =
 
   withLock(self.lock):
     let res: bool = self.store.hasKey(key)
@@ -58,7 +55,7 @@ proc put*(
     self: var MemoryDatastore,
     key: KeyBuffer,
     data: ValueBuffer
-): Future[?!void] {.async.} =
+): ?!void =
 
   withLock(self.lock):
     self.store[key] = data
@@ -68,9 +65,9 @@ proc close*(self: var MemoryDatastore): ?!void =
   self.store.clear()
   return success()
 
-func new*(tp: typedesc[MemoryDatastore]): MemoryDatastore =
-  var self = tp()
-  self.lock.initLock()
+func initMemoryDatastore*(): Datastore2[MemoryDatastore] =
+  var self = Datastore2[MemoryDatastore]()
+  self.ds.lock.initLock()
   self.has = has
   self.delete = delete
   self.get = get
