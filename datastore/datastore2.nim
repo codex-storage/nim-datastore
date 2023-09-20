@@ -11,7 +11,7 @@ type
     delete*: proc(self: SharedPtr[T], key: KeyBuffer): ?!void {.nimcall, gcsafe, raises: [].}
     get*: proc(self: SharedPtr[T], key: KeyBuffer): ?!ValueBuffer {.nimcall, gcsafe, raises: [].}
     put*: proc(self: SharedPtr[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall, gcsafe, raises: [].}
-    close*: proc(self: SharedPtr[T]): ?!void {.gcsafe, raises: [].}
+    close*: proc(self: SharedPtr[T]): ?!void {.nimcall, gcsafe, raises: [].}
     ids*: SharedPtr[T]
 
 proc has*[T](self: Datastore2[T], key: KeyBuffer): ?!bool =
@@ -23,6 +23,4 @@ proc get*[T](self: Datastore2[T], key: KeyBuffer): ?!ValueBuffer {.nimcall.} =
 proc put*[T](self: Datastore2[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall.} =
   self.put(self.ids, key, data)
 proc close*[T](self: Datastore2[T]): ?!void {.nimcall.} =
-  echo "CLOSE: ", self
-  echo "CLOSE: ", self.ids.repr
   self.close(self.ids)

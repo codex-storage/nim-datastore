@@ -24,7 +24,7 @@ push: {.upraises: [].}
 type
   MemoryDatastore* = object
     lock*: Lock
-    store*: SimpleTable[10_000]
+    store*: SimpleTable[100]
 
 proc has(self: SharedPtr[MemoryDatastore], key: KeyBuffer): ?!bool =
 

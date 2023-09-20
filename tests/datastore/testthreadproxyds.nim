@@ -30,10 +30,10 @@ proc testThreadProxy() =
       key1 = Key.init("/a").tryGet
       data = "value for 1".toBytes()
 
-    # teardownAll:
-    #   let res = await sds.close()
-    #   res.get()
-    #   echo "teardown done"
+    teardownAll:
+      let res = await sds.close()
+      res.get()
+      echo "teardown done"
 
     test "check put":
       # echo "\n\n=== put ==="

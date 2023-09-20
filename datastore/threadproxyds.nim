@@ -193,7 +193,7 @@ method close*[T](
   if self.tds[].tp != nil:
     ## this can block... how to handle? maybe just leak?
     self.tds[].tp.shutdown()
-  self[].tds[].tp = nil # ensure our sharedptr doesn't try and dealloc
+  # self[].tds[].tp = nil # ensure our sharedptr doesn't try and dealloc
 
   self.tds.release()
   echo "close done"
