@@ -30,10 +30,10 @@ proc testThreadProxy() =
       key1 = Key.init("/a").tryGet
       data = "value for 1".toBytes()
 
-    teardownAll:
-      let res = await sds.close()
-      res.get()
-      echo "teardown done"
+    # teardownAll:
+    #   let res = await sds.close()
+    #   res.get()
+    #   echo "teardown done"
 
     test "check put":
       # echo "\n\n=== put ==="
@@ -52,6 +52,7 @@ proc testThreadProxy() =
       for c in res2.get():
         val &= char(c)
       # print "get res2: ", $val
+    GC_fullCollect()
 
 proc testThreadProxyBasics() =
   suite "Test Basics":
@@ -71,6 +72,7 @@ proc testThreadProxyBasics() =
       # # print "res3: ", res3
 
     basicStoreTests(sds, key, bytes, otherBytes)
+    GC_fullCollect()
 
 # proc testThreadProxyQuery() =
 #   suite "Test Query":
@@ -105,6 +107,7 @@ when isMainModule:
   for i in 1..100:
     testThreadProxy()
     testThreadProxyBasics()
+    GC_fullCollect()
     # testThreadProxyQuery()
 else:
   testThreadProxy()

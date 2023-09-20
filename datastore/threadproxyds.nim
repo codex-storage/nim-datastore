@@ -105,13 +105,13 @@ method put*[T](
   await sig.acquireSig()
 
   let ret = newSharedPtr(ThreadResult[void])
-  proc submitPut(): ?!void =
+  proc submitPut() =
     let bkey = KeyBuffer.new(key)
     let bval = DataBuffer.new(data)
     # queue taskpool work
     self.tds[].tp.spawn putTask(sig, ret, self.tds, bkey, bval)
   
-  submitPut().get()
+  submitPut()
   await sig.wait()
   return ret.convert(void)
 
@@ -188,7 +188,7 @@ method close*[T](
 ): Future[?!void] {.async.} =
   # TODO: how to handle failed close?
   result = success()
-  ? close(self.tds[].ds)
+  close(self.tds[].ds).get()
 
   if self.tds[].tp != nil:
     ## this can block... how to handle? maybe just leak?

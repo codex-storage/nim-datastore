@@ -23,4 +23,6 @@ proc get*[T](self: Datastore2[T], key: KeyBuffer): ?!ValueBuffer {.nimcall.} =
 proc put*[T](self: Datastore2[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall.} =
   self.put(self.ids, key, data)
 proc close*[T](self: Datastore2[T]): ?!void {.nimcall.} =
+  echo "CLOSE: ", self
+  echo "CLOSE: ", self.ids.repr
   self.close(self.ids)
