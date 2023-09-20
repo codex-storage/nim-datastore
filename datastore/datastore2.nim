@@ -6,22 +6,21 @@ import threads/databuffer
 push: {.upraises: [].}
 
 type
-  Datastore2*[T] = object of RootObj
-    has*: proc(self: var T, key: KeyBuffer): ?!bool {.nimcall, gcsafe, raises: [].}
-    delete*: proc(self: var T, key: KeyBuffer): ?!void {.nimcall.}
-    get*: proc(self: var T, key: KeyBuffer): ?!ValueBuffer {.nimcall.}
-    put*: proc(self: var T, key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall.}
-    close*: proc(self: var T): ?!void {.nimcall.}
-    ds*: T
+  Datastore2*[T] = object
+    has*: proc(self: SharedPtr[T], key: KeyBuffer): ?!bool {.nimcall, gcsafe, raises: [].}
+    delete*: proc(self: SharedPtr[T], key: KeyBuffer): ?!void {.nimcall, gcsafe, raises: [].}
+    get*: proc(self: SharedPtr[T], key: KeyBuffer): ?!ValueBuffer {.nimcall, gcsafe, raises: [].}
+    put*: proc(self: SharedPtr[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall, gcsafe, raises: [].}
+    close*: proc(self: SharedPtr[T]): ?!void {.gcsafe, raises: [].}
+    ids*: SharedPtr[T]
 
-proc has*[T](self: var Datastore2[T], key: KeyBuffer): ?!bool =
-  self.has(self.ds, key)
-
-proc delete*[T](self: var Datastore2[T], key: KeyBuffer): ?!void {.nimcall.} =
-  self.delete(self.ds, key)
-proc get*[T](self: var Datastore2[T], key: KeyBuffer): ?!ValueBuffer {.nimcall.} =
-  self.get(self.ds, key)
-proc put*[T](self: var Datastore2[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall.} =
-  self.put(self.ds, key, data)
-proc close*[T](self: var Datastore2[T]): ?!void {.nimcall.} =
-  self.close(self.ds)
+proc has*[T](self: Datastore2[T], key: KeyBuffer): ?!bool =
+  self.has(self.ids, key)
+proc delete*[T](self: Datastore2[T], key: KeyBuffer): ?!void {.nimcall.} =
+  self.delete(self.ids, key)
+proc get*[T](self: Datastore2[T], key: KeyBuffer): ?!ValueBuffer {.nimcall.} =
+  self.get(self.ids, key)
+proc put*[T](self: Datastore2[T], key: KeyBuffer, data: ValueBuffer): ?!void {.nimcall.} =
+  self.put(self.ids, key, data)
+proc close*[T](self: Datastore2[T]): ?!void {.nimcall.} =
+  self.close(self.ids)

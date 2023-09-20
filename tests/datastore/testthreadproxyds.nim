@@ -19,8 +19,8 @@ import pretty
 proc testThreadProxy() =
   suite "Test Basic ThreadProxyDatastore":
     var
+      mem: Datastore2[MemoryDatastore]
       sds: ThreadProxyDatastore[MemoryDatastore]
-      mem: MemoryDatastore
       key1: Key
       data: seq[byte]
 
@@ -56,7 +56,7 @@ proc testThreadProxy() =
 proc testThreadProxyBasics() =
   suite "Test Basics":
     var
-      mem = MemoryDatastore.new()
+      mem = initMemoryDatastore()
       sds = newThreadProxyDatastore(mem).expect("should work")
 
     let

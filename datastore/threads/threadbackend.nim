@@ -74,10 +74,10 @@ proc hasTask*[T](
   kb: KeyBuffer,
 ) =
 
-  let key = kb.toKey()
+  let key = kb
 
   try:
-    let res = waitFor tds[].ds.has(key)
+    let res = has(tds[].ds, key)
     if res.isErr:
       ret.failure(res.error())
     else:
@@ -93,9 +93,9 @@ proc deleteTask*[T](
   kb: KeyBuffer,
 ) =
 
-  let key = kb.toKey()
+  let key = kb
 
-  let res = (waitFor tds[].ds.delete(key)).catch
+  let res = delete(tds[].ds,key)
   # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
   if res.isErr:
     ret.failure(res.error())
@@ -111,14 +111,14 @@ proc getTask*[T](
   kb: KeyBuffer,
 ) =
   echoed "getTask: ", $getThreadId(), " kb: ", kb.repr
-  let key = kb.toKey()
+  let key = kb
   echoed "getTask: key: ", $key
   try:
-    let res = waitFor tds[].ds.get(key)
+    let res = get(tds[].ds, key)
     if res.isErr:
       ret.failure(res.error())
     else:
-      let db = DataBuffer.new res.get()
+      let db = res.get()
       ret.success(db)
 
     discard sig.fireSync()
@@ -144,7 +144,7 @@ proc putTask*[T](
   let key = kb
 
   let data = db
-  let res = tds[].ds.put(tds[].ds, key, data)
+  let res = put(tds[].ds, key, data)
   # print "thrbackend: putTask: fire", ret[].signal.fireSync().get()
   if res.isErr:
     ret.failure(res.error())
@@ -179,10 +179,10 @@ proc queryTask*[T](
 
   discard sig.fireSync()
 
-proc query*[T](
-  sig: SharedSignal,
-  ret: TResult[QueryResponseBuffer],
-  tds: SharedPtr[ThreadDatastore[T]],
-  qiter: QueryIterPtr,
-) =
-  tds[].tp.spawn queryTask(sig, ret, tds, qiter)
+# proc query*[T](
+#   sig: SharedSignal,
+#   ret: TResult[QueryResponseBuffer],
+#   tds: SharedPtr[ThreadDatastore[T]],
+#   qiter: QueryIterPtr,
+# ) =
+#   tds[].tp.spawn queryTask(sig, ret, tds, qiter)
