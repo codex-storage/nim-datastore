@@ -140,9 +140,6 @@ suite "Test ThreadDatastore cancelations":
     sqlStore: Datastore
     ds: ThreadDatastore
     taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
 
   privateAccess(ThreadDatastore) # expose private fields
   privateAccess(TaskCtx) # expose private fields
@@ -153,7 +150,7 @@ suite "Test ThreadDatastore cancelations":
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
   teardown:
-    GC_fullCollect()
+    GC_fullCollect() # run full collect after each test
 
   teardownAll:
     (await ds.close()).tryGet()
@@ -169,8 +166,6 @@ suite "Test ThreadDatastore cancelations":
         signal: signal)
       fut = newFuture[void]("signalMonitor")
       threadArgs = (addr ctx, addr fut)
-
-    var
       thread: Thread[type threadArgs]
 
     proc threadTask(args: type threadArgs) =
@@ -191,6 +186,7 @@ suite "Test ThreadDatastore cancelations":
 
     check: fut.cancelled
     check: ctx.signal.close().isOk
+    fut = nil
 
   test "Should monitor and not cancel":
     var
@@ -202,8 +198,6 @@ suite "Test ThreadDatastore cancelations":
         signal: signal)
       fut = newFuture[void]("signalMonitor")
       threadArgs = (addr ctx, addr fut)
-
-    var
       thread: Thread[type threadArgs]
 
     proc threadTask(args: type threadArgs) =
@@ -224,3 +218,4 @@ suite "Test ThreadDatastore cancelations":
 
     check: not fut.cancelled
     check: ctx.signal.close().isOk
+    fut = nil
