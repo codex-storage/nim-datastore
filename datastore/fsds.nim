@@ -155,7 +155,7 @@ method put*(
   return success()
 
 proc dirWalker(path: string): iterator: string {.gcsafe.} =
-  var localPath {.threadvar.}
+  var localPath {.threadvar.}: string
 
   localPath = path
   return iterator(): string =
