@@ -61,10 +61,10 @@ suite "Test Basic SQLiteDatastore":
 
   test "delete batch":
     var
-      batch: seq[Key]
+      batch: seq[string]
 
     for k in 0..<100:
-      batch.add(Key.init(key, $k).tryGet)
+      batch.add(Key.init(key, $k).tryGet().id())
 
     ds.delete(batch).tryGet
 
@@ -72,7 +72,7 @@ suite "Test Basic SQLiteDatastore":
       check: not ds.has(k).tryGet
 
   test "handle missing key":
-    let key = Key.init("/missing/key").tryGet()
+    let key = Key.init("/missing/key").tryGet().id()
 
     expect(DatastoreKeyNotFound):
       discard ds.get(key).tryGet() # non existing key

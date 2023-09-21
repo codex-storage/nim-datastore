@@ -33,7 +33,7 @@ type
     containsStmt*: ContainsStmt
     deleteStmt*: DeleteStmt
     env*: SQLite
-    getDataCol*: BoundDataCol
+    getDataCol*: (RawStmtPtr, int)
     getStmt*: GetStmt
     putStmt*: PutStmt
     beginStmt*: BeginStmt
@@ -158,38 +158,38 @@ proc idCol*(
   return proc (): string =
     $sqlite3_column_text_not_null(s, index.cint)
 
-proc dataCol*(
-  s: RawStmtPtr,
-  index: int): BoundDataCol =
+proc dataCol*(data: (RawStmtPtr, int)): DataBuffer =
+
+  let s = data[0]
+  let index = data[1]
 
   checkColMetadata(s, index, DataColName)
 
-  return proc (): DataBuffer =
+  let
+    i = index.cint
+    blob = sqlite3_column_blob(s, i)
+
+  # detect out-of-memory error
+  # see the conversion table and final paragraph of:
+  # https://www.sqlite.org/c3ref/column_blob.html
+  # see also https://www.sqlite.org/rescode.html
+
+  # the "data" column can be NULL so in order to detect an out-of-memory error
+  # it is necessary to check that the result is a null pointer and that the
+  # result code is an error code
+  if blob.isNil:
     let
-      i = index.cint
-      blob = sqlite3_column_blob(s, i)
+      v = sqlite3_errcode(sqlite3_db_handle(s))
 
-    # detect out-of-memory error
-    # see the conversion table and final paragraph of:
-    # https://www.sqlite.org/c3ref/column_blob.html
-    # see also https://www.sqlite.org/rescode.html
+    if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+      raise (ref Defect)(msg: $sqlite3_errstr(v))
 
-    # the "data" column can be NULL so in order to detect an out-of-memory error
-    # it is necessary to check that the result is a null pointer and that the
-    # result code is an error code
-    if blob.isNil:
-      let
-        v = sqlite3_errcode(sqlite3_db_handle(s))
+  let
+    dataLen = sqlite3_column_bytes(s, i)
+    dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
-      if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
-        raise (ref Defect)(msg: $sqlite3_errstr(v))
-
-    let
-      dataLen = sqlite3_column_bytes(s, i)
-      dataBytes = cast[ptr UncheckedArray[byte]](blob)
-
-    # copy data out, since sqlite will free it
-    DataBuffer.new(toOpenArray(dataBytes, 0, dataLen - 1))
+  # copy data out, since sqlite will free it
+  DataBuffer.new(toOpenArray(dataBytes, 0, dataLen - 1))
 
 proc timestampCol*(
   s: RawStmtPtr,
@@ -306,9 +306,9 @@ proc open*(
   # "SQL logic error"
 
   let
-    getDataCol = dataCol(RawStmtPtr(getStmt), GetStmtDataCol)
+    getDataCol = (RawStmtPtr(getStmt), GetStmtDataCol)
 
-  success T(
+  success SQLiteDsDb(
     readOnly: readOnly,
     dbPath: path,
     containsStmt: containsStmt,

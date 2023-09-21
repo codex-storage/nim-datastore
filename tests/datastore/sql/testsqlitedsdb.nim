@@ -111,12 +111,10 @@ suite "Test SQLite Datastore DB operations":
     dsDb.putStmt.exec((key.id, data, timestamp())).tryGet()
 
   test "Should select key":
-    let
-      dataCol = dsDb.getDataCol
 
     var bytes: seq[byte]
     proc onData(s: RawStmtPtr) =
-      bytes = dataCol()
+      bytes = dataCol(dsDb.getDataCol)
 
     check:
       dsDb.getStmt.query((key.id), onData).tryGet()
@@ -129,12 +127,10 @@ suite "Test SQLite Datastore DB operations":
     dsDb.putStmt.exec((key.id, otherData, timestamp())).tryGet()
 
   test "Should select updated key":
-    let
-      dataCol = dsDb.getDataCol
 
     var bytes: seq[byte]
     proc onData(s: RawStmtPtr) =
-      bytes = dataCol()
+      bytes = dataCol(dsDb.getDataCol)
 
     check:
       dsDb.getStmt.query((key.id), onData).tryGet()

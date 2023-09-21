@@ -47,7 +47,7 @@ proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
     return failure(err)
 
   for key in keys:
-    if err =? self.db.deleteStmt.exec((key.id)).errorOption:
+    if err =? self.db.deleteStmt.exec((key)).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err.msg
 
