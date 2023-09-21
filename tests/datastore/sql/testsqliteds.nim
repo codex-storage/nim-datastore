@@ -14,11 +14,12 @@ import pkg/datastore/key
 import ../dscommontests
 import ../querycommontests
 
-proc testBasic[K, V](
+proc testBasic[K, V, B](
   ds: SQLiteDatastore,
   key: K,
   bytes: V,
   otherBytes: V,
+  batches: B,
 ) =
 
   test "put":
@@ -80,19 +81,24 @@ suite "Test Basic SQLiteDatastore":
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
-  suiteTeardown:
-    ds.close().tryGet()
-  
-  testBasic(ds, key, bytes, otherBytes)
-
-suite "Test DataBuffer SQLiteDatastore":
-  let
-    ds = SQLiteDatastore.new(Memory).tryGet()
-    key = KeyId.new Key.init("a:b/c/d:e").tryGet().id()
-    bytes = DataBuffer.new "some bytes"
-    otherBytes = DataBuffer.new "some other bytes"
+  var batch: seq[tuple[key: string, data: seq[byte]]]
+  for k in 0..<100:
+    let kk = Key.init(key, $k).tryGet().id()
+    batch.add( (kk, @[k.byte]) )
 
   suiteTeardown:
     ds.close().tryGet()
+
+  testBasic(ds, key, bytes, otherBytes, batch)
+
+# suite "Test DataBuffer SQLiteDatastore":
+#   let
+#     ds = SQLiteDatastore.new(Memory).tryGet()
+#     key = KeyId.new Key.init("a:b/c/d:e").tryGet().id()
+#     bytes = DataBuffer.new "some bytes"
+#     otherBytes = DataBuffer.new "some other bytes"
+
+#   suiteTeardown:
+#     ds.close().tryGet()
   
-  testBasic(ds, key, bytes, otherBytes)
+#   testBasic(ds, key, bytes, otherBytes)

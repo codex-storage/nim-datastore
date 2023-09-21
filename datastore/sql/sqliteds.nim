@@ -40,7 +40,7 @@ proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
   return success exists
 
 proc delete*(self: SQLiteDatastore, key: DbKey): ?!void =
-  return self.db.deleteStmt.exec((key))
+  return self.db.deleteStmt.exec(($key))
 
 proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
@@ -69,7 +69,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
   proc onData(s: RawStmtPtr) =
     bytes = dataCol(self.db.getDataCol)
 
-  if err =? self.db.getStmt.query((key), onData).errorOption:
+  if err =? self.db.getStmt.query(($key), onData).errorOption:
     return failure(err)
 
   if bytes.len <= 0:

@@ -35,7 +35,7 @@ proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
 proc hash*(a: DataBuffer): Hash =
   a[].buf.toOpenArray(0, a[].size-1).hash()
 
-proc `[]`*(db: DataBuffer, idx: int): byte =
+proc `[]`*(db: DataBuffer, idx: int): var byte =
   if idx >= db.len():
     raise newException(IndexDefect, "index out of bounds")
   db[].buf[idx]
