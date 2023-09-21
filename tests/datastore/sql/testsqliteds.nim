@@ -3,87 +3,75 @@ import std/os
 import std/sequtils
 from std/algorithm import sort, reversed
 
-import pkg/asynctest
+import pkg/unittest2
 import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
 import pkg/datastore/sql/sqliteds
+import pkg/datastore/key
 
 import ../dscommontests
 import ../querycommontests
 
 suite "Test Basic SQLiteDatastore":
+
   let
     ds = SQLiteDatastore.new(Memory).tryGet()
-    key = Key.init("a:b/c/d:e").tryGet()
+    key = Key.init("a:b/c/d:e").tryGet().id()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
-  teardownAll:
-    (await ds.close()).tryGet()
-
-  basicStoreTests(ds, key, bytes, otherBytes)
-
-suite "Test Read Only SQLiteDatastore":
-  let
-    path = currentSourcePath() # get this file's name
-    basePath = "tests_data"
-    basePathAbs = path.parentDir / basePath
-    filename = "test_store" & DbExt
-    dbPathAbs = basePathAbs / filename
-    key = Key.init("a:b/c/d:e").tryGet()
-    bytes = "some bytes".toBytes
-
-  var
-    dsDb: SQLiteDatastore
-    readOnlyDb: SQLiteDatastore
-
-  setupAll:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
-
-    dsDb = SQLiteDatastore.new(path = dbPathAbs).tryGet()
-    readOnlyDb = SQLiteDatastore.new(path = dbPathAbs, readOnly = true).tryGet()
-
-  teardownAll:
-    (await dsDb.close()).tryGet()
-    (await readOnlyDb.close()).tryGet()
-
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
+  teardown:
+    ds.close().tryGet()
 
   test "put":
-    check:
-      (await readOnlyDb.put(key, bytes)).isErr
-
-    (await dsDb.put(key, bytes)).tryGet()
+    ds.put(key, bytes).tryGet()
 
   test "get":
     check:
-      (await readOnlyDb.get(key)).tryGet() == bytes
-      (await dsDb.get(key)).tryGet() == bytes
+      ds.get(key).tryGet() == bytes
+
+  test "put update":
+    ds.put(key, otherBytes).tryGet()
+
+  test "get updated":
+    check:
+      ds.get(key).tryGet() == otherBytes
 
   test "delete":
-    check:
-      (await readOnlyDb.delete(key)).isErr
-
-    (await dsDb.delete(key)).tryGet()
+    ds.delete(key).tryGet()
 
   test "contains":
     check:
-      not (await readOnlyDb.has(key)).tryGet()
-      not (await dsDb.has(key)).tryGet()
+      not await (key in ds)
 
-suite "Test Query":
-  var
-    ds: SQLiteDatastore
+  test "put batch":
+    var
+      batch: seq[BatchEntry]
 
-  setup:
-    ds = SQLiteDatastore.new(Memory).tryGet()
+    for k in 0..<100:
+      batch.add((Key.init(key.id, $k).tryGet, @[k.byte]))
 
-  teardown:
-    (await ds.close()).tryGet
+    ds.put(batch).tryGet
 
-  queryTests(ds)
+    for k in batch:
+      check: ds.has(k.key).tryGet
+
+  test "delete batch":
+    var
+      batch: seq[Key]
+
+    for k in 0..<100:
+      batch.add(Key.init(key.id, $k).tryGet)
+
+    ds.delete(batch).tryGet
+
+    for k in batch:
+      check: not ds.has(k).tryGet
+
+  test "handle missing key":
+    let key = Key.init("/missing/key").tryGet()
+
+    expect(DatastoreKeyNotFound):
+      discard ds.get(key).tryGet() # non existing key

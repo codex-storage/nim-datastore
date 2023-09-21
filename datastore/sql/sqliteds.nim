@@ -69,7 +69,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
   proc onData(s: RawStmtPtr) =
     bytes = self.db.getDataCol()
 
-  if err =? self.db.getStmt.query((key.id), onData).errorOption:
+  if err =? self.db.getStmt.query((key), onData).errorOption:
     return failure(err)
 
   if bytes.len <= 0:
@@ -80,7 +80,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
 
 proc put*(self: SQLiteDatastore, key: DbKey, data: DbVal): ?!void =
   when DbVal is seq[byte]:
-    return self.db.putStmt.exec((key.id, data, timestamp()))
+    return self.db.putStmt.exec((key, data, timestamp()))
   elif DbVal is DataBuffer:
     return self.db.putBufferStmt.exec((key.id, data, timestamp()))
   else:
@@ -199,7 +199,10 @@ proc query*(self: SQLiteDatastore,
       discard sqlite3_clear_bindings(s)
       s.dispose()
       return
-  
+
+
+proc contains*(self: SQLiteDatastore, key: DbKey): bool =
+  return self.has(key)
 
 
 proc new*(T: type SQLiteDatastore,

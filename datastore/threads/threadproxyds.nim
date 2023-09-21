@@ -23,6 +23,7 @@ import pkg/chronicles
 import ../key
 import ../query
 import ../datastore
+import ../backend
 
 import ./asyncsemaphore
 import ./databuffer
@@ -427,8 +428,8 @@ method query*(
 
     iter.finished = childIter.finished
     var
-      res = ThreadResult[ThreadQueryRes]()
-      ctx = TaskCtx[ThreadQueryRes](
+      res = ThreadResult[DbQueryResponse]()
+      ctx = TaskCtx[DbQueryResponse](
         ds: self.ds,
         res: addr res)
 
