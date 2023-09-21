@@ -53,7 +53,8 @@ proc bindParam(
       # must remain valid until then. SQLite will then manage the lifetime of
       # its private copy."
       var val = val
-      sqlite3_bind_blob(s, n.cint, addr val[0], val.len.cint, SQLITE_TRANSIENT)
+      sqlite3_bind_blob(s, n.cint, addr val[0], val.len.cint,
+        SQLITE_TRANSIENT)
     else:
       sqlite3_bind_null(s, n.cint)
   elif val is int32:
