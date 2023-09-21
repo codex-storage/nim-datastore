@@ -42,7 +42,7 @@ proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
 proc delete*(self: SQLiteDatastore, key: DbKey): ?!void =
   return self.db.deleteStmt.exec((key.data))
 
-proc delete*(self: SQLiteDatastore, keys: seq[DbKey]): ?!void =
+proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -78,10 +78,15 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
 
   return success bytes
 
-proc put*(self: SQLiteDatastore, key: DbKey, data: seq[byte]): ?!void =
-  return self.db.putStmt.exec((key.id, data, timestamp()))
+proc put*(self: SQLiteDatastore, key: DbKey, data: DbVal): ?!void =
+  when DbVal is seq[byte]:
+    return self.db.putStmt.exec((key.id, data, timestamp()))
+  elif DbVal is DataBuffer:
+    return self.db.putBufferStmt.exec((key.id, data, timestamp()))
+  else:
+    {.error: "unknown type".}
 
-proc put*(self: SQLiteDatastore, batch: iterator (): DbBatchEntry): ?!void =
+proc put*(self: SQLiteDatastore, batch: openArray[DbBatchEntry]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
@@ -101,7 +106,6 @@ proc close*(self: SQLiteDatastore): ?!void =
   self.db.close()
 
   return success()
-
 
 proc query*(self: SQLiteDatastore,
             query: DbQuery
@@ -186,7 +190,7 @@ proc query*(self: SQLiteDatastore,
 
         return success (key.some, data)
       of SQLITE_DONE:
-        return success (KeyId.none, DataBuffer.new(0))
+        return
       else:
         return failure newException(DatastoreError, $sqlite3_errstr(v))
 
