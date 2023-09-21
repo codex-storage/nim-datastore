@@ -76,7 +76,7 @@ proc bindParam(
     # to the return from sqlite3_bind_*(). The object and pointer to it must
     # remain valid until then. SQLite will then manage the lifetime of its
     # private copy."
-    sqlite3_bind_text(s, n.cint, val.toCString(), -1.cint, SQLITE_TRANSIENT)
+    sqlite3_bind_text(s, n.cint, val.toCString(), val.data.len().cint, SQLITE_TRANSIENT)
   else:
     {.fatal: "Please add support for the '" & $typeof(val) & "' type".}
 
