@@ -67,7 +67,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
     bytes: seq[byte]
 
   proc onData(s: RawStmtPtr) =
-    bytes = self.db.getDataCol()
+    bytes = dataCol(self.db.getDataCol)
 
   if err =? self.db.getStmt.query((key), onData).errorOption:
     return failure(err)
