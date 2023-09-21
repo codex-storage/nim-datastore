@@ -10,7 +10,7 @@ import ./key
 import ./types
 
 export databuffer, threadresult, semaphore, types
-export upraises, results
+export upraises, results, SortOrder
 
 type
   KeyId* = object
@@ -29,7 +29,7 @@ type
     offset*: int      # Offset from which to start querying - not available in all backends
     sort*: SortOrder  # Sort order - not available in all backends
 
-  DbQueryResponse* = tuple[key: Option[string], data: seq[byte]] | tuple[key: Option[KeyId], data: DataBuffer]
+  DbQueryResponse* = tuple[key: Option[KeyId], val: DataBuffer]
 
 proc `$`*(id: KeyId): string = $(id.data)
 

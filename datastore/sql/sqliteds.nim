@@ -104,11 +104,10 @@ proc close*(self: SQLiteDatastore): ?!void =
 
 
 iterator query*(self: SQLiteDatastore,
-              query: Query
-              ): ?!ThreadQueryRes =
+                query: DbQuery
+                ): ?!DbQueryResponse {.closure.} =
 
   var
-    iter = QueryIter()
     queryStr = if query.value:
         QueryStmtDataIdStr
       else:
