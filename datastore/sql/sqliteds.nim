@@ -26,7 +26,7 @@ proc readOnly*(self: SQLiteDatastore): bool = self.db.readOnly
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*(self: SQLiteDatastore, key: DbKey|string): ?!bool =
+proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
   var
     exists = false
     key = $key
@@ -81,7 +81,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
 proc put*(self: SQLiteDatastore, key: DbKey, data: seq[byte]): ?!void =
   return self.db.putStmt.exec((key.id, data, timestamp()))
 
-proc put*(self: SQLiteDatastore, batch: seq[BatchEntry]): ?!void =
+proc put*(self: SQLiteDatastore, batch: iterator (): DbBatchEntry): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
