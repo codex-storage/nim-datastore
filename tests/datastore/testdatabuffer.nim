@@ -103,6 +103,12 @@ suite "Share buffer test":
   test "seq conversion":
     check a.toSeq() == "/a/b".toBytes
 
+  test "basic null terminate test":
+    let cstr = DataBuffer.new("test", {dbNullTerminate})
+    check cstr.len() == 4
+    check cstr.capacity() == 5
+    check "test" == cstr.toString()
+
   test "basic openArray test":
     proc letters(val: openArray[char]): int =
       val.len()

@@ -5,9 +5,13 @@ import pkg/stew/ptrops
 export hashes
 
 type
+  DataBufferOpt* = enum
+    dbNullTerminate
+
   DataBufferHolder* = object
     buf: ptr UncheckedArray[byte]
     size: int
+    cap: int
 
   DataBuffer* = SharedPtr[DataBufferHolder] ##\
     ## A fixed length data buffer using a SharedPtr.
@@ -24,6 +28,7 @@ proc `=destroy`*(x: var DataBufferHolder) =
     deallocShared(x.buf)
 
 proc len*(a: DataBuffer): int = a[].size
+proc capacity*(a: DataBuffer): int = a[].cap
 
 proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
 
@@ -37,28 +42,38 @@ proc `==`*(a, b: DataBuffer): bool =
   elif a[].buf == b[].buf: return true
   else: a.hash() == b.hash()
 
-proc new*(tp: type DataBuffer, size: int = 0): DataBuffer =
-  ## allocate new buffer with given size
+proc new*(tp: type DataBuffer, capacity: int = 0): DataBuffer =
+  ## allocate new buffer with given capacity
   ##
 
   newSharedPtr(DataBufferHolder(
-    buf: cast[typeof(result[].buf)](allocShared0(size)),
-    size: size,
+    buf: cast[typeof(result[].buf)](allocShared0(capacity)),
+    size: 0,
+    cap: capacity,
   ))
 
-proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T]): DataBuffer =
+proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[DataBufferOpt] = {}): DataBuffer =
   ## allocate new buffer and copies indata from openArray
   ##
-  result = DataBuffer.new(data.len)
+  let dataCap =
+    if dbNullTerminate in opts: data.len() + 1
+    else: data.len()
+  result = DataBuffer.new(dataCap)
   if data.len() > 0:
-    copyMem(result[].buf, baseAddr data, data.len)
+    copyMem(result[].buf, baseAddr data, data.len())
+  result[].size = data.len()
+
+proc clear*(db: DataBuffer) =
+  zeroMem(db[].buf, db[].cap)
 
 proc setData*[T: byte | char](db: DataBuffer, data: openArray[T]) =
   ## allocate new buffer and copies indata from openArray
   ##
   if data.len() > db.len():
     raise newException(IndexDefect, "data too large for buffer")
-  copyMem(db[].buf, baseAddr data, data.len)
+  db.clear() # this is expensive, but we can optimize later
+  copyMem(db[].buf, baseAddr data, data.len())
+  db[].size = data.len()
 
 converter toSeq*(self: DataBuffer): seq[byte] =
   ## convert buffer to a seq type using copy and either a byte or char
