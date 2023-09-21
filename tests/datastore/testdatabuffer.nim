@@ -88,6 +88,12 @@ suite "Share buffer test":
   test "toString":
     check $a == "/a/b"
 
+  test "index":
+    check c[0] == '/'.byte
+    check c[1] == 'a'.byte
+    expect IndexDefect:
+      check c[2] == 'c'.byte
+
   test "hash":
     check a.hash() == b.hash()
 

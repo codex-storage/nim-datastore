@@ -82,7 +82,7 @@ proc put*(self: SQLiteDatastore, key: DbKey, data: DbVal): ?!void =
   when DbVal is seq[byte]:
     return self.db.putStmt.exec((key, data, timestamp()))
   elif DbVal is DataBuffer:
-    return self.db.putBufferStmt.exec((key.id, data, timestamp()))
+    return self.db.putBufferStmt.exec((key, data, timestamp()))
   else:
     {.error: "unknown type".}
 

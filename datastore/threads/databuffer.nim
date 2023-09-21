@@ -35,6 +35,11 @@ proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
 proc hash*(a: DataBuffer): Hash =
   a[].buf.toOpenArray(0, a[].size-1).hash()
 
+proc `[]`*(db: DataBuffer, idx: int): byte =
+  if idx >= db.len():
+    raise newException(IndexDefect, "index out of bounds")
+  db[].buf[idx]
+
 proc `==`*(a, b: DataBuffer): bool =
   if a.isNil and b.isNil: return true
   elif a.isNil or b.isNil: return false
@@ -70,6 +75,9 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[Dat
 
 proc new*(tp: type DataBuffer, data: pointer, first, last: int): DataBuffer =
   DataBuffer.new(toOpenArray(cast[ptr UncheckedArray[byte]](data), first, last))
+
+proc baseAddr*(db: DataBuffer): pointer =
+  db[].buf
 
 proc clear*(db: DataBuffer) =
   zeroMem(db[].buf, db[].cap)

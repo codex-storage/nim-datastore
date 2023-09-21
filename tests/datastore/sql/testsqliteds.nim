@@ -14,11 +14,11 @@ import pkg/datastore/key
 import ../dscommontests
 import ../querycommontests
 
-proc testBasic(
+proc testBasic[K, V](
   ds: SQLiteDatastore,
-  key: string,
-  bytes: seq[byte],
-  otherBytes: seq[byte],
+  key: K,
+  bytes: V,
+  otherBytes: V,
 ) =
 
   test "put":
@@ -79,6 +79,18 @@ suite "Test Basic SQLiteDatastore":
     key = keyFull.id()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
+
+  suiteTeardown:
+    ds.close().tryGet()
+  
+  testBasic(ds, key, bytes, otherBytes)
+
+suite "Test DataBuffer SQLiteDatastore":
+  let
+    ds = SQLiteDatastore.new(Memory).tryGet()
+    key = KeyId.new Key.init("a:b/c/d:e").tryGet().id()
+    bytes = DataBuffer.new "some bytes"
+    otherBytes = DataBuffer.new "some other bytes"
 
   suiteTeardown:
     ds.close().tryGet()

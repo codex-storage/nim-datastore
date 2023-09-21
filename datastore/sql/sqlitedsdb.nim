@@ -21,7 +21,7 @@ type
   DeleteStmt* = SQLiteStmt[(string), void]
   GetStmt* = SQLiteStmt[(string), void]
   PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
-  PutBufferStmt* = SQLiteStmt[(string, DataBuffer, int64), void]
+  PutBufferStmt* = SQLiteStmt[(KeyId, DataBuffer, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
@@ -36,6 +36,7 @@ type
     getDataCol*: (RawStmtPtr, int)
     getStmt*: GetStmt
     putStmt*: PutStmt
+    putBufferStmt*: PutBufferStmt
     beginStmt*: BeginStmt
     endStmt*: EndStmt
     rollbackStmt*: RollbackStmt
@@ -317,6 +318,7 @@ proc open*(
     getStmt: getStmt,
     getDataCol: getDataCol,
     putStmt: putStmt,
+    putBufferStmt: putBufferStmt,
     beginStmt: beginStmt,
     endStmt: endStmt,
     rollbackStmt: rollbackStmt)

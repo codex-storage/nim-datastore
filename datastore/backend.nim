@@ -34,7 +34,16 @@ type
 proc `$`*(id: KeyId): string = $(id.data)
 
 proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
-  KeyId(data: DataBuffer.new(id.pointer, 0, id.len()-1))
+  ## copy cstring including null terminator
+  KeyId(data: DataBuffer.new(id.pointer, 0, id.len()))
+
+proc new*(tp: typedesc[KeyId], id: string): KeyId =
+  ## copy cstring including null terminator
+  KeyId(data: DataBuffer.new(id, {dbNullTerminate}))
+
+proc toCString*(key: KeyId): cstring =
+  ## copy cstring including null terminator
+  cast[cstring](baseAddr key.data)
 
 proc toDb*(key: Key): DbKey {.inline, raises: [].} =
   let id: string = key.id()
@@ -42,7 +51,7 @@ proc toDb*(key: Key): DbKey {.inline, raises: [].} =
   db.setData(id)
   DbKey(data: db)
 
-proc toKey*(key: DbKey): Key {.inline, raises: [].} =
+proc toKey*(key: KeyId): Key {.inline, raises: [].} =
   Key.init(key.data).expect("expected valid key here for but got `" & $key.data & "`")
 
 template toOpenArray*(x: DbKey): openArray[char] =
