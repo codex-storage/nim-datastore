@@ -98,5 +98,5 @@ suite "Test DataBuffer SQLiteDatastore":
 
   suiteTeardown:
     ds.close().tryGet()
-  
+
   testBasic(ds, key, bytes, otherBytes, batch)
