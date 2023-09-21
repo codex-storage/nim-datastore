@@ -22,23 +22,30 @@ type
   ThreadQueryRes* = (DataBuffer, DataBuffer)
   ThreadResult*[T: ThreadTypes] = Result[T, ThreadResErr]
 
-  DbKey* = tuple[data: DataBuffer]
-  DbValue* = tuple[data: DataBuffer]
+  DbKey* = object
+    data: DataBuffer
+  DbVal* = object
+    data: DataBuffer
 
 proc toDb*(key: Key): DbKey {.inline, raises: [].} =
-  (data: DataBuffer.new(key.id()))
+  let id: string = key.id()
+  let db = DataBuffer.new(id.len()+1) # include room for null for cstring compat
+  db.setData(id)
+  DbKey(data: db)
 
 proc toKey*(key: DbKey): Key {.inline, raises: [].} =
   Key.init(key.data).expect("expected valid key here for but got `" & $key.data & "`")
 
-proc toDb*(value: sink seq[byte]): DbValue {.inline, raises: [].} =
-  (data: DataBuffer.new(value))
+proc toDb*(value: sink seq[byte]): DbVal {.inline, raises: [].} =
+  DbVal(data: DataBuffer.new(value))
 
-proc toValue*(value: DbValue): seq[byte] {.inline, raises: [].} =
+proc toValue*(value: DbVal): seq[byte] {.inline, raises: [].} =
   value.data.toSeq()
 
 template toOpenArray*(x: DbKey): openArray[char] =
-  x.data[].buf.toOpenArray(0, x[].size-1)
+  x.data.toOpenArray(char)
+template toOpenArray*(x: DbVal): openArray[byte] =
+  x.data.toOpenArray(byte)
 
 converter toThreadErr*(e: ref CatchableError): ThreadResErr {.inline, raises: [].} =
   if e of DatastoreKeyNotFound: (ErrorEnum.DatastoreKeyNotFoundErr, DataBuffer.new(e.msg))

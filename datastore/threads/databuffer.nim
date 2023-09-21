@@ -51,9 +51,14 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T]): DataBuffer =
   ##
   result = DataBuffer.new(data.len)
   if data.len() > 0:
-    # TODO: we might want to copy data, otherwise the GC might
-    # release it on stack-unwind
     copyMem(result[].buf, baseAddr data, data.len)
+
+proc setData*[T: byte | char](db: DataBuffer, data: openArray[T]) =
+  ## allocate new buffer and copies indata from openArray
+  ##
+  if data.len() > db.len():
+    raise newException(IndexDefect, "data too large for buffer")
+  copyMem(db[].buf, baseAddr data, data.len)
 
 converter toSeq*(self: DataBuffer): seq[byte] =
   ## convert buffer to a seq type using copy and either a byte or char
