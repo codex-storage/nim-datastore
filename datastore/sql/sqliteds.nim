@@ -1,7 +1,6 @@
 import std/times
 import std/options
 
-import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
@@ -16,20 +15,18 @@ export datastore, sqlitedsdb
 push: {.upraises: [].}
 
 type
-  SQLiteDatastore* = ref object of Datastore
-    readOnly: bool
+  SQLiteDatastore* = object
     db: SQLiteDsDb
 
 proc path*(self: SQLiteDatastore): string =
   self.db.dbPath
 
-proc `readOnly=`*(self: SQLiteDatastore): bool
-  {.error: "readOnly should not be assigned".}
+proc readOnly*(self: SQLiteDatastore): bool = self.db.readOnly
 
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
+proc has*(self: SQLiteDatastore, key: Key): ?!bool =
   var
     exists = false
 
@@ -41,10 +38,10 @@ method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
 
   return success exists
 
-method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
+proc delete*(self: SQLiteDatastore, key: Key): ?!void =
   return self.db.deleteStmt.exec((key.id))
 
-method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+proc delete*(self: SQLiteDatastore, keys: seq[Key]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -60,9 +57,9 @@ method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} 
 
   return success()
 
-method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+proc get*(self: SQLiteDatastore, key: Key): ?!seq[byte] =
   # see comment in ./filesystem_datastore re: finer control of memory
-  # allocation in `method get`, could apply here as well if bytes were read
+  # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
 
   var
@@ -80,10 +77,10 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   return success bytes
 
-method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+proc put*(self: SQLiteDatastore, key: Key, data: seq[byte]): ?!void =
   return self.db.putStmt.exec((key.id, data, timestamp()))
 
-method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+proc put*(self: SQLiteDatastore, batch: seq[BatchEntry]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
@@ -99,14 +96,14 @@ method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.asy
 
   return success()
 
-method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
+proc close*(self: SQLiteDatastore): ?!void =
   self.db.close()
 
   return success()
 
-method query*(
-  self: SQLiteDatastore,
-  query: Query): Future[?!QueryIter] {.async.} =
+proc query*(self: SQLiteDatastore,
+              query: Query
+              ): ?!QueryIter {.async.} =
 
   var
     iter = QueryIter()
@@ -152,7 +149,7 @@ method query*(
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
   let lock = newAsyncLock()
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): ?!QueryResponse =
     defer:
       if lock.locked:
         lock.release()
@@ -215,7 +212,7 @@ method query*(
       iter.finished = true
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  iter.dispose = proc(): Future[?!void] {.async.} =
+  iter.dispose = proc(): ?!void =
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
     s.dispose
@@ -224,24 +221,19 @@ method query*(
   iter.next = next
   return success iter
 
-proc new*(
-  T: type SQLiteDatastore,
-  path: string,
-  readOnly = false): ?!T =
+proc new*(T: type SQLiteDatastore,
+          path: string,
+          readOnly = false): ?!T =
 
   let
     flags =
       if readOnly: SQLITE_OPEN_READONLY
       else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
-  success T(
-    db: ? SQLiteDsDb.open(path, flags),
-    readOnly: readOnly)
+  success SQLiteDatastore(db: ? SQLiteDsDb.open(path, flags))
+    
 
-proc new*(
-  T: type SQLiteDatastore,
-  db: SQLiteDsDb): ?!T =
+proc new*(T: type SQLiteDatastore,
+          db: SQLiteDsDb): ?!T =
 
-  success T(
-    db: db,
-    readOnly: db.readOnly)
+  success SQLiteDatastore(db: db)
