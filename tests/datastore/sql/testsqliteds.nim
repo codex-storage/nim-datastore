@@ -14,17 +14,12 @@ import pkg/datastore/key
 import ../dscommontests
 import ../querycommontests
 
-suite "Test Basic SQLiteDatastore":
-
-  let
-    ds = SQLiteDatastore.new(Memory).tryGet()
-    keyFull = Key.init("a:b/c/d:e").tryGet()
-    key = keyFull.id()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
-
-  suiteTeardown:
-    ds.close().tryGet()
+proc testBasic(
+  ds: SQLiteDatastore,
+  key: string,
+  bytes: seq[byte],
+  otherBytes: seq[byte],
+) =
 
   test "put":
     ds.put(key, bytes).tryGet()
@@ -76,3 +71,16 @@ suite "Test Basic SQLiteDatastore":
 
     expect(DatastoreKeyNotFound):
       discard ds.get(key).tryGet() # non existing key
+
+suite "Test Basic SQLiteDatastore":
+  let
+    ds = SQLiteDatastore.new(Memory).tryGet()
+    keyFull = Key.init("a:b/c/d:e").tryGet()
+    key = keyFull.id()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+
+  suiteTeardown:
+    ds.close().tryGet()
+  
+  testBasic(ds, key, bytes, otherBytes)
