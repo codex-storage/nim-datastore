@@ -68,6 +68,9 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[Dat
     copyMem(result[].buf, baseAddr data, data.len())
   result[].size = data.len()
 
+proc new*(tp: type DataBuffer, data: pointer, first, last: int): DataBuffer =
+  DataBuffer.new(toOpenArray(cast[ptr UncheckedArray[byte]](data), first, last))
+
 proc clear*(db: DataBuffer) =
   zeroMem(db[].buf, db[].cap)
   db[].size = 0

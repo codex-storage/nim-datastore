@@ -33,6 +33,9 @@ type
 
 proc `$`*(id: KeyId): string = $(id.data)
 
+proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
+  KeyId(data: DataBuffer.new(id.pointer, 0, id.len()-1))
+
 proc toDb*(key: Key): DbKey {.inline, raises: [].} =
   let id: string = key.id()
   let db = DataBuffer.new(id.len()+1) # include room for null for cstring compat
