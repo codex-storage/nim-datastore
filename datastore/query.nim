@@ -22,7 +22,7 @@ type
 
   GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe.}
   IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
-  QueryIter* = ref object
+  QueryIter* {.acyclic.} = ref object
     finished*: bool
     next*: GetNext
     dispose*: IterDispose

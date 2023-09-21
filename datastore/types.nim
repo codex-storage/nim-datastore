@@ -8,4 +8,4 @@ type
   DatastoreKeyNotFound* = object of DatastoreError
   QueryEndedError* = object of DatastoreError
 
-  Datastore* = ref object of RootObj
+  Datastore* {.acyclic.} = ref object of RootObj
