@@ -25,6 +25,18 @@ type
   DbKey* = tuple[data: DataBuffer]
   DbValue* = tuple[data: DataBuffer]
 
+proc toDb*(key: Key): DbKey {.inline, raises: [].} =
+  (data: DataBuffer.new(key.id()))
+
+proc toKey*(key: DbKey): Key {.inline, raises: [].} =
+  Key.init(key.data).expect("expected valid key here for but got `" & $key.data & "`")
+
+proc toDb*(value: sink seq[byte]): DbValue {.inline, raises: [].} =
+  (data: DataBuffer.new(value))
+
+proc toValue*(value: DbValue): seq[byte] {.inline, raises: [].} =
+  value.data.toSeq()
+
 converter toThreadErr*(e: ref CatchableError): ThreadResErr {.inline, raises: [].} =
   if e of DatastoreKeyNotFound: (ErrorEnum.DatastoreKeyNotFoundErr, DataBuffer.new(e.msg))
   elif e of QueryEndedError: (ErrorEnum.QueryEndedErr, DataBuffer.new(e.msg))
