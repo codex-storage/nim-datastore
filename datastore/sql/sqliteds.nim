@@ -101,9 +101,10 @@ proc close*(self: SQLiteDatastore): ?!void =
 
   return success()
 
-proc query*(self: SQLiteDatastore,
+
+iterator query*(self: SQLiteDatastore,
               query: Query
-              ): ?!QueryIter {.async.} =
+              ): ?!ThreadQueryRes =
 
   var
     iter = QueryIter()

@@ -22,6 +22,9 @@ type
   ThreadQueryRes* = (DataBuffer, DataBuffer)
   ThreadResult*[T: ThreadTypes] = Result[T, ThreadResErr]
 
+  DbKey* = tuple[data: DataBuffer]
+  DbValue* = tuple[data: DataBuffer]
+
 converter toThreadErr*(e: ref CatchableError): ThreadResErr {.inline, raises: [].} =
   if e of DatastoreKeyNotFound: (ErrorEnum.DatastoreKeyNotFoundErr, DataBuffer.new(e.msg))
   elif e of QueryEndedError: (ErrorEnum.QueryEndedErr, DataBuffer.new(e.msg))
