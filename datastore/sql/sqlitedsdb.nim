@@ -20,7 +20,8 @@ type
   ContainsStmt* = SQLiteStmt[(string), void]
   DeleteStmt* = SQLiteStmt[(string), void]
   GetStmt* = SQLiteStmt[(string), void]
-  PutStmt* = SQLiteStmt[(string, DataBuffer, int64), void]
+  PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
+  PutBufferStmt* = SQLiteStmt[(string, DataBuffer, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
@@ -268,6 +269,7 @@ proc open*(
     deleteStmt: DeleteStmt
     getStmt: GetStmt
     putStmt: PutStmt
+    putBufferStmt: PutStmt
     beginStmt: BeginStmt
     endStmt: EndStmt
     rollbackStmt: RollbackStmt
@@ -279,6 +281,9 @@ proc open*(
       env.val, DeleteStmtStr, SQLITE_PREPARE_PERSISTENT)
 
     putStmt = ? PutStmt.prepare(
+      env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+    putBufferStmt = ? PutBufferStmt.prepare(
       env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   beginStmt = ? BeginStmt.prepare(

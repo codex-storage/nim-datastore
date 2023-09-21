@@ -26,7 +26,7 @@ proc readOnly*(self: SQLiteDatastore): bool = self.db.readOnly
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
+proc has*(self: SQLiteDatastore, key: DbKey|string): ?!bool =
   var
     exists = false
     key = $key
