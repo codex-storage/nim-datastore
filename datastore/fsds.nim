@@ -155,6 +155,9 @@ method put*(
   return success()
 
 proc dirWalker(path: string): iterator: string {.gcsafe.} =
+  var localPath {.threadvar.}: string
+
+  localPath = path
   return iterator(): string =
     try:
       for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
@@ -188,9 +191,22 @@ method query*(
   var
     iter = QueryIter.new()
 
+  var lock = newAsyncLock() # serialize querying under threads
   proc next(): Future[?!QueryResponse] {.async.} =
+    defer:
+      if lock.locked:
+        lock.release()
+
+    if lock.locked:
+      return failure (ref DatastoreError)(msg: "Should always await query features")
+
     let
       path = walker()
+
+    if iter.finished:
+      return failure "iterator is finished"
+
+    await lock.acquire()
 
     if finished(walker):
       iter.finished = true

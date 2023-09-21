@@ -1,4 +1,5 @@
 import pkg/upraises
+import std/algorithm
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
@@ -6,11 +7,10 @@ import pkg/questionable/results
 import ./key
 import ./types
 
-type
-  SortOrder* {.pure.} = enum
-    Assending,
-    Descending
+export types
+export options, SortOrder
 
+type
   Query* = object
     key*: Key         # Key to be queried
     value*: bool      # Flag to indicate if data should be returned
@@ -19,11 +19,10 @@ type
     sort*: SortOrder  # Sort order - not available in all backends
 
   QueryResponse* = tuple[key: ?Key, data: seq[byte]]
-  QueryEndedError* = object of DatastoreError
 
-  GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe, closure.}
+  GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe.}
   IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
-  QueryIter* = ref object
+  QueryIter* {.acyclic.} = ref object
     finished*: bool
     next*: GetNext
     dispose*: IterDispose
@@ -42,7 +41,7 @@ proc init*(
   T: type Query,
   key: Key,
   value = true,
-  sort = SortOrder.Assending,
+  sort = SortOrder.Ascending,
   offset = 0,
   limit = -1): T =
 

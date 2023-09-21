@@ -74,13 +74,16 @@ method get*(
     bytes: seq[byte]
 
   for store in self.stores:
-    without bytes =? (await store.get(key)):
-      continue
+    without bytes =? (await store.get(key)), err:
+      if err of DatastoreKeyNotFound:
+        continue
+      else:
+        return failure(err)
 
     if bytes.len <= 0:
       continue
 
-    # put found data into stores logically in front of the current store
+    # put found data into stores in front of the current store
     for s in self.stores:
       if s == store: break
       if(
@@ -88,7 +91,10 @@ method get*(
         res.isErr):
         return failure res.error
 
-    return success bytes
+    if bytes.len > 0:
+      return success bytes
+
+  return failure (ref DatastoreKeyNotFound)(msg: "Key not found")
 
 method put*(
   self: TieredDatastore,
