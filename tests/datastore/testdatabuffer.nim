@@ -109,6 +109,16 @@ suite "Share buffer test":
     check cstr.capacity() == 5
     check "test" == cstr.toString()
 
+  test "basic clear test":
+    let test = DataBuffer.new("test", {dbNullTerminate})
+    test.clear()
+    check "" == test.toString()
+    test.setData("hi")
+    check "hi" == test.toString()
+
+  test "check openArray compare":
+    assert a == toOpenArray(@"/a/b", 0, 3)
+
   test "basic openArray test":
     proc letters(val: openArray[char]): int =
       val.len()

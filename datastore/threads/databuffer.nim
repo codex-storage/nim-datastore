@@ -42,6 +42,11 @@ proc `==`*(a, b: DataBuffer): bool =
   elif a[].buf == b[].buf: return true
   else: a.hash() == b.hash()
 
+template `==`*[T: char | byte](a: DataBuffer, b: openArray[T]): bool =
+  if a.isNil: false
+  elif a[].size != b.len: false
+  else: a.hash() == b.hash()
+
 proc new*(tp: type DataBuffer, capacity: int = 0): DataBuffer =
   ## allocate new buffer with given capacity
   ##
@@ -65,11 +70,12 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[Dat
 
 proc clear*(db: DataBuffer) =
   zeroMem(db[].buf, db[].cap)
+  db[].size = 0
 
 proc setData*[T: byte | char](db: DataBuffer, data: openArray[T]) =
   ## allocate new buffer and copies indata from openArray
   ##
-  if data.len() > db.len():
+  if data.len() > db[].cap:
     raise newException(IndexDefect, "data too large for buffer")
   db.clear() # this is expensive, but we can optimize later
   copyMem(db[].buf, baseAddr data, data.len())
