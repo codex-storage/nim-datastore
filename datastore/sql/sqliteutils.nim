@@ -61,7 +61,7 @@ proc bindParam(
     sqlite3_bind_int64(s, n.cint, val.int64)
   elif val is float32 | float64:
     sqlite3_bind_double(s, n.cint, val.float64)
-  elif val is string:
+  elif val is string|openArray[char]:
     # `-1` implies string length is num bytes up to first null-terminator;
     # `SQLITE_TRANSIENT` "indicate[s] that the object is to be copied prior
     # to the return from sqlite3_bind_*(). The object and pointer to it must

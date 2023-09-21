@@ -90,3 +90,10 @@ converter toBuffer*(err: ref CatchableError): DataBuffer =
   ##
 
   return DataBuffer.new(err.msg)
+
+template toOpenArray*[T: byte | char](data: DataBuffer, t: typedesc[T]): openArray[T] =
+  ## get openArray from DataBuffer as char
+  ## 
+  ## this is explicit since sqlite treats string differently from openArray[byte]
+  let bf = cast[ptr UncheckedArray[T]](data[].buf)
+  bf.toOpenArray(0, data[].size-1)

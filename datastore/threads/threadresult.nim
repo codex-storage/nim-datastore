@@ -37,6 +37,9 @@ proc toDb*(value: sink seq[byte]): DbValue {.inline, raises: [].} =
 proc toValue*(value: DbValue): seq[byte] {.inline, raises: [].} =
   value.data.toSeq()
 
+template toOpenArray*(x: DbKey): openArray[char] =
+  x.data[].buf.toOpenArray(0, x[].size-1)
+
 converter toThreadErr*(e: ref CatchableError): ThreadResErr {.inline, raises: [].} =
   if e of DatastoreKeyNotFound: (ErrorEnum.DatastoreKeyNotFoundErr, DataBuffer.new(e.msg))
   elif e of QueryEndedError: (ErrorEnum.QueryEndedErr, DataBuffer.new(e.msg))

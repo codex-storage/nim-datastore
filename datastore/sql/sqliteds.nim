@@ -7,10 +7,10 @@ import pkg/sqlite3_abi
 from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
-import ../datastore
+import ../backend
 import ./sqlitedsdb
 
-export datastore, sqlitedsdb
+export backend, sqlitedsdb
 
 push: {.upraises: [].}
 
@@ -26,7 +26,7 @@ proc readOnly*(self: SQLiteDatastore): bool = self.db.readOnly
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*(self: SQLiteDatastore, key: Key): ?!bool =
+proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
   var
     exists = false
 
@@ -38,10 +38,10 @@ proc has*(self: SQLiteDatastore, key: Key): ?!bool =
 
   return success exists
 
-proc delete*(self: SQLiteDatastore, key: Key): ?!void =
-  return self.db.deleteStmt.exec((key.id))
+proc delete*(self: SQLiteDatastore, key: DbKey): ?!void =
+  return self.db.deleteStmt.exec((key.data))
 
-proc delete*(self: SQLiteDatastore, keys: seq[Key]): ?!void =
+proc delete*(self: SQLiteDatastore, keys: seq[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -57,7 +57,7 @@ proc delete*(self: SQLiteDatastore, keys: seq[Key]): ?!void =
 
   return success()
 
-proc get*(self: SQLiteDatastore, key: Key): ?!seq[byte] =
+proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -73,11 +73,11 @@ proc get*(self: SQLiteDatastore, key: Key): ?!seq[byte] =
 
   if bytes.len <= 0:
     return failure(
-      newException(DatastoreKeyNotFound, "Key doesn't exist"))
+      newException(DatastoreKeyNotFound, "DbKey doesn't exist"))
 
   return success bytes
 
-proc put*(self: SQLiteDatastore, key: Key, data: seq[byte]): ?!void =
+proc put*(self: SQLiteDatastore, key: DbKey, data: seq[byte]): ?!void =
   return self.db.putStmt.exec((key.id, data, timestamp()))
 
 proc put*(self: SQLiteDatastore, batch: seq[BatchEntry]): ?!void =
@@ -169,7 +169,7 @@ iterator query*(self: SQLiteDatastore,
     case v
     of SQLITE_ROW:
       let
-        key = Key.init(
+        key = DbKey.init(
           $sqlite3_column_text_not_null(s, QueryStmtIdCol))
           .expect("should not fail")
 
@@ -208,7 +208,7 @@ iterator query*(self: SQLiteDatastore,
       return success (key.some, data)
     of SQLITE_DONE:
       iter.finished = true
-      return success (Key.none, EmptyBytes)
+      return success (DbKey.none, EmptyBytes)
     else:
       iter.finished = true
       return failure newException(DatastoreError, $sqlite3_errstr(v))

@@ -103,5 +103,15 @@ suite "Share buffer test":
   test "seq conversion":
     check a.toSeq() == "/a/b".toBytes
 
+  test "basic openArray test":
+    proc letters(val: openArray[char]): int =
+      val.len()
+    proc bytes(val: openArray[byte]): int =
+      val.len()
+
+    check a.toOpenArray(char).letters() == a.len()
+    check a.toOpenArray(byte).bytes() == a.len()
+    # check a.toOpenArray(char).bytes() == a.len()
+    
   test "basic thread test":
     runBasicTest()
