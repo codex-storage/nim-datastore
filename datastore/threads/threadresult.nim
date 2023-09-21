@@ -20,7 +20,6 @@ type
 
   ThreadTypes* = void | bool | SomeInteger | DataBuffer | tuple | Atomic
   ThreadResErr* = (ErrorEnum, DataBuffer)
-  # ThreadQueryRes* = tuple[key: KeyId, val: DataBuffer]
   ThreadResult*[T: ThreadTypes] = Result[T, ThreadResErr]
 
 
@@ -37,9 +36,3 @@ converter toExc*(e: ThreadResErr): ref CatchableError =
   of ErrorEnum.QueryEndedErr: (ref QueryEndedError)(msg: $e[1])
   of ErrorEnum.DatastoreErr: (ref DatastoreError)(msg: $e[1])
   of ErrorEnum.CatchableErr: (ref CatchableError)(msg: $e[1])
-
-# converter toQueryResponse*(r: DbQueryResponse): QueryResponse =
-#   if not r.key.data.isNil and r.key.data.len > 0 and key =? Key.init($r.key.data):
-#     (key.some, @(r.val))
-#   else:
-#     (Key.none, EmptyBytes)
