@@ -19,7 +19,7 @@ proc testBasic[K, V, B](
   key: K,
   bytes: V,
   otherBytes: V,
-  batches: B,
+  batch: B,
 ) =
 
   test "put":
@@ -43,28 +43,20 @@ proc testBasic[K, V, B](
     check key notin ds
 
   test "put batch":
-    var
-      batch: seq[tuple[key: string, data: seq[byte]]]
-
-    for k in 0..<100:
-      let kk = Key.init(key, $k).tryGet().id()
-      batch.add((kk, @[k.byte]))
 
     ds.put(batch).tryGet
 
-    for k in batch:
-      check: ds.has(k.key).tryGet
+    for (k, v) in batch:
+      check: ds.has(k).tryGet
 
   test "delete batch":
-    var
-      batch: seq[string]
+    var keys: seq[K]
+    for (k, v) in batch:
+      keys.add(k)
 
-    for k in 0..<100:
-      batch.add(Key.init(key, $k).tryGet().id())
+    ds.delete(keys).tryGet
 
-    ds.delete(batch).tryGet
-
-    for k in batch:
+    for (k, v) in batch:
       check: not ds.has(k).tryGet
 
   test "handle missing key":
@@ -91,14 +83,20 @@ suite "Test Basic SQLiteDatastore":
 
   testBasic(ds, key, bytes, otherBytes, batch)
 
-# suite "Test DataBuffer SQLiteDatastore":
-#   let
-#     ds = SQLiteDatastore.new(Memory).tryGet()
-#     key = KeyId.new Key.init("a:b/c/d:e").tryGet().id()
-#     bytes = DataBuffer.new "some bytes"
-#     otherBytes = DataBuffer.new "some other bytes"
+suite "Test DataBuffer SQLiteDatastore":
+  let
+    ds = SQLiteDatastore.new(Memory).tryGet()
+    keyFull = Key.init("a:b/c/d:e").tryGet()
+    key = KeyId.new keyFull.id()
+    bytes = DataBuffer.new "some bytes"
+    otherBytes = DataBuffer.new "some other bytes"
 
-#   suiteTeardown:
-#     ds.close().tryGet()
+  var batch: seq[tuple[key: KeyId, data: DataBuffer]]
+  for k in 0..<100:
+    let kk = Key.init(keyFull.id(), $k).tryGet().id()
+    batch.add( (KeyId.new kk, DataBuffer.new @[k.byte]) )
+
+  suiteTeardown:
+    ds.close().tryGet()
   
-#   testBasic(ds, key, bytes, otherBytes)
+  testBasic(ds, key, bytes, otherBytes, batch)

@@ -47,7 +47,7 @@ proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
     return failure(err)
 
   for key in keys:
-    if err =? self.db.deleteStmt.exec((key)).errorOption:
+    if err =? self.db.deleteStmt.exec(($key)).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err.msg
 
@@ -91,7 +91,14 @@ proc put*(self: SQLiteDatastore, batch: openArray[DbBatchEntry]): ?!void =
     return failure err
 
   for entry in batch:
-    if err =? self.db.putStmt.exec((entry.key, entry.data, timestamp())).errorOption:
+    # DbBatchEntry* = tuple[key: string, data: seq[byte]] | tuple[key: KeyId, data: DataBuffer]
+    when entry.key is string:
+      let putStmt = self.db.putStmt
+    elif entry.key is KeyId:
+      let putStmt = self.db.putBufferStmt
+    else:
+      {.error: "unhandled type".}
+    if err =? putStmt.exec((entry.key, entry.data, timestamp())).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err
 
