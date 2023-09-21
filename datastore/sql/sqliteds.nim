@@ -149,7 +149,7 @@ proc query*(self: SQLiteDatastore,
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  let iter = iterator(): ?!DbQueryResponse {.closure.} =
+  success iterator(): ?!DbQueryResponse {.closure.} =
 
     try:
       let
@@ -195,6 +195,7 @@ proc query*(self: SQLiteDatastore,
       discard sqlite3_clear_bindings(s)
       s.dispose()
       return
+  
 
 
 proc new*(T: type SQLiteDatastore,
