@@ -23,7 +23,7 @@ suite "Test Basic SQLiteDatastore":
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
-  teardown:
+  suiteTeardown:
     ds.close().tryGet()
 
   test "put":
