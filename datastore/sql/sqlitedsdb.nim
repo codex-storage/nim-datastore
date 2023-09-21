@@ -4,13 +4,14 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 
+import ../backend
 import ./sqliteutils
 
 export sqliteutils
 
 type
   BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
-  BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
+  BoundDataCol* = proc (): DataBuffer {.closure, gcsafe, upraises: [].}
   BoundTimestampCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
 
   # feels odd to use `void` for prepared statements corresponding to SELECT
@@ -19,7 +20,7 @@ type
   ContainsStmt* = SQLiteStmt[(string), void]
   DeleteStmt* = SQLiteStmt[(string), void]
   GetStmt* = SQLiteStmt[(string), void]
-  PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
+  PutStmt* = SQLiteStmt[(string, DataBuffer, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
@@ -162,7 +163,7 @@ proc dataCol*(
 
   checkColMetadata(s, index, DataColName)
 
-  return proc (): seq[byte] =
+  return proc (): DataBuffer =
     let
       i = index.cint
       blob = sqlite3_column_blob(s, i)
@@ -186,7 +187,8 @@ proc dataCol*(
       dataLen = sqlite3_column_bytes(s, i)
       dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
-    @(toOpenArray(dataBytes, 0, dataLen - 1))
+    # copy data out, since sqlite will free it
+    DataBuffer.new(toOpenArray(dataBytes, 0, dataLen - 1))
 
 proc timestampCol*(
   s: RawStmtPtr,

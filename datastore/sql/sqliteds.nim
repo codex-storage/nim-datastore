@@ -29,11 +29,12 @@ proc timestamp*(t = epochTime()): int64 =
 proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
   var
     exists = false
+    key = $key
 
   proc onData(s: RawStmtPtr) =
     exists = sqlite3_column_int64(s, ContainsStmtExistsCol.cint).bool
 
-  if err =? self.db.containsStmt.query((key.id), onData).errorOption:
+  if err =? self.db.containsStmt.query((key), onData).errorOption:
     return failure err
 
   return success exists
