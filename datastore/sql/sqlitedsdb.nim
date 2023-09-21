@@ -269,7 +269,7 @@ proc open*(
     deleteStmt: DeleteStmt
     getStmt: GetStmt
     putStmt: PutStmt
-    putBufferStmt: PutStmt
+    putBufferStmt: PutBufferStmt
     beginStmt: BeginStmt
     endStmt: EndStmt
     rollbackStmt: RollbackStmt
