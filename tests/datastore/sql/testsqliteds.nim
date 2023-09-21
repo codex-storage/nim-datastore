@@ -18,7 +18,8 @@ suite "Test Basic SQLiteDatastore":
 
   let
     ds = SQLiteDatastore.new(Memory).tryGet()
-    key = Key.init("a:b/c/d:e").tryGet().id()
+    keyFull = Key.init("a:b/c/d:e").tryGet()
+    key = keyFull.id()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
@@ -43,15 +44,15 @@ suite "Test Basic SQLiteDatastore":
     ds.delete(key).tryGet()
 
   test "contains":
-    check:
-      not await (key in ds)
+    check key notin ds
 
   test "put batch":
     var
-      batch: seq[BatchEntry]
+      batch: seq[tuple[key: string, data: seq[byte]]]
 
     for k in 0..<100:
-      batch.add((Key.init(key.id, $k).tryGet, @[k.byte]))
+      let kk = Key.init(key, $k).tryGet().id()
+      batch.add((kk, @[k.byte]))
 
     ds.put(batch).tryGet
 
@@ -63,7 +64,7 @@ suite "Test Basic SQLiteDatastore":
       batch: seq[Key]
 
     for k in 0..<100:
-      batch.add(Key.init(key.id, $k).tryGet)
+      batch.add(Key.init(key, $k).tryGet)
 
     ds.delete(batch).tryGet
 

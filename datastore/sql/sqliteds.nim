@@ -40,7 +40,7 @@ proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
   return success exists
 
 proc delete*(self: SQLiteDatastore, key: DbKey): ?!void =
-  return self.db.deleteStmt.exec((key.data))
+  return self.db.deleteStmt.exec((key))
 
 proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
@@ -91,7 +91,7 @@ proc put*(self: SQLiteDatastore, batch: openArray[DbBatchEntry]): ?!void =
     return failure err
 
   for entry in batch:
-    if err =? self.db.putStmt.exec((entry.key.id, entry.data, timestamp())).errorOption:
+    if err =? self.db.putStmt.exec((entry.key, entry.data, timestamp())).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err
 
@@ -202,7 +202,7 @@ proc query*(self: SQLiteDatastore,
 
 
 proc contains*(self: SQLiteDatastore, key: DbKey): bool =
-  return self.has(key)
+  return self.has(key).get()
 
 
 proc new*(T: type SQLiteDatastore,

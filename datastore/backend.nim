@@ -20,7 +20,7 @@ type
   DbKey* = string | KeyId
   DbVal* = seq[byte] | DataBuffer
 
-  DbBatchEntry* = tuple[key: string, data: seq[byte]] | tuple[key: KeyId, data: DataBuffer] 
+  DbBatchEntry* = tuple[key: string, data: seq[byte]] | tuple[key: KeyId, data: DataBuffer]
 
   DbQuery* = object
     key*: KeyId         # Key to be queried
