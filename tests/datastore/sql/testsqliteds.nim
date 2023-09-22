@@ -223,7 +223,7 @@ suite "queryTests":
     for i in 0..<100:
       let
         key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-        val = ("val " & $i).toBytes
+        val = DataBuffer.new("val " & $i)
 
       ds.put(key, val).tryGet
 
@@ -277,8 +277,8 @@ suite "queryTests":
 
     for i in 0..<res.high:
       let
-        val = ("val " & $(i + 95)).toBytes
-        key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+        val = DataBuffer.new("val " & $(i + 95))
+        key = KeyId.new $Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
       check:
         res[i].key.get == key
@@ -288,7 +288,8 @@ suite "queryTests":
     test "Should apply sort order - descending":
       let
         key = Key.init("/a").tryGet
-        q = DbQuery(key: key, sort: SortOrder.Descending)
+        keyId = KeyId.new $key
+        q = DbQuery(key: keyId, sort: SortOrder.Descending)
 
       var kvs: seq[DbQueryResponse]
       for i in 0..<100:
