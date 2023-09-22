@@ -214,7 +214,7 @@ proc contains*(self: SQLiteDatastore, key: DbKey): bool =
 
 proc new*(T: type SQLiteDatastore,
           path: string,
-          readOnly = false): ?!T =
+          readOnly = false): ?!SQLiteDatastore =
 
   let
     flags =

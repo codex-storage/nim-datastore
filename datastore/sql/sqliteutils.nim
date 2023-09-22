@@ -22,7 +22,7 @@ type
   AutoDisposed*[T: ptr|ref] = object
     val*: T
 
-  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
+  DataProc* = proc(s: RawStmtPtr) {.gcsafe.}
 
   NoParams* = tuple # empty tuple
 

@@ -29,7 +29,7 @@ type
 
   SQLiteDsDb* = object
     readOnly*: bool
-    dbPath*: string
+    dbPath*: DataBuffer
     containsStmt*: ContainsStmt
     deleteStmt*: DeleteStmt
     env*: SQLite
@@ -311,7 +311,7 @@ proc open*(
 
   success SQLiteDsDb(
     readOnly: readOnly,
-    dbPath: path,
+    dbPath: DataBuffer.new path,
     containsStmt: containsStmt,
     deleteStmt: deleteStmt,
     env: env.release,

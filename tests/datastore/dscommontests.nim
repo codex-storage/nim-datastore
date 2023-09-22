@@ -5,7 +5,7 @@ import pkg/chronos
 import pkg/stew/results
 import pkg/questionable/results
 
-import pkg/datastore
+import pkg/datastore/datastore
 
 proc basicStoreTests*(
   ds: Datastore,
