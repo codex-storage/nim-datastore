@@ -208,7 +208,9 @@ proc query*(
         let
           dataLen = sqlite3_column_bytes(s, QueryStmtDataCol)
           data =
-            if blob.isSome: DataBuffer.new(blob.get(), 0, dataLen - 1)
+            if blob.isSome:
+              let arr = cast[ptr UncheckedArray[byte]](blob)
+              DataBuffer.new(arr.toOpenArray(0, dataLen-1))
             else: DataBuffer.new(0)
 
         echo "SQLITE ROW: yield"

@@ -40,13 +40,6 @@ proc `[]`*(db: DataBuffer, idx: int): var byte =
     raise newException(IndexDefect, "index out of bounds")
   db[].buf[idx]
 
-proc `==`*(a, b: DataBuffer): bool =
-  if a.isNil and b.isNil: return true
-  elif a.isNil or b.isNil: return false
-  elif a[].size != b[].size: return false
-  elif a[].buf == b[].buf: return true
-  else: a.hash() == b.hash()
-
 template `==`*[T: char | byte](a: DataBuffer, b: openArray[T]): bool =
   if a.isNil: false
   elif a[].size != b.len: false
@@ -73,8 +66,8 @@ proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[Dat
     copyMem(result[].buf, baseAddr data, data.len())
   result[].size = data.len()
 
-proc new*(tp: type DataBuffer, data: pointer, first, last: int): DataBuffer =
-  DataBuffer.new(toOpenArray(cast[ptr UncheckedArray[byte]](data), first, last))
+# proc new*(tp: type DataBuffer, data: pointer, first, last: int): DataBuffer =
+#   DataBuffer.new(toOpenArray(cast[ptr UncheckedArray[byte]](data), first, last))
 
 proc baseAddr*(db: DataBuffer): pointer =
   db[].buf
@@ -121,6 +114,19 @@ proc `$`*(data: DataBuffer): string =
   ##
 
   data.toString()
+
+proc `==`*(a, b: DataBuffer): bool =
+  echo "DB == ", a.toString, " ", b.toString
+  echo "DB == len: ", a.len, " ", b.len
+  echo "DB == size: ", a[].size, " ", b[].size
+  echo "DB == cap: ", a[].cap, " ", b[].cap
+  echo "DB == ", a[].buf.pointer.repr, " ", b[].buf.pointer.repr
+  echo "DB == ", a[].hash, " ", b[].hash
+  if a.isNil and b.isNil: return true
+  elif a.isNil or b.isNil: return false
+  elif a[].size != b[].size: return false
+  elif a[].buf == b[].buf: return true
+  else: a.hash() == b.hash()
 
 converter toBuffer*(err: ref CatchableError): DataBuffer =
   ## convert exception to an object with StringBuffer
