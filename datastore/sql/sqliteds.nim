@@ -114,9 +114,11 @@ proc close*(self: SQLiteBackend): ?!void =
 
   return success()
 
-proc query*(self: SQLiteBackend,
-            query: DbQuery
-            ): Result[iterator(): ?!DbQueryResponse {.closure.}, ref CatchableError] =
+proc query*(
+    self: SQLiteBackend,
+    query: DbQuery
+): Result[(DbQueryHandle, iterator(): ?!DbQueryResponse {.closure.}),
+          ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -161,11 +163,14 @@ proc query*(self: SQLiteBackend,
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  success iterator(): ?!DbQueryResponse {.closure.} =
+  let handle = DbQueryHandle()
+  let iter = iterator(): ?!DbQueryResponse {.closure.} =
 
     try:
-      let
-        v = sqlite3_step(s)
+      if handle.cancel:
+        return
+
+      let v = sqlite3_step(s)
 
       case v
       of SQLITE_ROW:
@@ -196,9 +201,9 @@ proc query*(self: SQLiteBackend,
             if blob.isSome: DataBuffer.new(blob.get(), 0, dataLen - 1)
             else: DataBuffer.new(0)
 
-        return success (key.some, data)
+        yield success (key.some, data)
       of SQLITE_DONE:
-        return success (KeyId.none, DataBuffer.new())
+        return
       else:
         return failure newException(DatastoreError, $sqlite3_errstr(v))
 
@@ -208,6 +213,8 @@ proc query*(self: SQLiteBackend,
       discard sqlite3_clear_bindings(s)
       s.dispose()
       return
+  
+  success (handle, iter)
 
 
 proc contains*(self: SQLiteBackend, key: DbKey): bool =

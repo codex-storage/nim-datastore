@@ -29,6 +29,9 @@ type
     offset*: int      # Offset from which to start querying - not available in all backends
     sort*: SortOrder  # Sort order - not available in all backends
 
+  DbQueryHandle* = ref object
+    cancel*: bool
+
   DbQueryResponse* = tuple[key: Option[KeyId], val: DataBuffer]
 
 proc `$`*(id: KeyId): string = $(id.data)
