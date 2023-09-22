@@ -140,10 +140,11 @@ proc query*(self: SQLiteBackend,
       self.db.env, queryStr).expect("should not fail")
 
     s = RawStmtPtr(queryStmt)
+    queryKey = $query.key & "*"
 
   var
     v = sqlite3_bind_text(
-      s, 1.cint, ($query.key & "*").cstring, -1.cint, SQLITE_TRANSIENT_GCSAFE)
+      s, 1.cint, queryKey.cstring, queryKey.len().cint, SQLITE_TRANSIENT_GCSAFE)
 
   if not (v == SQLITE_OK):
     return failure newException(DatastoreError, $sqlite3_errstr(v))

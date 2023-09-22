@@ -15,7 +15,7 @@ import ../dscommontests
 import ../querycommontests
 
 proc testBasic[K, V, B](
-  ds: SQLiteDatastore,
+  ds: SQLiteBackend,
   key: K,
   bytes: V,
   otherBytes: V,
@@ -67,7 +67,7 @@ proc testBasic[K, V, B](
 
 suite "Test Basic SQLiteDatastore":
   let
-    ds = SQLiteDatastore.new(Memory).tryGet()
+    ds = SQLiteBackend.new(Memory).tryGet()
     keyFull = Key.init("a:b/c/d:e").tryGet()
     key = keyFull.id()
     bytes = "some bytes".toBytes
@@ -85,7 +85,7 @@ suite "Test Basic SQLiteDatastore":
 
 suite "Test DataBuffer SQLiteDatastore":
   let
-    ds = SQLiteDatastore.new(Memory).tryGet()
+    ds = SQLiteBackend.new(Memory).tryGet()
     keyFull = Key.init("a:b/c/d:e").tryGet()
     key = KeyId.new keyFull.id()
     bytes = DataBuffer.new "some bytes"

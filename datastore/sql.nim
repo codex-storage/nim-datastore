@@ -81,10 +81,10 @@ method query*(
 
     await lock.acquire()
 
-    let res = queries()
-    iter.result = res
+    without res =? queries(), err:
+      iter.finished = true
+      return failure err
 
-    iter.finished = true
 
   iter.dispose = proc(): Future[?!void] {.async.} =
     discard sqlite3_reset(s)
