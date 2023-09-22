@@ -19,7 +19,7 @@ type
     db: SQLiteDsDb
 
 proc path*(self: SQLiteBackend): string =
-  self.db.dbPath
+  $self.db.dbPath
 
 proc readOnly*(self: SQLiteBackend): bool = self.db.readOnly
 
@@ -197,11 +197,12 @@ proc query*(self: SQLiteBackend,
 
         return success (key.some, data)
       of SQLITE_DONE:
-        return
+        return success (KeyId.none, DataBuffer.new())
       else:
         return failure newException(DatastoreError, $sqlite3_errstr(v))
 
     finally:
+      echo "sqlite backend: query: finally close"
       discard sqlite3_reset(s)
       discard sqlite3_clear_bindings(s)
       s.dispose()
