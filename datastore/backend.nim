@@ -32,7 +32,7 @@ type
   DbQueryHandle* = ref object
     cancel*: bool
 
-  DbQueryResponse* = tuple[key: Option[KeyId], val: DataBuffer]
+  DbQueryResponse* = tuple[key: Option[KeyId], data: DataBuffer]
 
 proc `$`*(id: KeyId): string = $(id.data)
 
