@@ -211,7 +211,7 @@ proc query*(
             if blob.isSome:
               let arr = cast[ptr UncheckedArray[byte]](blob)
               DataBuffer.new(arr.toOpenArray(0, dataLen-1))
-            else: DataBuffer.new(0)
+            else: DataBuffer.new("")
 
         echo "SQLITE ROW: yield"
         yield success (key.some, data)

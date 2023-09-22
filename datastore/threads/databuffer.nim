@@ -45,7 +45,7 @@ template `==`*[T: char | byte](a: DataBuffer, b: openArray[T]): bool =
   elif a[].size != b.len: false
   else: a.hash() == b.hash()
 
-proc new*(tp: type DataBuffer, capacity: int = 0): DataBuffer =
+proc new(tp: type DataBuffer, capacity: int = 0): DataBuffer =
   ## allocate new buffer with given capacity
   ##
 
@@ -122,11 +122,13 @@ proc `==`*(a, b: DataBuffer): bool =
   echo "DB == cap: ", a[].cap, " ", b[].cap
   echo "DB == ", a[].buf.pointer.repr, " ", b[].buf.pointer.repr
   echo "DB == ", a[].hash, " ", b[].hash
-  if a.isNil and b.isNil: return true
-  elif a.isNil or b.isNil: return false
-  elif a[].size != b[].size: return false
-  elif a[].buf == b[].buf: return true
-  else: a.hash() == b.hash()
+  if a.isNil and b.isNil: result = true
+  elif a.isNil or b.isNil: result = false
+  elif a[].size != b[].size: result = false
+  elif a[].buf == b[].buf: result = true
+  else: result = a.hash() == b.hash()
+  echo "DB == ", result
+  echo ""
 
 converter toBuffer*(err: ref CatchableError): DataBuffer =
   ## convert exception to an object with StringBuffer
