@@ -15,18 +15,18 @@ export backend, sqlitedsdb
 push: {.upraises: [].}
 
 type
-  SQLiteDatastore* = object
+  SQLiteBackend* = object
     db: SQLiteDsDb
 
-proc path*(self: SQLiteDatastore): string =
+proc path*(self: SQLiteBackend): string =
   self.db.dbPath
 
-proc readOnly*(self: SQLiteDatastore): bool = self.db.readOnly
+proc readOnly*(self: SQLiteBackend): bool = self.db.readOnly
 
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
+proc has*(self: SQLiteBackend, key: DbKey): ?!bool =
   var
     exists = false
     key = $key
@@ -39,10 +39,10 @@ proc has*(self: SQLiteDatastore, key: DbKey): ?!bool =
 
   return success exists
 
-proc delete*(self: SQLiteDatastore, key: DbKey): ?!void =
+proc delete*(self: SQLiteBackend, key: DbKey): ?!void =
   return self.db.deleteStmt.exec(($key))
 
-proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
+proc delete*(self: SQLiteBackend, keys: openArray[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -58,7 +58,7 @@ proc delete*(self: SQLiteDatastore, keys: openArray[DbKey]): ?!void =
 
   return success()
 
-proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
+proc get*(self: SQLiteBackend, key: DbKey): ?!seq[byte] =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -78,7 +78,7 @@ proc get*(self: SQLiteDatastore, key: DbKey): ?!seq[byte] =
 
   return success bytes
 
-proc put*(self: SQLiteDatastore, key: DbKey, data: DbVal): ?!void =
+proc put*(self: SQLiteBackend, key: DbKey, data: DbVal): ?!void =
   when DbVal is seq[byte]:
     return self.db.putStmt.exec((key, data, timestamp()))
   elif DbVal is DataBuffer:
@@ -86,7 +86,7 @@ proc put*(self: SQLiteDatastore, key: DbKey, data: DbVal): ?!void =
   else:
     {.error: "unknown type".}
 
-proc put*(self: SQLiteDatastore, batch: openArray[DbBatchEntry]): ?!void =
+proc put*(self: SQLiteBackend, batch: openArray[DbBatchEntry]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
@@ -109,12 +109,12 @@ proc put*(self: SQLiteDatastore, batch: openArray[DbBatchEntry]): ?!void =
 
   return success()
 
-proc close*(self: SQLiteDatastore): ?!void =
+proc close*(self: SQLiteBackend): ?!void =
   self.db.close()
 
   return success()
 
-proc query*(self: SQLiteDatastore,
+proc query*(self: SQLiteBackend,
             query: DbQuery
             ): Result[iterator(): ?!DbQueryResponse {.closure.}, ref CatchableError] =
 
@@ -208,23 +208,23 @@ proc query*(self: SQLiteDatastore,
       return
 
 
-proc contains*(self: SQLiteDatastore, key: DbKey): bool =
+proc contains*(self: SQLiteBackend, key: DbKey): bool =
   return self.has(key).get()
 
 
-proc new*(T: type SQLiteDatastore,
+proc new*(T: type SQLiteBackend,
           path: string,
-          readOnly = false): ?!SQLiteDatastore =
+          readOnly = false): ?!SQLiteBackend =
 
   let
     flags =
       if readOnly: SQLITE_OPEN_READONLY
       else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
-  success SQLiteDatastore(db: ? SQLiteDsDb.open(path, flags))
+  success SQLiteBackend(db: ? SQLiteDsDb.open(path, flags))
     
 
-proc new*(T: type SQLiteDatastore,
+proc new*(T: type SQLiteBackend,
           db: SQLiteDsDb): ?!T =
 
-  success SQLiteDatastore(db: db)
+  success SQLiteBackend(db: db)
