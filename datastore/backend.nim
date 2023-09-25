@@ -30,6 +30,7 @@ type
     sort*: SortOrder  # Sort order - not available in all backends
 
   DbQueryHandle*[T] = object
+    query*: DbQuery
     cancel*: bool
     env*: T
 

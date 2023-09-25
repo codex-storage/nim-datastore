@@ -116,7 +116,7 @@ proc close*(self: SQLiteBackend): ?!void =
 proc query*(
     self: SQLiteBackend,
     query: DbQuery
-): Result[DbQueryHandle, ref CatchableError] =
+): Result[DbQueryHandle[RawStmtPtr], ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -161,6 +161,8 @@ proc query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
+  success DbQueryHandle[RawStmtPtr](query: query, env: s)
+
 proc close*(handle: DbQueryHandle[RawStmtPtr]) =
     echo "sqlite backend: query: finally close"
     discard sqlite3_reset(handle.env)
@@ -168,7 +170,7 @@ proc close*(handle: DbQueryHandle[RawStmtPtr]) =
     handle.env.dispose()
     return
 
-iterator iter*(handle: var DbQueryHandle): ?!DbQueryResponse =
+iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
   let iter = iterator(): ?!DbQueryResponse {.closure.} =
 
     while true:
@@ -186,7 +188,7 @@ iterator iter*(handle: var DbQueryHandle): ?!DbQueryResponse =
           key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
 
           blob: ?pointer =
-            if query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
+            if handle.query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
             else: pointer.none
 
         # detect out-of-memory error
@@ -222,7 +224,6 @@ iterator iter*(handle: var DbQueryHandle): ?!DbQueryResponse =
         handle.close()
         return failure newException(DatastoreError, $sqlite3_errstr(v))
     
-  success (handle, iter)
 
 
 proc contains*(self: SQLiteBackend, key: DbKey): bool =
