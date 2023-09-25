@@ -29,8 +29,9 @@ type
     offset*: int      # Offset from which to start querying - not available in all backends
     sort*: SortOrder  # Sort order - not available in all backends
 
-  DbQueryHandle* = ref object
+  DbQueryHandle*[T] = object
     cancel*: bool
+    env*: T
 
   DbQueryResponse* = tuple[key: Option[KeyId], data: DataBuffer]
 

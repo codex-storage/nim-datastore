@@ -136,7 +136,7 @@ suite "queryTests":
     check:
       res.len == 3
       res[0].key.get == key1
-      # res[0].data == val1
+      res[0].data == val1
 
       # res[1].key.get == key2
       # res[1].data == val2

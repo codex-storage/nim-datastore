@@ -91,7 +91,6 @@ proc put*(self: SQLiteBackend, batch: openArray[DbBatchEntry]): ?!void =
     return failure err
 
   for entry in batch:
-    # DbBatchEntry* = tuple[key: string, data: seq[byte]] | tuple[key: KeyId, data: DataBuffer]
     when entry.key is string:
       let putStmt = self.db.putStmt
     elif entry.key is KeyId:
@@ -117,8 +116,7 @@ proc close*(self: SQLiteBackend): ?!void =
 proc query*(
     self: SQLiteBackend,
     query: DbQuery
-): Result[(DbQueryHandle, iterator(): ?!DbQueryResponse {.closure.}),
-          ref CatchableError] =
+): Result[DbQueryHandle, ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -163,32 +161,32 @@ proc query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  proc doClose() =
-      echo "sqlite backend: query: finally close"
-      discard sqlite3_reset(s)
-      discard sqlite3_clear_bindings(s)
-      s.dispose()
-      return
+proc close*(handle: DbQueryHandle[RawStmtPtr]) =
+    echo "sqlite backend: query: finally close"
+    discard sqlite3_reset(handle.env)
+    discard sqlite3_clear_bindings(handle.env)
+    handle.env.dispose()
+    return
 
-  let handle = DbQueryHandle()
+iterator iter*(handle: var DbQueryHandle): ?!DbQueryResponse =
   let iter = iterator(): ?!DbQueryResponse {.closure.} =
 
     while true:
 
       if handle.cancel:
-        doClose()
+        handle.close()
         return
 
-      let v = sqlite3_step(s)
+      let v = sqlite3_step(handle.env)
 
       case v
       of SQLITE_ROW:
         echo "SQLITE ROW"
         let
-          key = KeyId.new(sqlite3_column_text_not_null(s, QueryStmtIdCol))
+          key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
 
           blob: ?pointer =
-            if query.value: sqlite3_column_blob(s, QueryStmtDataCol).some
+            if query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
             else: pointer.none
 
         # detect out-of-memory error
@@ -200,13 +198,13 @@ proc query*(
         # error it is necessary to check that the result is a null pointer and
         # that the result code is an error code
         if blob.isSome and blob.get().isNil:
-          let v = sqlite3_errcode(sqlite3_db_handle(s))
+          let v = sqlite3_errcode(sqlite3_db_handle(handle.env))
 
           if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
             return failure newException(DatastoreError, $sqlite3_errstr(v))
 
         let
-          dataLen = sqlite3_column_bytes(s, QueryStmtDataCol)
+          dataLen = sqlite3_column_bytes(handle.env, QueryStmtDataCol)
           data =
             if blob.isSome:
               let arr = cast[ptr UncheckedArray[byte]](blob)
@@ -217,11 +215,11 @@ proc query*(
         yield success (key.some, data)
       of SQLITE_DONE:
         echo "SQLITE DONE: return"
-        doClose()
+        handle.close()
         return
       else:
         echo "SQLITE ERROR: return"
-        doClose()
+        handle.close()
         return failure newException(DatastoreError, $sqlite3_errstr(v))
     
   success (handle, iter)
