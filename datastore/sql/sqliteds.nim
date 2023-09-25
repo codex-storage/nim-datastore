@@ -163,12 +163,13 @@ proc query*(
 
   success DbQueryHandle[RawStmtPtr](query: query, env: s)
 
-proc close*(handle: DbQueryHandle[RawStmtPtr]) =
+proc close*(handle: var DbQueryHandle[RawStmtPtr]) =
+  if not handle.closed:
+    handle.closed = true
     echo "sqlite backend: query: finally close"
     discard sqlite3_reset(handle.env)
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
-    return
 
 iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
   while not handle.cancel:
@@ -211,15 +212,16 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
       echo "SQLITE ROW: yield"
       yield success (key.some, data)
     of SQLITE_DONE:
-      echo "SQLITE DONE: return"
+      echo "SQLITE DONE: yield"
+      handle.close()
       break
     else:
-      echo "SQLITE ERROR: return"
+      echo "SQLITE ERROR: yield"
       handle.cancel = true
       yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
+      break
 
   handle.close()
-  
 
 
 proc contains*(self: SQLiteBackend, key: DbKey): bool =

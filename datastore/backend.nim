@@ -32,6 +32,7 @@ type
   DbQueryHandle*[T] = object
     query*: DbQuery
     cancel*: bool
+    closed*: bool
     env*: T
 
   DbQueryResponse* = tuple[key: Option[KeyId], data: DataBuffer]
