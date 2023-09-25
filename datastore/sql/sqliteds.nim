@@ -171,59 +171,55 @@ proc close*(handle: DbQueryHandle[RawStmtPtr]) =
     return
 
 iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
-  let iter = iterator(): ?!DbQueryResponse {.closure.} =
+  while not handle.cancel:
 
-    while true:
+    let v = sqlite3_step(handle.env)
 
-      if handle.cancel:
-        handle.close()
-        return
+    case v
+    of SQLITE_ROW:
+      echo "SQLITE ROW"
+      let
+        key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
 
-      let v = sqlite3_step(handle.env)
+        blob: ?pointer =
+          if handle.query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
+          else: pointer.none
 
-      case v
-      of SQLITE_ROW:
-        echo "SQLITE ROW"
-        let
-          key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
+      # detect out-of-memory error
+      # see the conversion table and final paragraph of:
+      # https://www.sqlite.org/c3ref/column_blob.html
+      # see also https://www.sqlite.org/rescode.html
 
-          blob: ?pointer =
-            if handle.query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
-            else: pointer.none
+      # the "data" column can be NULL so in order to detect an out-of-memory
+      # error it is necessary to check that the result is a null pointer and
+      # that the result code is an error code
+      if blob.isSome and blob.get().isNil:
+        let v = sqlite3_errcode(sqlite3_db_handle(handle.env))
 
-        # detect out-of-memory error
-        # see the conversion table and final paragraph of:
-        # https://www.sqlite.org/c3ref/column_blob.html
-        # see also https://www.sqlite.org/rescode.html
+        if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+          handle.cancel = true
+          yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
 
-        # the "data" column can be NULL so in order to detect an out-of-memory
-        # error it is necessary to check that the result is a null pointer and
-        # that the result code is an error code
-        if blob.isSome and blob.get().isNil:
-          let v = sqlite3_errcode(sqlite3_db_handle(handle.env))
+      let
+        dataLen = sqlite3_column_bytes(handle.env, QueryStmtDataCol)
+        data =
+          if blob.isSome:
+            let arr = cast[ptr UncheckedArray[byte]](blob)
+            DataBuffer.new(arr.toOpenArray(0, dataLen-1))
+          else: DataBuffer.new("")
 
-          if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
-            return failure newException(DatastoreError, $sqlite3_errstr(v))
+      echo "SQLITE ROW: yield"
+      yield success (key.some, data)
+    of SQLITE_DONE:
+      echo "SQLITE DONE: return"
+      break
+    else:
+      echo "SQLITE ERROR: return"
+      handle.cancel = true
+      yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
 
-        let
-          dataLen = sqlite3_column_bytes(handle.env, QueryStmtDataCol)
-          data =
-            if blob.isSome:
-              let arr = cast[ptr UncheckedArray[byte]](blob)
-              DataBuffer.new(arr.toOpenArray(0, dataLen-1))
-            else: DataBuffer.new("")
-
-        echo "SQLITE ROW: yield"
-        yield success (key.some, data)
-      of SQLITE_DONE:
-        echo "SQLITE DONE: return"
-        handle.close()
-        return
-      else:
-        echo "SQLITE ERROR: return"
-        handle.close()
-        return failure newException(DatastoreError, $sqlite3_errstr(v))
-    
+  handle.close()
+  
 
 
 proc contains*(self: SQLiteBackend, key: DbKey): bool =

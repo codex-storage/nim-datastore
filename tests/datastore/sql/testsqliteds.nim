@@ -129,9 +129,13 @@ suite "queryTests":
     ds.put(key2, val2).tryGet
     ds.put(key3, val3).tryGet
 
-    let
-      (handle, iter) = ds.query(q).tryGet
-      res = iter.mapIt(it.tryGet()).reversed()
+    var
+      handle  = ds.query(q).tryGet
+      # res = handle.iter().mapIt(it.tryGet()).reversed()
+    
+    var res: seq[DbQueryResponse]
+    for item in handle.iter():
+      res.insert(item.tryGet(), 0)
 
     check:
       res.len == 3
