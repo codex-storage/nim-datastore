@@ -166,7 +166,6 @@ proc query*(
 proc close*(handle: var DbQueryHandle[RawStmtPtr]) =
   if not handle.closed:
     handle.closed = true
-    echo "sqlite backend: query: finally close"
     discard sqlite3_reset(handle.env)
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
