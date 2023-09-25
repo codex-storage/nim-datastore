@@ -123,7 +123,7 @@ suite "queryTests":
 
   test "Key should query all keys and all it's children":
     let
-      q = DbQuery(key: key1)
+      q = DbQuery(key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -142,11 +142,11 @@ suite "queryTests":
       res[0].key.get == key1
       res[0].data == val1
 
-      # res[1].key.get == key2
-      # res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-      # res[2].key.get == key3
-      # res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
   # test "Key should query all keys without values":
   #   let

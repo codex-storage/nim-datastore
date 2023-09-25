@@ -195,6 +195,7 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
       # error it is necessary to check that the result is a null pointer and
       # that the result code is an error code
       if blob.isSome and blob.get().isNil:
+        echo "BLOB: isSome"
         let v = sqlite3_errcode(sqlite3_db_handle(handle.env))
 
         if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
