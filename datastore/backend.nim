@@ -38,11 +38,11 @@ proc `$`*(id: KeyId): string = $(id.data)
 
 proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
   ## copy cstring including null terminator
-  KeyId(data: DataBuffer.new(id.toOpenArray(0, id.len()-1), {dbNullTerminate}))
+  KeyId(data: DataBuffer.new(id.toOpenArray(0, id.len()-1)))
 
 proc new*(tp: typedesc[KeyId], id: string): KeyId =
   ## copy cstring including null terminator
-  KeyId(data: DataBuffer.new(id, {dbNullTerminate}))
+  KeyId(data: DataBuffer.new(id))
 
 proc toCString*(key: KeyId): cstring =
   ## copy cstring including null terminator

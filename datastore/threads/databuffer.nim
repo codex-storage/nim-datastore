@@ -121,7 +121,7 @@ proc `==`*(a, b: DataBuffer): bool =
   echo "DB == size: ", a[].size, " ", b[].size
   echo "DB == cap: ", a[].cap, " ", b[].cap
   echo "DB == ", a[].buf.pointer.repr, " ", b[].buf.pointer.repr
-  echo "DB == ", a[].hash, " ", b[].hash
+  echo "DB == ", a.hash, " ", b.hash
   if a.isNil and b.isNil: result = true
   elif a.isNil or b.isNil: result = false
   elif a[].size != b[].size: result = false
