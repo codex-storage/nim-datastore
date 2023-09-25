@@ -131,11 +131,7 @@ suite "queryTests":
 
     var
       handle  = ds.query(q).tryGet
-      # res = handle.iter().mapIt(it.tryGet()).reversed()
-    
-    var res: seq[DbQueryResponse]
-    for item in handle.iter():
-      res.insert(item.tryGet(), 0)
+      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
 
     check:
       res.len == 3
@@ -147,6 +143,36 @@ suite "queryTests":
 
       res[2].key.get == key3
       res[2].data == val3
+
+  test "query should cancel":
+    let
+      q = DbQuery(key: key1, value: true)
+
+    ds.put(key1, val1).tryGet
+    ds.put(key2, val2).tryGet
+    ds.put(key3, val3).tryGet
+
+    var
+      handle  = ds.query(q).tryGet
+    
+    var res: seq[DbQueryResponse]
+    var cnt = 0
+    for item in handle.iter():
+      cnt.inc
+      res.insert(item.tryGet(), 0)
+      if cnt > 1:
+        handle.cancel = true
+
+    check:
+      handle.cancel == true
+      handle.closed == true
+      res.len == 2
+
+      res[0].key.get == key2
+      res[0].data == val2
+
+      res[1].key.get == key3
+      res[1].data == val3
 
   # test "Key should query all keys without values":
   #   let

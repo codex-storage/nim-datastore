@@ -178,7 +178,6 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
 
     case v
     of SQLITE_ROW:
-      echo "SQLITE ROW"
       let
         key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
 
@@ -195,7 +194,6 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
       # error it is necessary to check that the result is a null pointer and
       # that the result code is an error code
       if blob.isSome and blob.get().isNil:
-        echo "BLOB: isSome"
         let v = sqlite3_errcode(sqlite3_db_handle(handle.env))
 
         if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
@@ -210,14 +208,11 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
             DataBuffer.new(arr.toOpenArray(0, dataLen-1))
           else: DataBuffer.new("")
 
-      echo "SQLITE ROW: yield"
       yield success (key.some, data)
     of SQLITE_DONE:
-      echo "SQLITE DONE: yield"
       handle.close()
       break
     else:
-      echo "SQLITE ERROR: yield"
       handle.cancel = true
       yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
       break
