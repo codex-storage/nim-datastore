@@ -213,7 +213,7 @@ proc getDBFilePath*(path: string): ?!string =
   except CatchableError as exc:
     return failure(exc.msg)
 
-proc close*(self: SQLiteDsDb) =
+proc close*[K, V](self: SQLiteDsDb[K, V]) =
   self.containsStmt.dispose
   self.getStmt.dispose
   self.beginStmt.dispose
