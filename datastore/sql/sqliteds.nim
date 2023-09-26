@@ -26,7 +26,7 @@ proc readOnly*[K,V](self: SQLiteBackend[K,V]): bool = self.db.readOnly
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!bool =
+proc has*[K,V](self: SQLiteBackend[K,V], key: K): ?!bool =
   var
     exists = false
     key = key
@@ -42,7 +42,7 @@ proc has*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!bool =
 proc delete*[K,V](self: SQLiteBackend[K,V], key: K): ?!void =
   return self.db.deleteStmt.exec((key))
 
-proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[DbKey]): ?!void =
+proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[K]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -74,7 +74,7 @@ proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!seq[byte] =
 
   if bytes.len <= 0:
     return failure(
-      newException(DatastoreKeyNotFound, "DbKey doesn't exist"))
+      newException(DatastoreKeyNotFound, "key doesn't exist"))
 
   return success bytes
 
@@ -212,7 +212,7 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, RawStmtPtr]): ?!DbQueryResp
   handle.close()
 
 
-proc contains*[K,V](self: SQLiteBackend[K,V], key: DbKey): bool =
+proc contains*[K,V](self: SQLiteBackend[K,V], key: K): bool =
   return self.has(key).get()
 
 
