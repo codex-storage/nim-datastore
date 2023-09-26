@@ -242,7 +242,7 @@ proc queryTask[DB](
       (?!QResult).err(qh.error())
     else:
       # otherwise manually an set empty ok result
-      ctx[].res.ok (KeyId.none, DataBuffer.new())
+      ctx[].res.ok (KeyId.none, DataBuffer(), )
       discard ctx[].signal.fireSync()
 
       var handle = qh.get()
@@ -260,7 +260,7 @@ proc queryTask[DB](
           discard ctx[].signal.fireSync()
 
       # set final result
-      (?!QResult).ok((KeyId.none, DataBuffer.new()))
+      (?!QResult).ok((KeyId.none, DataBuffer()))
 
 method query*(
   self: ThreadDatastore,
@@ -313,16 +313,17 @@ method query*(
   iter.next = next
   return success iter
 
-proc new*(
-  self: type ThreadDatastore,
-  ds: Datastore,
-  withLocks = static false,
-  tp: Taskpool): ?!ThreadDatastore =
+proc new*(self: type ThreadDatastore,
+          backend: ThreadBackendKinds,
+          withLocks = static false,
+          tp: Taskpool
+          ): ?!ThreadDatastore =
   doAssert tp.numThreads > 1, "ThreadDatastore requires at least 2 threads"
 
   success ThreadDatastore(
     tp: tp,
-    ds: ds,
+    ds: ThreadBackend(),
     withLocks: withLocks,
     queryLock: newAsyncLock(),
-    semaphore: AsyncSemaphore.new(tp.numThreads - 1))
+    semaphore: AsyncSemaphore.new(tp.numThreads - 1)
+  )

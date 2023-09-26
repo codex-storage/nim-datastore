@@ -27,8 +27,10 @@ proc `=destroy`*(x: var DataBufferHolder) =
     # echo "buffer: FREE: ", repr x.buf.pointer
     deallocShared(x.buf)
 
-proc len*(a: DataBuffer): int = a[].size
-proc capacity*(a: DataBuffer): int = a[].cap
+proc len*(a: DataBuffer): int =
+  if a.isNil: 0 else: a[].size
+proc capacity*(a: DataBuffer): int =
+  if a.isNil: 0 else: a[].cap
 
 proc isNil*(a: DataBuffer): bool = smartptrs.isNil(a)
 
