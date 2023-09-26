@@ -20,6 +20,7 @@ proc testBasic[K, V](
   bytes: V,
   otherBytes: V,
   batch: seq[DbBatchEntry[K, V]],
+  extended = true
 ) =
 
   test "put":
@@ -250,24 +251,26 @@ suite "queryTests":
       res[2].key.get == key3
       res[2].data == val3
 
-  # test "Should apply limit":
-  #   let
-  #     key = Key.init("/a").tryGet
-  #     q = DbQuery(key: key1, value: false)
+  test "Should apply limit":
+    let
+      key = Key.init("/a").tryGet
+      q = DbQuery[KeyId](key: key1, limit: 10, value: false)
 
-  #   for i in 0..<100:
-  #     let
-  #       key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #       val = DataBuffer.new("val " & $i)
+    for i in 0..<100:
+      let
+        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+        val = DataBuffer.new("val " & $i)
 
-  #     ds.put(key, val).tryGet
+      ds.put(key, val).tryGet
 
-  #   let
-  #     (handle, iter) = ds.query(q).tryGet
-  #     res = iter.mapIt(it.tryGet())
+    var
+      handle  = ds.query(q).tryGet
+    let
+      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
 
-  #   check:
-  #     res.len == 10
+    echo "RES: ", res.mapIt(it.key)
+    check:
+      res.len == 10
 
   # test "Should not apply offset":
   #   let
