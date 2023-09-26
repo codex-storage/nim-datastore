@@ -39,3 +39,7 @@ converter toExc*(e: ThreadResErr): ref CatchableError =
   of ErrorEnum.DatastoreErr: (ref DatastoreError)(msg: $e[1])
   of ErrorEnum.CatchableErr: (ref CatchableError)(msg: $e[1])
   of ErrorEnum.DefectErr: (ref CatchableError)(msg: "defect: " & $e[1])
+
+converter toExcRes*[T](res: ThreadResult[T]): ?!T =
+  res.mapErr() do(exc: ThreadResErr) -> ref CatchableError:
+    exc.toExc()

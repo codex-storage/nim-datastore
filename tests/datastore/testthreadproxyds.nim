@@ -170,26 +170,26 @@ suite "Test Basic ThreadProxyDatastore":
 
 #   queryTests(ds, false)
 
-suite "Test ThreadDatastore cancelations":
-  var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
+# suite "Test ThreadDatastore cancelations":
+#   var
+#     sqlStore: SQLiteBackend[KeyId,DataBuffer]
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
 
-  privateAccess(ThreadDatastore) # expose private fields
-  privateAccess(TaskCtx) # expose private fields
+#   privateAccess(ThreadDatastore) # expose private fields
+#   privateAccess(TaskCtx) # expose private fields
 
-  setupAll:
-    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+#   setupAll:
+#     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  teardown:
-    GC_fullCollect() # run full collect after each test
+#   teardown:
+#     GC_fullCollect() # run full collect after each test
 
-  teardownAll:
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+#   teardownAll:
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
 
   # test "Should monitor signal and cancel":
   #   var
