@@ -105,7 +105,7 @@ proc close*[K,V](self: SQLiteBackend[K,V]): ?!void =
 
 proc query*[K,V](
     self: SQLiteBackend[K,V],
-    query: DbQuery
+    query: DbQuery[K]
 ): Result[DbQueryHandle[K,V,RawStmtPtr], ref CatchableError] =
 
   var
@@ -114,9 +114,10 @@ proc query*[K,V](
       else:
         QueryStmtIdStr
 
-  if query.sort == DbSortOrder.Descending:
+  case query.sort:
+  of Descending:
     queryStr &= QueryStmtOrderDescending
-  else:
+  of Ascending:
     queryStr &= QueryStmtOrderAscending
 
   if query.limit != 0:
@@ -125,9 +126,9 @@ proc query*[K,V](
   if query.offset != 0:
     queryStr &=  QueryStmtOffset
 
+  echo "QUERY_STR: ", queryStr
   let
-    queryStmt = QueryStmt.prepare(
-      self.db.env, queryStr).expect("should not fail")
+    queryStmt = ? QueryStmt.prepare(self.db.env, queryStr)
 
     s = RawStmtPtr(queryStmt)
     queryKey = $query.key & "*"

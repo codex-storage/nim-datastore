@@ -12,7 +12,6 @@ import pkg/datastore/sql/sqliteds
 import pkg/datastore/key
 
 import ../dscommontests
-import ../querycommontests
 
 proc testBasic[K, V](
   ds: SQLiteBackend[K,V],
@@ -127,7 +126,7 @@ suite "queryTests":
 
   test "Key should query all keys and all it's children":
     let
-      q = DbQuery[KeyId](key: key1, value: true)
+      q = dbQuery(key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -150,7 +149,7 @@ suite "queryTests":
 
   test "query should cancel":
     let
-      q = DbQuery[KeyId](key: key1, value: true)
+      q = dbQuery(key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -180,7 +179,7 @@ suite "queryTests":
 
   test "Key should query all keys without values":
     let
-      q = DbQuery[KeyId](key: key1, value: false)
+      q = dbQuery(key: key1, value: false)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -205,7 +204,7 @@ suite "queryTests":
 
   test "Key should not query parent":
     let
-      q = DbQuery[KeyId](key: key2, value: true)
+      q = dbQuery(key: key2, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -227,7 +226,7 @@ suite "queryTests":
   test "Key should all list all keys at the same level":
     let
       queryKey = Key.init("/a").tryGet
-      q = DbQuery[KeyId](key: key1, value: true)
+      q = dbQuery(key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -254,7 +253,7 @@ suite "queryTests":
   test "Should apply limit":
     let
       key = Key.init("/a").tryGet
-      q = DbQuery[KeyId](key: key1, limit: 10, value: false)
+      q = dbQuery(key: key1, limit: 10, value: false)
 
     for i in 0..<100:
       let
@@ -268,29 +267,33 @@ suite "queryTests":
     let
       res = handle.iter().toSeq().mapIt(it.tryGet())
 
-    echo "RES: ", res.mapIt(it.key)
     check:
       res.len == 10
 
-  # test "Should not apply offset":
-  #   let
-  #     key = Key.init("/a").tryGet
-  #     keyId = KeyId.new $key
-  #     q = DbQuery(key: KeyId.new $key, offset: 90)
+  test "Should not apply offset":
+    let
+      key = Key.init("/a").tryGet
+      keyId = KeyId.new $key
+      q = dbQuery(key: keyId, offset: 90)
 
-  #   for i in 0..<100:
-  #     let
-  #       key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #       val = DataBuffer.new("val " & $i)
+    for i in 0..<100:
+      let
+        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+        val = DataBuffer.new("val " & $i)
 
-  #     ds.put(keyId, val).tryGet
+      ds.put(key, val).tryGet
 
-  #   let
-  #     (handle, iter) = ds.query(q).tryGet
-  #     res = iter.mapIt(it.tryGet())
+    var
+      qr  = ds.query(q)
+    echo "RES: ", qr.repr
 
-  #   check:
-  #     res.len == 10
+    var
+      handle  = ds.query(q).tryGet
+    let
+      res = handle.iter().toSeq().mapIt(it.tryGet())
+
+    check:
+      res.len == 10
 
 
   # test "Should not apply offset and limit":
