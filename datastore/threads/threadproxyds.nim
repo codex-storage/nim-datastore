@@ -234,12 +234,14 @@ proc queryTask[DB](
 ) {.gcsafe, nimcall.} =
   ## run query command
   executeTask(ctx):
+    # we execute this all inside `executeTask`
+    # so we need to return a final result
     let qh = ds.query(dq)
     if qh.isErr():
-      # set error and exit, which will fire final signal
+      # set error and exit executeTask, which will fire final signal
       (?!QResult).err(qh.error())
     else:
-      # otherwise set empty ok result
+      # otherwise manually an set empty ok result
       ctx[].res.ok (KeyId.none, DataBuffer.new())
       discard ctx[].signal.fireSync()
 
@@ -257,7 +259,8 @@ proc queryTask[DB](
             exc
           discard ctx[].signal.fireSync()
 
-      (?!QResult).err((ref QueryEndedError)(msg: "done").toThreadErr())
+      # set final result
+      (?!QResult).ok((KeyId.none, DataBuffer.new()))
 
 method query*(
   self: ThreadDatastore,
