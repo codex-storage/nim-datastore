@@ -245,6 +245,7 @@ proc queryTask[DB](
   var handle = qh.get()
   for item in handle.iter():
     executeTask(ctx):
+      discard ctx[].signal.waitSync().get()
       item
 
   executeTask(ctx):
