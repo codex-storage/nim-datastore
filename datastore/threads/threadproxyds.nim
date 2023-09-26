@@ -235,27 +235,29 @@ proc queryTask[DB](
   ## run query command
   executeTask(ctx):
     let qh = ds.query(dq)
-    if qh.isOk():
-      ctx[].res.ok default(QResult)
+    if qh.isErr():
+      # set error and exit, which will fire final signal
+      (?!QResult).err(qh.error())
     else:
-      ctx[].res.err qh.error().toThreadErr()
-      return
+      # otherwise set empty ok result
+      ctx[].res.ok (KeyId.none, DataBuffer.new())
+      discard ctx[].signal.fireSync()
 
-    var handle = qh.get()
-
-    for item in handle.iter():
-      if ctx[].cancelled:
-        # cancel iter, then run next cycle so it'll finish and close
-        handle.cancel = true
-        continue
-      else:
+      var handle = qh.get()
+      for item in handle.iter():
         # wait for next request from async thread
         discard ctx[].signal.waitSync().get()
-        ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
-          exc
-        discard ctx[].signal.fireSync()
 
-    (?!QResult).err((ref QueryEndedError)(msg: "done").toThreadErr())
+        if ctx[].cancelled:
+          # cancel iter, then run next cycle so it'll finish and close
+          handle.cancel = true
+          continue
+        else:
+          ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
+            exc
+          discard ctx[].signal.fireSync()
+
+      (?!QResult).err((ref QueryEndedError)(msg: "done").toThreadErr())
 
 method query*(
   self: ThreadDatastore,
