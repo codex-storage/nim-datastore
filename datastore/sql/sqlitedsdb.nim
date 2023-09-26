@@ -157,7 +157,7 @@ proc idCol*(
   return proc (): string =
     $sqlite3_column_text_not_null(s, index.cint)
 
-proc dataCol*(data: (RawStmtPtr, int)): DataBuffer =
+proc dataCol*[V: DbVal](data: (RawStmtPtr, int)): V =
 
   let s = data[0]
   let index = data[1]
@@ -188,7 +188,7 @@ proc dataCol*(data: (RawStmtPtr, int)): DataBuffer =
     dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
   # copy data out, since sqlite will free it
-  DataBuffer.new(toOpenArray(dataBytes, 0, dataLen - 1))
+  V.toVal(toOpenArray(dataBytes, 0, dataLen - 1))
 
 proc timestampCol*(
   s: RawStmtPtr,

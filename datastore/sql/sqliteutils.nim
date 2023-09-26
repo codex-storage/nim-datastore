@@ -72,7 +72,7 @@ proc bindParam(
     sqlite3_bind_text(s, n.cint, val.cstring, val.len().cint, SQLITE_TRANSIENT)
   elif val is KeyId:
     # same as previous
-    sqlite3_bind_text(s, n.cint, val.toCString(), val.data.len().cint, SQLITE_TRANSIENT)
+    sqlite3_bind_text(s, n.cint, cast[cstring](baseAddr val.data), val.data.len().cint, SQLITE_TRANSIENT)
   else:
     {.fatal: "Please add support for the '" & $typeof(val) & "' type".}
 

@@ -67,7 +67,7 @@ proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!seq[byte] =
     bytes: seq[byte]
 
   proc onData(s: RawStmtPtr) =
-    bytes = dataCol(self.db.getDataCol)
+    bytes = dataCol[V](self.db.getDataCol)
 
   if err =? self.db.getStmt.query((key), onData).errorOption:
     return failure(err)
