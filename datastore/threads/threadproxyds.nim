@@ -277,6 +277,7 @@ method query*(
     iter = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
+    let ctx = ctx
     defer:
       if lock.locked:
         lock.release()
@@ -289,10 +290,9 @@ method query*(
 
     await lock.acquire()
 
-    dispatchTask[DbQueryResponse[KeyId, DataBuffer]](self, signal):
-      self.tp.spawn queryTask(ctx, ds, dq)
-    discard ctx[].signal.fireSync()
-    await ctx[].signal.wait()
+    dispatchTaskWrap[DbQueryResponse[KeyId, DataBuffer]](self, signal):
+      # trigger query task to iterate then wait for new result!
+      discard ctx[].signal.fireSync()
 
     if ctx[].res.isErr() and ctx[].res.error()[0] == ErrorEnum.QueryEndedErr:
       iter.finished = true
