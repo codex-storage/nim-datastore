@@ -204,7 +204,7 @@ suite "queryTests":
 
   test "Key should not query parent":
     let
-      q = DbQuery[KeyId](key: key1)
+      q = DbQuery[KeyId](key: key2, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -213,9 +213,7 @@ suite "queryTests":
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
-
-    echo "res: ", res.mapIt($it.key)
+      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
 
     check:
       res.len == 2
