@@ -63,7 +63,6 @@ type
                               # to avoid exhausting file descriptors
 
 var finishLock: Lock
-
 finishLock.initLock()
 
 proc setCancelled(ctx: var TaskCtx): bool =
@@ -73,6 +72,13 @@ proc setCancelled(ctx: var TaskCtx): bool =
     else:
       ctx.cancelled = true
       return true
+
+proc acquireSignal(): ?!ThreadSignalPtr =
+  let signal = ThreadSignalPtr.new()
+  if signal.isErr():
+    failure (ref CatchableError)(msg: "failed to aquire ThreadSignalPtr: " & signal.error())
+  else:
+    success signal.get()
 
 template dispatchTask(self: ThreadDatastore,
                       signal: ThreadSignalPtr,
@@ -97,20 +103,13 @@ template dispatchTask(self: ThreadDatastore,
     discard ctx.signal.close()
     self.semaphore.release()
 
-proc acquireSignal(): ?!ThreadSignalPtr =
-  let signal = ThreadSignalPtr.new()
-  if signal.isErr():
-    failure (ref CatchableError)(msg: "failed to aquire ThreadSignalPtr: " & signal.error())
-  else:
-    success signal.get()
-
 proc hasTask[D](ctx: ptr TaskCtx, ds: D) =
   defer:
     if not ctx.isNil:
       discard ctx[].signal.fireSync()
 
   try:
-    let res = has(ds, key)
+    let res = has(ds, ctx.key)
     ctx.res = res.mapErr() do(e: ref CatchableError) -> ThreadResErr:
       e.toThreadErr()
   except CatchableError as exc:
