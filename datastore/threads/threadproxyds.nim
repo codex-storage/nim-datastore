@@ -60,13 +60,9 @@ type
 var ctxLock: Lock
 ctxLock.initLock()
 
-proc setCancelled[T](ctx: TaskCtx[T]): bool =
+proc setCancelled[T](ctx: TaskCtx[T]) =
   withLock(ctxLock):
-    if ctx[].running:
-      return false
-    else:
-      ctx[].cancelled = true
-      return true
+    ctx[].cancelled = true
 
 proc setRunning[T](ctx: TaskCtx[T]): bool =
   withLock(ctxLock):
@@ -125,9 +121,7 @@ template dispatchTask[T](self: ThreadDatastore,
       await wait(ctx[].signal)
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
-    while not ctx.setCancelled():
-      warn "waiting to cancel thread future!", fn = astToStr(fn)
-      await sleepAsync(10.milliseconds)
+    ctx.setCancelled()
     raise exc
   finally:
     discard ctx[].signal.close()
@@ -234,21 +228,28 @@ proc queryTask[DB](
     dq: DbQuery[KeyId]
 ) {.gcsafe, nimcall.} =
   ## run query command
-  var qh: typeof(ds.query(dq))
   executeTask(ctx):
-    qh = ds.query(dq)
-    if qh.isOk(): (?!QResult).ok(default(QResult))
-    else: (?!QResult).err(qh.error())
-  if qh.isErr():
-    return
+    let qh = ds.query(dq)
+    if qh.isOk():
+      ctx[].res.ok default(QResult)
+    else:
+      ctx[].res.err qh.error().toThreadErr()
+      return
 
-  var handle = qh.get()
-  for item in handle.iter():
-    executeTask(ctx):
-      discard ctx[].signal.waitSync().get()
-      item
+    var handle = qh.get()
 
-  executeTask(ctx):
+    for item in handle.iter():
+      if ctx[].cancelled:
+        # cancel iter, then run next cycle so it'll finish and close
+        handle.cancel = true
+        continue
+      else:
+        # wait for next request from async thread
+        discard ctx[].signal.waitSync().get()
+        ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
+          exc
+        discard ctx[].signal.fireSync()
+
     (?!QResult).err((ref QueryEndedError)(msg: "done").toThreadErr())
 
 method query*(
