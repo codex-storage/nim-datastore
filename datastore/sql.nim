@@ -62,9 +62,8 @@ method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
 method query*(
   self: SQLiteDatastore,
   query: Query
-): Future[?!QueryIter] {.async.} =
+): ?!(iterator(): ?!QueryResponse) =
 
-  var iter = QueryIter()
   let dbquery = dbQuery(
     key= KeyId.new query.key.id(),
     value= query.value,
@@ -72,35 +71,14 @@ method query*(
     offset= query.offset,
     sort= query.sort,
   )
-  var queries = ? self.db.query(dbquery)
+  var qhandle = ? self.db.query(dbquery)
 
-  let lock = newAsyncLock()
-  proc next(): Future[?!QueryResponse] {.async.} =
-    defer:
-      if lock.locked:
-        lock.release()
-
-    if lock.locked:
-      return failure (ref DatastoreError)(msg: "Should always await query features")
-
-    if iter.finished:
-      return failure((ref QueryEndedError)(msg: "Calling next on a finished query!"))
-
-    await lock.acquire()
-
-    without res =? queries(), err:
-      iter.finished = true
-      return failure err
-
-
-  iter.dispose = proc(): Future[?!void] {.async.} =
-    discard sqlite3_reset(s)
-    discard sqlite3_clear_bindings(s)
-    s.dispose
-    return success()
-
-  iter.next = next
-  return success iter
+  let iter = iterator(): ?!QueryResponse =
+    for resp in qhandle.iter():
+      without qres =? resp, err:
+        yield QueryResponse.failure err
+  
+  success iter
 
 proc new*(
   T: type SQLiteDatastore,
