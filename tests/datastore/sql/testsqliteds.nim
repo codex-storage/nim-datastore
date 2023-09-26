@@ -288,34 +288,34 @@ suite "queryTests":
     check:
       res.len == 10
 
-  # test "Should not apply offset and limit":
-  #   let
-  #     key = Key.init("/a").tryGet
-  #     keyId = KeyId.new $key
-  #     q = DbQuery(key: keyId, offset: 95, limit: 5)
+  test "Should not apply offset and limit":
+    let
+      key = Key.init("/a").tryGet
+      keyId = KeyId.new $key
+      q = dbQuery(key= keyId, offset= 95, limit= 5)
 
-  #   for i in 0..<100:
-  #     let
-  #       key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #       val = DataBuffer.new("val " & $i)
+    for i in 0..<100:
+      let
+        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+        val = DataBuffer.new("val " & $i)
 
-  #     ds.put(key, val).tryGet
+      ds.put(key, val).tryGet
 
-  #   let
-  #     (handle, iter) = ds.query(q).tryGet
-  #     res = iter.mapIt(it.tryGet())
+    var
+      handle  = ds.query(q).tryGet
+      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
 
-  #   check:
-  #     res.len == 5
+    check:
+      res.len == 5
 
-  #   for i in 0..<res.high:
-  #     let
-  #       val = DataBuffer.new("val " & $(i + 95))
-  #       key = KeyId.new $Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+    for i in 0..<res.high:
+      let
+        val = DataBuffer.new("val " & $(i + 95))
+        key = KeyId.new $Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
-  #     check:
-  #       res[i].key.get == key
-  #       res[i].data == val
+      check:
+        res[i].key.get == key
+        res[i].data == val
 
 
   #   test "Should apply sort order - descending":
