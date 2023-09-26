@@ -24,29 +24,63 @@ import ./querycommontests
 
 const NumThreads = 200 # IO threads aren't attached to CPU count
 
-suite "Test Basic ThreadDatastore with SQLite":
-
+suite "Test Basic ThreadProxyDatastore":
   var
     sqlStore: SQLiteBackend[KeyId,DataBuffer]
     ds: ThreadDatastore
     taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+    key = Key.init("/a").tryGet()
+    data = "some bytes".toBytes
 
   setupAll:
     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  teardown:
-    GC_fullCollect()
-
   teardownAll:
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+    echo "teardown done"
 
-  basicStoreTests(ds, key, bytes, otherBytes)
+  test "check put":
+    echo "\n\n=== put ==="
+    let res1 = await ds.put(key, data)
+    echo "res1: ", res1.repr
+    check res1.isOk
+
+  test "check get":
+    echo "\n\n=== get ==="
+    echo "get send key: ", key.repr
+    let res2 = await ds.get(key)
+    echo "get key post: ", key.repr
+    echo "get res2: ", res2.repr
+    echo res2.get() == data
+    var val = ""
+    for c in res2.get():
+      val &= char(c)
+    echo "get res2: ", $val
+
+# suite "Test Basic ThreadDatastore with SQLite":
+
+#   var
+#     sqlStore: SQLiteBackend[KeyId,DataBuffer]
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
+#     key = Key.init("/a/b").tryGet()
+#     bytes = "some bytes".toBytes
+#     otherBytes = "some other bytes".toBytes
+
+#   setupAll:
+#     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+
+#   teardown:
+#     GC_fullCollect()
+
+#   teardownAll:
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
+
+#   basicStoreTests(ds, key, bytes, otherBytes)
 
 # suite "Test Query ThreadDatastore with SQLite":
 

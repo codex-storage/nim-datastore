@@ -177,6 +177,10 @@ proc putTask[T, DB](ctx: TaskCtx[T], ds: DB;
                   data: DataBuffer) {.gcsafe, nimcall.} =
   ## run backend command
   executeTask(ctx):
+    echo "putTask:key: ", key
+    echo "putTask:data: ", data
+    echo "putTask:ctx: ", ctx.repr()
+    echo ""
     put(ds, key, data)
 
 method put*(self: ThreadDatastore,
@@ -188,7 +192,12 @@ method put*(self: ThreadDatastore,
 
   let key = KeyId.new key.id()
   let data = DataBuffer.new data
+
   dispatchTask[void](self, signal):
+    echo "put:key: ", key
+    echo "put:data: ", data
+    echo "put:ctx: ", ctx.repr()
+    echo ""
     self.tp.spawn putTask(ctx, ds, key, data)
   
 method put*(
