@@ -19,7 +19,7 @@ push: {.upraises: [].}
 
 type
   SQLiteDatastore* = ref object of Datastore
-    db: SQLiteBackend
+    db: SQLiteBackend[KeyId, DataBuffer]
 
 proc path*(self: SQLiteDatastore): string =
   self.db.path()
@@ -27,23 +27,30 @@ proc path*(self: SQLiteDatastore): string =
 proc readOnly*(self: SQLiteDatastore): bool =
   self.db.readOnly()
 
-method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: SQLiteDatastore,
+            key: Key): Future[?!bool] {.async.} =
   return self.db.has(KeyId.new key.id())
 
-method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore,
+               key: Key): Future[?!void] {.async.} =
   return self.db.delete(KeyId.new key.id())
 
-method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore,
+               keys: seq[Key]): Future[?!void] {.async.} =
   let dkeys = keys.mapIt(KeyId.new it.id())
   return self.db.delete(dkeys)
 
-method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: SQLiteDatastore,
+            key: Key): Future[?!seq[byte]] {.async.} =
   self.db.get(KeyId.new key.id())
 
-method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore,
+            key: Key,
+            data: seq[byte]): Future[?!void] {.async.} =
   self.db.put(KeyId.new key.id(), DataBuffer.new data)
 
-method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore,
+            batch: seq[BatchEntry]): Future[?!void] {.async.} =
   var dbatch: seq[tuple[key: string, data: seq[byte]]]
   for entry in batch:
     dbatch.add((entry.key.id(), entry.data))

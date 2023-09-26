@@ -81,13 +81,14 @@ proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!seq[byte] =
 proc put*[K,V](self: SQLiteBackend[K,V], key: K, data: V): ?!void =
   return self.db.putStmt.exec((key, data, timestamp()))
 
-proc put*[K,V](self: SQLiteBackend[K,V], batch: openArray[DbBatchEntry]): ?!void =
+proc put*[K,V](self: SQLiteBackend[K,V], batch: openArray[DbBatchEntry[K,V]]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
   for entry in batch:
     let putStmt = self.db.putStmt
-    if err =? putStmt.exec((entry.key, entry.data, timestamp())).errorOption:
+    let item = (entry.key, entry.data, timestamp())
+    if err =? putStmt.exec(item).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err
 
