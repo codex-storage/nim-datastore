@@ -34,10 +34,15 @@ method put*(self: Datastore, batch: seq[BatchEntry]): Future[?!void] {.base, loc
 method close*(self: Datastore): Future[?!void] {.base, locks: "unknown", raises: [].} =
   raiseAssert("Not implemented!")
 
-method query*(
-  self: Datastore,
-  query: Query): Future[?!QueryIter] {.base, gcsafe, raises: [].} =
+method query*(self: Datastore,
+              query: Query
+              ): Future[?!QueryIter] {.base, gcsafe, raises: [].} =
 
+  raiseAssert("Not implemented!")
+
+method queryIter*(self: Datastore,
+              query: Query
+              ): ?!(iterator(): ?!QueryResponse) {.base, gcsafe, raises: [].} =
   raiseAssert("Not implemented!")
 
 proc contains*(self: Datastore, key: Key): Future[bool] {.async, raises: [].} =

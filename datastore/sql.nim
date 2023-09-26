@@ -59,7 +59,7 @@ method put*(self: SQLiteDatastore,
 method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
   self.db.close()
 
-method query*(
+method queryIter*(
   self: SQLiteDatastore,
   query: Query
 ): ?!(iterator(): ?!QueryResponse) =
