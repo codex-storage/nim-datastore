@@ -228,20 +228,19 @@ proc queryTask[DB](
     dq: DbQuery[KeyId]
 ) {.gcsafe, nimcall.} =
   ## run query command
-  if not ctx.setRunning():
-    return
-
-  var qh = ds.query(dq)
-  if qh .isOk():
-    (?!QResult).ok(default(QResult))
-  else:
-    (?!QResult).err(qh.error())
+  var qh: typeof(ds.query(dq))
+  executeTask(ctx):
+    qh = ds.query(dq)
+    if qh.isOk():
+      (?!QResult).ok(default(QResult))
+    else:
+      (?!QResult).err(qh.error())
 
   var handle = qh.get()
 
-  for item in 
-  executeTask(ctx):
-    query(ds, key)
+  for item in handle.iter():
+    executeTask(ctx):
+      item
 
 method query*(
   self: ThreadDatastore,
