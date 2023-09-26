@@ -46,22 +46,10 @@ template toVal*(tp: typedesc[DataBuffer], id: openArray[byte]): DataBuffer = Dat
 template toVal*(tp: typedesc[seq[byte]], id: openArray[byte]): seq[byte] = @(id)
 
 proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
-  ## copy cstring including null terminator
   KeyId(data: DataBuffer.new(id.toOpenArray(0, id.len()-1)))
 
 proc new*(tp: typedesc[KeyId], id: string): KeyId =
-  ## copy cstring including null terminator
   KeyId(data: DataBuffer.new(id))
-
-# proc toCString*(key: KeyId): cstring =
-#   ## copy cstring including null terminator
-#   cast[cstring](baseAddr key.data)
-
-# proc toDb*(key: Key): DbKey {.inline, raises: [].} =
-#   let id: string = key.id()
-#   let db = DataBuffer.new(id.len()+1) # include room for null for cstring compat
-#   db.setData(id)
-#   DbKey(data: db)
 
 proc toKey*(key: KeyId): Key {.inline, raises: [].} =
   Key.init(key.data).expect("expected valid key here for but got `" & $key.data & "`")
