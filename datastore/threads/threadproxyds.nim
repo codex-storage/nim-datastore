@@ -280,15 +280,24 @@ method query*(
     trace "About to query"
     if lock.locked:
       return failure (ref DatastoreError)(msg: "Should always await query features")
-
-    await lock.acquire()
-
     if iter.finished == true:
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 
-    iter.finished = childIter.finished
-    var
-      res = ThreadResult[QueryResponse]()
+    await lock.acquire()
+
+    dispatchTask[void](self, signal):
+      discard ctx.signal.fireSync()
+
+    let res = ctx.res
+
+    if res.isErr() and res.error()[0] == ErrorEnum.QueryEndedErr:
+      iter.finished = true
+    else:
+      if res.isErr():
+        return err(res.error())
+      else:
+        let qres = res.get()
+        return ok(res.get())
 
 
   iter.next = next
