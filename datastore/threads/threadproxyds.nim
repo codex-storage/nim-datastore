@@ -263,6 +263,7 @@ method query*(
 
   var
     lock = newAsyncLock() # serialize querying under threads
+    iter = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
     defer:
