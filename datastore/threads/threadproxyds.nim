@@ -299,10 +299,10 @@ method query*(
       # trigger query task to iterate then wait for new result!
       discard ctx[].signal.fireSync()
 
-    if ctx[].res.isErr() and ctx[].res.error()[0] == ErrorEnum.QueryEndedErr:
+    if not ctx[].running:
       iter.finished = true
-      return success (key: Key.none, data: EmptyBytes)
-    elif ctx[].res.isErr():
+
+    if ctx[].res.isErr():
       return err(ctx[].res.error())
     else:
       let qres = ctx[].res.get()
