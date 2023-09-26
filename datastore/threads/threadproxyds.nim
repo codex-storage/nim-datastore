@@ -90,7 +90,7 @@ template dispatchTask(self: ThreadDatastore,
     of Sqlite:
       var ds = self.backend.sql
       proc runTask() =
-        `fn`(addr ctx, ds)
+        self.tp.spawn `fn`(addr ctx, ds)
       runTask()
 
       await wait(ctx.signal)
