@@ -245,6 +245,9 @@ proc queryTask[DB](
   for item in handle.iter():
     executeTask(ctx):
       item
+  
+  executeTask(ctx):
+    (ref QueryEndedError)(msg: "done")
 
 method query*(
   self: ThreadDatastore,
