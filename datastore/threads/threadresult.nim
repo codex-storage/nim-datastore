@@ -16,18 +16,20 @@ type
     DatastoreErr,
     DatastoreKeyNotFoundErr,
     QueryEndedErr,
-    CatchableErr
+    CatchableErr,
+    DefectErr
 
   ThreadTypes* = void | bool | SomeInteger | DataBuffer | tuple | Atomic
   ThreadResErr* = (ErrorEnum, DataBuffer)
   ThreadResult*[T: ThreadTypes] = Result[T, ThreadResErr]
 
 
-converter toThreadErr*(e: ref CatchableError): ThreadResErr {.inline, raises: [].} =
+converter toThreadErr*(e: ref Exception): ThreadResErr {.inline, raises: [].} =
   if e of DatastoreKeyNotFound: (ErrorEnum.DatastoreKeyNotFoundErr, DataBuffer.new(e.msg))
   elif e of QueryEndedError: (ErrorEnum.QueryEndedErr, DataBuffer.new(e.msg))
   elif e of DatastoreError: (DatastoreErr, DataBuffer.new(e.msg))
   elif e of CatchableError: (CatchableErr, DataBuffer.new(e.msg))
+  elif e of Defect: (DefectErr, DataBuffer.new(e.msg))
   else: raise (ref Defect)(msg: e.msg)
 
 converter toExc*(e: ThreadResErr): ref CatchableError =
@@ -36,3 +38,4 @@ converter toExc*(e: ThreadResErr): ref CatchableError =
   of ErrorEnum.QueryEndedErr: (ref QueryEndedError)(msg: $e[1])
   of ErrorEnum.DatastoreErr: (ref DatastoreError)(msg: $e[1])
   of ErrorEnum.CatchableErr: (ref CatchableError)(msg: $e[1])
+  of ErrorEnum.DefectErr: (ref CatchableError)(msg: "defect: " & $e[1])

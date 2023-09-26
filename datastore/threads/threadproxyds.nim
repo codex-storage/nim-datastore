@@ -98,6 +98,9 @@ template executeTask[T](ctx: ptr TaskCtx[T], blk: untyped) =
   except CatchableError as exc:
     trace "Unexpected exception thrown in async task", exc = exc.msg
     ctx[].res.err exc.toThreadErr()
+  except Exception as exc:
+    trace "Unexpected defect thrown in async task", exc = exc.msg
+    ctx[].res.err exc.toThreadErr()
   finally:
     ctx.setDone()
     discard ctx[].signal.fireSync()
