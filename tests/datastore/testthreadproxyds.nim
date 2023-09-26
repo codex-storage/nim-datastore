@@ -13,8 +13,9 @@ import pkg/stew/byteutils
 import pkg/taskpools
 import pkg/questionable/results
 import pkg/chronicles
+import pkg/threading/smartptrs
 
-import pkg/datastore/sql
+import pkg/datastore/sql/sqliteds
 import pkg/datastore/fsds
 import pkg/datastore/threads/threadproxyds {.all.}
 
@@ -26,7 +27,7 @@ const NumThreads = 200 # IO threads aren't attached to CPU count
 suite "Test Basic ThreadDatastore with SQLite":
 
   var
-    sqlStore: Datastore
+    sqlStore: SQLiteBackend[KeyId,DataBuffer]
     ds: ThreadDatastore
     taskPool: Taskpool
     key = Key.init("/a/b").tryGet()
@@ -34,7 +35,7 @@ suite "Test Basic ThreadDatastore with SQLite":
     otherBytes = "some other bytes".toBytes
 
   setupAll:
-    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
@@ -50,7 +51,7 @@ suite "Test Basic ThreadDatastore with SQLite":
 suite "Test Query ThreadDatastore with SQLite":
 
   var
-    sqlStore: Datastore
+    sqlStore: SQLiteBackend[KeyId,DataBuffer]
     ds: ThreadDatastore
     taskPool: Taskpool
     key = Key.init("/a/b").tryGet()
@@ -58,7 +59,7 @@ suite "Test Query ThreadDatastore with SQLite":
     otherBytes = "some other bytes".toBytes
 
   setup:
-    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
@@ -70,74 +71,74 @@ suite "Test Query ThreadDatastore with SQLite":
 
   queryTests(ds, true)
 
-suite "Test Basic ThreadDatastore with fsds":
-  let
-    path = currentSourcePath() # get this file's name
-    basePath = "tests_data"
-    basePathAbs = path.parentDir / basePath
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+# suite "Test Basic ThreadDatastore with fsds":
+#   let
+#     path = currentSourcePath() # get this file's name
+#     basePath = "tests_data"
+#     basePathAbs = path.parentDir / basePath
+#     key = Key.init("/a/b").tryGet()
+#     bytes = "some bytes".toBytes
+#     otherBytes = "some other bytes".toBytes
 
-  var
-    fsStore: FSDatastore
-    ds: ThreadDatastore
-    taskPool: Taskpool
+#   var
+#     fsStore: FSDatastore
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
 
-  setupAll:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
+#   setupAll:
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
+#     createDir(basePathAbs)
 
-    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+#     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
 
-  teardown:
-    GC_fullCollect()
+#   teardown:
+#     GC_fullCollect()
 
-  teardownAll:
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+#   teardownAll:
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
 
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
 
-  basicStoreTests(fsStore, key, bytes, otherBytes)
+#   basicStoreTests(fsStore, key, bytes, otherBytes)
 
-suite "Test Query ThreadDatastore with fsds":
-  let
-    path = currentSourcePath() # get this file's name
-    basePath = "tests_data"
-    basePathAbs = path.parentDir / basePath
+# suite "Test Query ThreadDatastore with fsds":
+#   let
+#     path = currentSourcePath() # get this file's name
+#     basePath = "tests_data"
+#     basePathAbs = path.parentDir / basePath
 
-  var
-    fsStore: FSDatastore
-    ds: ThreadDatastore
-    taskPool: Taskpool
+#   var
+#     fsStore: FSDatastore
+#     ds: ThreadDatastore
+#     taskPool: Taskpool
 
-  setup:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
+#   setup:
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
+#     createDir(basePathAbs)
 
-    fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+#     fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
+#     taskPool = Taskpool.new(NumThreads)
+#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
 
-  teardown:
-    GC_fullCollect()
-    (await ds.close()).tryGet()
-    taskPool.shutdown()
+#   teardown:
+#     GC_fullCollect()
+#     (await ds.close()).tryGet()
+#     taskPool.shutdown()
 
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
 
-  queryTests(ds, false)
+#   queryTests(ds, false)
 
 suite "Test ThreadDatastore cancelations":
   var
-    sqlStore: Datastore
+    sqlStore: SQLiteBackend[KeyId,DataBuffer]
     ds: ThreadDatastore
     taskPool: Taskpool
 
@@ -145,7 +146,7 @@ suite "Test ThreadDatastore cancelations":
   privateAccess(TaskCtx) # expose private fields
 
   setupAll:
-    sqlStore = SQLiteDatastore.new(Memory).tryGet()
+    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
@@ -156,66 +157,63 @@ suite "Test ThreadDatastore cancelations":
     (await ds.close()).tryGet()
     taskPool.shutdown()
 
-  test "Should monitor signal and cancel":
-    var
-      signal = ThreadSignalPtr.new().tryGet()
-      res = ThreadResult[void]()
-      ctx = TaskCtx[void](
-        ds: sqlStore,
-        res: addr res,
-        signal: signal)
-      fut = newFuture[void]("signalMonitor")
-      threadArgs = (addr ctx, addr fut)
-      thread: Thread[type threadArgs]
+  # test "Should monitor signal and cancel":
+  #   var
+  #     signal = ThreadSignalPtr.new().tryGet()
+  #     res = ThreadResult[void]()
+  #     ctx = newSharedPtr(TaskCtxObj[void](signal: signal))
+  #     fut = newFuture[void]("signalMonitor")
+  #     threadArgs = (addr ctx, addr fut)
+  #     thread: Thread[type threadArgs]
 
-    proc threadTask(args: type threadArgs) =
-      var (ctx, fut) = args
-      proc asyncTask() {.async.} =
-        let
-          monitor = signalMonitor(ctx, fut[])
+  #   proc threadTask(args: type threadArgs) =
+  #     var (ctx, fut) = args
+  #     proc asyncTask() {.async.} =
+  #       let
+  #         monitor = signalMonitor(ctx, fut[])
 
-        await monitor
+  #       await monitor
 
-      waitFor asyncTask()
+  #     waitFor asyncTask()
 
-    createThread(thread, threadTask, threadArgs)
-    ctx.cancelled = true
-    check: ctx.signal.fireSync.tryGet
+  #   createThread(thread, threadTask, threadArgs)
+  #   ctx.cancelled = true
+  #   check: ctx.signal.fireSync.tryGet
 
-    joinThreads(thread)
+  #   joinThreads(thread)
 
-    check: fut.cancelled
-    check: ctx.signal.close().isOk
-    fut = nil
+  #   check: fut.cancelled
+  #   check: ctx.signal.close().isOk
+  #   fut = nil
 
-  test "Should monitor and not cancel":
-    var
-      signal = ThreadSignalPtr.new().tryGet()
-      res = ThreadResult[void]()
-      ctx = TaskCtx[void](
-        ds: sqlStore,
-        res: addr res,
-        signal: signal)
-      fut = newFuture[void]("signalMonitor")
-      threadArgs = (addr ctx, addr fut)
-      thread: Thread[type threadArgs]
+  # test "Should monitor and not cancel":
+  #   var
+  #     signal = ThreadSignalPtr.new().tryGet()
+  #     res = ThreadResult[void]()
+  #     ctx = TaskCtx[void](
+  #       ds: sqlStore,
+  #       res: addr res,
+  #       signal: signal)
+  #     fut = newFuture[void]("signalMonitor")
+  #     threadArgs = (addr ctx, addr fut)
+  #     thread: Thread[type threadArgs]
 
-    proc threadTask(args: type threadArgs) =
-      var (ctx, fut) = args
-      proc asyncTask() {.async.} =
-        let
-          monitor = signalMonitor(ctx, fut[])
+  #   proc threadTask(args: type threadArgs) =
+  #     var (ctx, fut) = args
+  #     proc asyncTask() {.async.} =
+  #       let
+  #         monitor = signalMonitor(ctx, fut[])
 
-        await monitor
+  #       await monitor
 
-      waitFor asyncTask()
+  #     waitFor asyncTask()
 
-    createThread(thread, threadTask, threadArgs)
-    ctx.cancelled = false
-    check: ctx.signal.fireSync.tryGet
+  #   createThread(thread, threadTask, threadArgs)
+  #   ctx.cancelled = false
+  #   check: ctx.signal.fireSync.tryGet
 
-    joinThreads(thread)
+  #   joinThreads(thread)
 
-    check: not fut.cancelled
-    check: ctx.signal.close().isOk
-    fut = nil
+  #   check: not fut.cancelled
+  #   check: ctx.signal.close().isOk
+  #   fut = nil

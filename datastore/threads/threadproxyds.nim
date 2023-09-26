@@ -43,13 +43,13 @@ type
     of Sqlite:
       sql*: SQLiteBackend[KeyId,DataBuffer]
 
-  TaskCtxObj[T: ThreadTypes] = object
+  TaskCtxObj*[T: ThreadTypes] = object
     res: ThreadResult[T]
     signal: ThreadSignalPtr
     running: bool
     cancelled: bool
 
-  TaskCtx[T] = SharedPtr[TaskCtxObj[T]]
+  TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
 
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
@@ -313,17 +313,22 @@ method query*(
   iter.next = next
   return success iter
 
-proc new*(self: type ThreadDatastore,
-          backend: ThreadBackendKinds,
+proc new*[DB](self: type ThreadDatastore,
+          db: DB,
           withLocks = static false,
           tp: Taskpool
           ): ?!ThreadDatastore =
   doAssert tp.numThreads > 1, "ThreadDatastore requires at least 2 threads"
 
+  when DB is SQLiteBackend[KeyId,DataBuffer]:
+    let backend = ThreadBackend(kind: Sqlite, sql: db)
+  else:
+    {.error: "unsupported backend: " & $typeof(db).}
+
   success ThreadDatastore(
     tp: tp,
-    ds: ThreadBackend(),
-    withLocks: withLocks,
-    queryLock: newAsyncLock(),
+    backend: backend,
+    # withLocks: withLocks,
+    # queryLock: newAsyncLock(),
     semaphore: AsyncSemaphore.new(tp.numThreads - 1)
   )
