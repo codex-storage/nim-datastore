@@ -6,19 +6,14 @@ import pkg/upraises
 
 push: {.upraises: [].}
 
-import std/atomics
-import std/strutils
 import std/tables
-import std/sequtils
 import std/locks
 
 import pkg/chronos
 import pkg/chronos/threadsync
 import pkg/questionable
 import pkg/questionable/results
-import pkg/stew/ptrops
 import pkg/taskpools
-import pkg/stew/byteutils
 import pkg/chronicles
 
 import ../key
