@@ -233,7 +233,7 @@ method query*(
     return failure err
 
   let dq = dbQuery(
-    key=query.key,
+    key= KeyId.new query.key.id(),
     value=query.value,
     limit=query.limit,
     offset=query.offset,
@@ -241,7 +241,7 @@ method query*(
   )
 
   dispatchTask[DbQueryResponse[KeyId, DataBuffer]](self, signal):
-    self.tp.spawn deleteTask(addr ctx, ds, dq)
+    self.tp.spawn queryTask(addr ctx, ds, dq)
 
   var
     lock = newAsyncLock() # serialize querying under threads
