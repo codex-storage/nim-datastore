@@ -29,7 +29,7 @@ func new*(_: type AsyncSemaphore, size: int): AsyncSemaphore =
 
 proc `count`*(s: AsyncSemaphore): int = s.count
 
-proc waitAll*(s: AsyncSemaphore) {.async.} =
+proc closeAll*(s: AsyncSemaphore) {.async.} =
   s.exit = true
   await allFutures(s.queue)
 

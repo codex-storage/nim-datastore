@@ -209,8 +209,10 @@ method get*(self: ThreadDatastore,
     self.tp.spawn getTask(addr ctx, ds, key)
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
-
-  await self.ds.close()
+  await self.semaphore.closeAll()
+  case self.backend.kind:
+  of Sqlite:
+    self.backend.sql.close()
 
 
 method query*(
