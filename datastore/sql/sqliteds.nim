@@ -15,21 +15,21 @@ export backend, sqlitedsdb
 push: {.upraises: [].}
 
 type
-  SQLiteBackend* = object
-    db: SQLiteDsDb
+  SQLiteBackend*[K, V] = object
+    db: SQLiteDsDb[K, V]
 
-proc path*(self: SQLiteBackend): string =
+proc path*[K,V](self: SQLiteBackend[K,V]): string =
   $self.db.dbPath
 
-proc readOnly*(self: SQLiteBackend): bool = self.db.readOnly
+proc readOnly*[K,V](self: SQLiteBackend[K,V]): bool = self.db.readOnly
 
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
-proc has*(self: SQLiteBackend, key: DbKey): ?!bool =
+proc has*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!bool =
   var
     exists = false
-    key = $key
+    key = key
 
   proc onData(s: RawStmtPtr) =
     exists = sqlite3_column_int64(s, ContainsStmtExistsCol.cint).bool
@@ -39,15 +39,15 @@ proc has*(self: SQLiteBackend, key: DbKey): ?!bool =
 
   return success exists
 
-proc delete*(self: SQLiteBackend, key: DbKey): ?!void =
-  return self.db.deleteStmt.exec(($key))
+proc delete*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!void =
+  return self.db.deleteStmt.exec((key))
 
-proc delete*(self: SQLiteBackend, keys: openArray[DbKey]): ?!void =
+proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[DbKey]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
   for key in keys:
-    if err =? self.db.deleteStmt.exec(($key)).errorOption:
+    if err =? self.db.deleteStmt.exec((key)).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err.msg
 
@@ -58,7 +58,7 @@ proc delete*(self: SQLiteBackend, keys: openArray[DbKey]): ?!void =
 
   return success()
 
-proc get*(self: SQLiteBackend, key: DbKey): ?!seq[byte] =
+proc get*[K,V](self: SQLiteBackend[K,V], key: KeyId): ?!seq[byte] =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -69,7 +69,7 @@ proc get*(self: SQLiteBackend, key: DbKey): ?!seq[byte] =
   proc onData(s: RawStmtPtr) =
     bytes = dataCol(self.db.getDataCol)
 
-  if err =? self.db.getStmt.query(($key), onData).errorOption:
+  if err =? self.db.getStmt.query((key), onData).errorOption:
     return failure(err)
 
   if bytes.len <= 0:
@@ -78,25 +78,15 @@ proc get*(self: SQLiteBackend, key: DbKey): ?!seq[byte] =
 
   return success bytes
 
-proc put*(self: SQLiteBackend, key: DbKey, data: DbVal): ?!void =
-  when DbVal is seq[byte]:
-    return self.db.putStmt.exec((key, data, timestamp()))
-  elif DbVal is DataBuffer:
-    return self.db.putBufferStmt.exec((key, data, timestamp()))
-  else:
-    {.error: "unknown type".}
+proc put*[K,V](self: SQLiteBackend[K,V], key: KeyId, data: DataBuffer): ?!void =
+  return self.db.putStmt.exec((key, data, timestamp()))
 
-proc put*(self: SQLiteBackend, batch: openArray[DbBatchEntry]): ?!void =
+proc put*[K,V](self: SQLiteBackend[K,V], batch: openArray[DbBatchEntry]): ?!void =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
   for entry in batch:
-    when entry.key is string:
-      let putStmt = self.db.putStmt
-    elif entry.key is KeyId:
-      let putStmt = self.db.putBufferStmt
-    else:
-      {.error: "unhandled type".}
+    let putStmt = self.db.putStmt
     if err =? putStmt.exec((entry.key, entry.data, timestamp())).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err
@@ -108,13 +98,13 @@ proc put*(self: SQLiteBackend, batch: openArray[DbBatchEntry]): ?!void =
 
   return success()
 
-proc close*(self: SQLiteBackend): ?!void =
+proc close*[K,V](self: SQLiteBackend[K,V]): ?!void =
   self.db.close()
 
   return success()
 
-proc query*(
-    self: SQLiteBackend,
+proc query*[K,V](
+    self: SQLiteBackend[K,V],
     query: DbQuery
 ): Result[DbQueryHandle[RawStmtPtr], ref CatchableError] =
 
@@ -219,23 +209,23 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
   handle.close()
 
 
-proc contains*(self: SQLiteBackend, key: DbKey): bool =
+proc contains*[K,V](self: SQLiteBackend[K,V], key: DbKey): bool =
   return self.has(key).get()
 
 
-proc new*(T: type SQLiteBackend,
+proc newSQLiteBackend*[K,V](
           path: string,
-          readOnly = false): ?!SQLiteBackend =
+          readOnly = false): ?!SQLiteBackend[K,V] =
 
   let
     flags =
       if readOnly: SQLITE_OPEN_READONLY
       else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
-  success SQLiteBackend(db: ? SQLiteDsDb.open(path, flags))
+  success SQLiteBackend[K,V](db: ? SQLiteDsDb[KeyId,DataBuffer].open(path, flags))
     
 
-proc new*(T: type SQLiteBackend,
-          db: SQLiteDsDb): ?!T =
+proc newSQLiteBackend*[K,V](
+          db: SQLiteDsDb[K,V]): ?!SQLiteBackend[K,V] =
 
-  success SQLiteBackend(db: db)
+  success SQLiteBackend[K,V](db: db)

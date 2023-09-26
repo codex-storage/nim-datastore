@@ -17,26 +17,24 @@ type
   # feels odd to use `void` for prepared statements corresponding to SELECT
   # queries but it fits with the rest of the SQLite wrapper adapted from
   # status-im/nwaku, at least in its current form in ./sqlite
-  ContainsStmt* = SQLiteStmt[(string), void]
-  DeleteStmt* = SQLiteStmt[(string), void]
-  GetStmt* = SQLiteStmt[(string), void]
-  PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
-  PutBufferStmt* = SQLiteStmt[(KeyId, DataBuffer, int64), void]
+  ContainsStmt*[K] = SQLiteStmt[(K), void]
+  DeleteStmt*[K] = SQLiteStmt[(K), void]
+  GetStmt*[K] = SQLiteStmt[(K), void]
+  PutStmt*[K, V] = SQLiteStmt[(K, V, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
   RollbackStmt* = NoParamsStmt
 
-  SQLiteDsDb* = object
+  SQLiteDsDb*[K,V] = object
     readOnly*: bool
     dbPath*: DataBuffer
-    containsStmt*: ContainsStmt
-    deleteStmt*: DeleteStmt
+    containsStmt*: ContainsStmt[K]
+    deleteStmt*: DeleteStmt[K]
     env*: SQLite
     getDataCol*: (RawStmtPtr, int)
-    getStmt*: GetStmt
-    putStmt*: PutStmt
-    putBufferStmt*: PutBufferStmt
+    getStmt*: GetStmt[K]
+    putStmt*: PutStmt[K,V]
     beginStmt*: BeginStmt
     endStmt*: EndStmt
     rollbackStmt*: RollbackStmt
@@ -230,10 +228,10 @@ proc close*(self: SQLiteDsDb) =
 
   self.env.dispose
 
-proc open*(
-  T: type SQLiteDsDb,
+proc open*[K,V](
+  T: type SQLiteDsDb[K,V],
   path = Memory,
-  flags = SQLITE_OPEN_READONLY): ?!SQLiteDsDb =
+  flags = SQLITE_OPEN_READONLY): ?!SQLiteDsDb[K, V] =
 
   # make it optional to enable WAL with it enabled being the default?
 
@@ -266,11 +264,10 @@ proc open*(
   checkExec(pragmaStmt)
 
   var
-    containsStmt: ContainsStmt
-    deleteStmt: DeleteStmt
-    getStmt: GetStmt
-    putStmt: PutStmt
-    putBufferStmt: PutBufferStmt
+    containsStmt: ContainsStmt[K]
+    deleteStmt: DeleteStmt[K]
+    getStmt: GetStmt[K]
+    putStmt: PutStmt[K,V]
     beginStmt: BeginStmt
     endStmt: EndStmt
     rollbackStmt: RollbackStmt
@@ -278,13 +275,10 @@ proc open*(
   if not readOnly:
     checkExec(env.val, CreateStmtStr)
 
-    deleteStmt = ? DeleteStmt.prepare(
+    deleteStmt = ? DeleteStmt[K].prepare(
       env.val, DeleteStmtStr, SQLITE_PREPARE_PERSISTENT)
 
-    putStmt = ? PutStmt.prepare(
-      env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
-
-    putBufferStmt = ? PutBufferStmt.prepare(
+    putStmt = ? PutStmt[K,V].prepare(
       env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   beginStmt = ? BeginStmt.prepare(
@@ -296,10 +290,10 @@ proc open*(
   rollbackStmt = ? RollbackStmt.prepare(
     env.val, RollbackTransactionStr, SQLITE_PREPARE_PERSISTENT)
 
-  containsStmt = ? ContainsStmt.prepare(
+  containsStmt = ? ContainsStmt[K].prepare(
     env.val, ContainsStmtStr, SQLITE_PREPARE_PERSISTENT)
 
-  getStmt = ? GetStmt.prepare(
+  getStmt = ? GetStmt[K].prepare(
     env.val, GetStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   # if a readOnly/existing database does not satisfy the expected schema
@@ -309,7 +303,7 @@ proc open*(
   let
     getDataCol = (RawStmtPtr(getStmt), GetStmtDataCol)
 
-  success SQLiteDsDb(
+  success SQLiteDsDb[K,V](
     readOnly: readOnly,
     dbPath: DataBuffer.new path,
     containsStmt: containsStmt,
@@ -318,7 +312,6 @@ proc open*(
     getStmt: getStmt,
     getDataCol: getDataCol,
     putStmt: putStmt,
-    putBufferStmt: putBufferStmt,
     beginStmt: beginStmt,
     endStmt: endStmt,
     rollbackStmt: rollbackStmt)
