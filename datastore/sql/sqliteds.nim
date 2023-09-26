@@ -106,7 +106,7 @@ proc close*[K,V](self: SQLiteBackend[K,V]): ?!void =
 proc query*[K,V](
     self: SQLiteBackend[K,V],
     query: DbQuery
-): Result[DbQueryHandle[K, RawStmtPtr], ref CatchableError] =
+): Result[DbQueryHandle[K,V,RawStmtPtr], ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -151,16 +151,16 @@ proc query*[K,V](
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  success DbQueryHandle[K, RawStmtPtr](query: query, env: s)
+  success DbQueryHandle[K,V,RawStmtPtr](query: query, env: s)
 
-proc close*[K](handle: var DbQueryHandle[K, RawStmtPtr]) =
+proc close*[K,V](handle: var DbQueryHandle[K,V,RawStmtPtr]) =
   if not handle.closed:
     handle.closed = true
     discard sqlite3_reset(handle.env)
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
 
-iterator iter*[K](handle: var DbQueryHandle[K, RawStmtPtr]): ?!DbQueryResponse =
+iterator iter*[K, V](handle: var DbQueryHandle[K, V, RawStmtPtr]): ?!DbQueryResponse[K, V] =
   while not handle.cancel:
 
     let v = sqlite3_step(handle.env)
@@ -187,14 +187,14 @@ iterator iter*[K](handle: var DbQueryHandle[K, RawStmtPtr]): ?!DbQueryResponse =
 
         if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
           handle.cancel = true
-          yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
+          yield DbQueryResponse[K,V].failure newException(DatastoreError, $sqlite3_errstr(v))
 
       let
         dataLen = sqlite3_column_bytes(handle.env, QueryStmtDataCol)
         data =
           if blob.isSome:
             let arr = cast[ptr UncheckedArray[byte]](blob)
-            DataBuffer.new(arr.toOpenArray(0, dataLen-1))
+            V.toVal(arr.toOpenArray(0, dataLen-1))
           else: DataBuffer.new("")
 
       yield success (key.some, data)
@@ -203,7 +203,7 @@ iterator iter*[K](handle: var DbQueryHandle[K, RawStmtPtr]): ?!DbQueryResponse =
       break
     else:
       handle.cancel = true
-      yield DbQueryResponse.failure newException(DatastoreError, $sqlite3_errstr(v))
+      yield DbQueryResponse[K,V].failure newException(DatastoreError, $sqlite3_errstr(v))
       break
 
   handle.close()

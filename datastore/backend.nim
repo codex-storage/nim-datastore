@@ -29,13 +29,13 @@ type
     offset*: int      # Offset from which to start querying - not available in all backends
     sort*: SortOrder  # Sort order - not available in all backends
 
-  DbQueryHandle*[K, T] = object
+  DbQueryHandle*[K, V, T] = object
     query*: DbQuery[K]
     cancel*: bool
     closed*: bool
     env*: T
 
-  DbQueryResponse* = tuple[key: Option[KeyId], data: DataBuffer]
+  DbQueryResponse*[K, V] = tuple[key: Option[K], data: V]
 
 proc `$`*(id: KeyId): string = $(id.data)
 

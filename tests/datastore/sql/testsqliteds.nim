@@ -158,7 +158,7 @@ suite "queryTests":
     var
       handle  = ds.query(q).tryGet
     
-    var res: seq[DbQueryResponse]
+    var res: seq[DbQueryResponse[KeyId, DataBuffer]]
     var cnt = 0
     for item in handle.iter():
       cnt.inc
@@ -202,25 +202,28 @@ suite "queryTests":
       res[2].data.len == 0
 
 
-  # test "Key should not query parent":
-  #   let
-  #     q = DbQuery(key: key1)
+  test "Key should not query parent":
+    let
+      q = DbQuery[KeyId](key: key1)
 
-  #   ds.put(key1, val1).tryGet
-  #   ds.put(key2, val2).tryGet
-  #   ds.put(key3, val3).tryGet
+    ds.put(key1, val1).tryGet
+    ds.put(key2, val2).tryGet
+    ds.put(key3, val3).tryGet
 
-  #   let
-  #     (handle, iter) = ds.query(q).tryGet
-  #     res = iter.mapIt(it.tryGet())
+    var
+      handle  = ds.query(q).tryGet
+    let
+      res = handle.iter().toSeq().mapIt(it.tryGet())
 
-  #   check:
-  #     res.len == 2
-  #     res[0].key.get == key2
-  #     res[0].data == val2
+    echo "res: ", res.mapIt($it.key)
 
-  #     res[1].key.get == key3
-  #     res[1].data == val3
+    check:
+      res.len == 2
+      res[0].key.get == key2
+      res[0].data == val2
+
+      res[1].key.get == key3
+      res[1].data == val3
 
   # test "Key should all list all keys at the same level":
   #   let
