@@ -245,9 +245,9 @@ proc queryTask[DB](
   for item in handle.iter():
     executeTask(ctx):
       item
-  
+
   executeTask(ctx):
-    (ref QueryEndedError)(msg: "done")
+    (?!QResult).err((ref QueryEndedError)(msg: "done").toThreadErr())
 
 method query*(
   self: ThreadDatastore,
@@ -288,17 +288,14 @@ method query*(
     dispatchTask[void](self, signal):
       discard ctx.signal.fireSync()
 
-    let res = ctx.res
-
-    if res.isErr() and res.error()[0] == ErrorEnum.QueryEndedErr:
-      iter.finished = true
-    else:
-      if res.isErr():
-        return err(res.error())
-      else:
-        let qres = res.get()
-        return ok(res.get())
-
+    # if ctx.res.isErr() and ctx.res.error()[0] == ErrorEnum.QueryEndedErr:
+    #   iter.finished = true
+    #   return
+    # elif ctx.res.isErr():
+    #   return err(ctx.res.error())
+    # else:
+    #   let qres = ctx.res.get()
+    #   return ok(default)
 
   iter.next = next
   return success iter
