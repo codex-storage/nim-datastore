@@ -321,7 +321,7 @@ suite "queryTests":
       let
         key = Key.init("/a").tryGet
         keyId = KeyId.new $key
-        q = dbQuery(key= keyId, sort= SortOrder.Descending)
+        q = dbQuery(key= keyId, value=true, sort= SortOrder.Descending)
 
       var kvs: seq[DbQueryResponse[KeyId, DataBuffer]]
       for i in 0..<100:
