@@ -195,7 +195,9 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, RawStmtPtr]): ?!DbQueryResp
           if blob.isSome:
             let arr = cast[ptr UncheckedArray[byte]](blob)
             V.toVal(arr.toOpenArray(0, dataLen-1))
-          else: DataBuffer.new("")
+          else:
+            var empty: array[0, byte]
+            V.toVal(empty.toOpenArray(0,-1))
 
       yield success (key.some, data)
     of SQLITE_DONE:
