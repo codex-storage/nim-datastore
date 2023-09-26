@@ -99,7 +99,7 @@ template dispatchTask(self: ThreadDatastore,
     discard ctx.signal.close()
     self.semaphore.release()
 
-proc runTask[D, T](ctx: ptr TaskCtx, ds: D, cb: proc(ctx: ptr TaskCtx): T {.gcsafe.}) {.gcsafe.} =
+template runTask(ctx: ptr TaskCtx, blk: untyped) =
   try:
     withLock(ctxLock):
       if ctx.cancelled:
@@ -107,7 +107,7 @@ proc runTask[D, T](ctx: ptr TaskCtx, ds: D, cb: proc(ctx: ptr TaskCtx): T {.gcsa
       ctx.running = true
     
     ## run backend command
-    let res = cb(ctx)
+    let res = `blk`
 
     withLock(ctxLock):
       ctx.running = false
@@ -121,7 +121,7 @@ proc runTask[D, T](ctx: ptr TaskCtx, ds: D, cb: proc(ctx: ptr TaskCtx): T {.gcsa
 
 proc hasTask[DB](ctx: ptr TaskCtx, ds: DB, key: KeyId) {.gcsafe.} =
   ## run backend command
-  runTask(ctx, ds) do(ctx: ptr TaskCtx) -> ?!bool:
+  runTask(ctx):
     has(ds, key)
 
 method has*(self: ThreadDatastore, key: Key): Future[?!bool] {.async.} =
