@@ -223,32 +223,32 @@ suite "queryTests":
       res[1].key.get == key3
       res[1].data == val3
 
-  # test "Key should all list all keys at the same level":
-  #   let
-  #     queryKey = Key.init("/a").tryGet
-  #     q = DbQuery(key: key1)
+  test "Key should all list all keys at the same level":
+    let
+      queryKey = Key.init("/a").tryGet
+      q = DbQuery[KeyId](key: key1, value: true)
 
-  #   ds.put(key1, val1).tryGet
-  #   ds.put(key2, val2).tryGet
-  #   ds.put(key3, val3).tryGet
+    ds.put(key1, val1).tryGet
+    ds.put(key2, val2).tryGet
+    ds.put(key3, val3).tryGet
 
-  #   var
-  #     (handle, iter) = ds.query(q).tryGet
-  #     res = iter.mapIt(it.tryGet())
+    var
+      handle  = ds.query(q).tryGet
+      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
 
-  #   res.sort do (a, b: DbQueryResponse) -> int:
-  #     cmp($a.key.get, $b.key.get)
+    res.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
+      cmp($a.key.get, $b.key.get)
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data == val1
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-  #     res[1].key.get == key2
-  #     res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-  #     res[2].key.get == key3
-  #     res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
   # test "Should apply limit":
   #   let
