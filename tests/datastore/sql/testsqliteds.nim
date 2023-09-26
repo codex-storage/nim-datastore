@@ -14,12 +14,12 @@ import pkg/datastore/key
 import ../dscommontests
 import ../querycommontests
 
-proc testBasic[K, V, B](
-  ds: SQLiteBackend,
+proc testBasic[K, V](
+  ds: SQLiteBackend[K,V],
   key: K,
   bytes: V,
   otherBytes: V,
-  batch: B,
+  batch: seq[DbBatchEntry[K, V]],
 ) =
 
   test "put":
@@ -60,14 +60,17 @@ proc testBasic[K, V, B](
       check: not ds.has(k).tryGet
 
   test "handle missing key":
-    let key = KeyId.new Key.init("/missing/key").tryGet().id()
+    when K is KeyId:
+      let key = KeyId.new Key.init("/missing/key").tryGet().id()
+    elif K is string:
+      let key = $KeyId.new Key.init("/missing/key").tryGet().id()
 
     expect(DatastoreKeyNotFound):
       discard ds.get(key).tryGet() # non existing key
 
 suite "Test Basic SQLiteDatastore":
   let
-    ds = newSQLiteBackend[KeyId, DataBuffer](path=Memory).tryGet()
+    ds = newSQLiteBackend[string, seq[byte]](path=Memory).tryGet()
     keyFull = Key.init("a:b/c/d:e").tryGet()
     key = keyFull.id()
     bytes = "some bytes".toBytes
@@ -81,7 +84,7 @@ suite "Test Basic SQLiteDatastore":
   suiteTeardown:
     ds.close().tryGet()
 
-  # testBasic(ds, key, bytes, otherBytes, batch)
+  testBasic(ds, key, bytes, otherBytes, batch)
 
 suite "Test DataBuffer SQLiteDatastore":
   let
@@ -123,7 +126,7 @@ suite "queryTests":
 
   test "Key should query all keys and all it's children":
     let
-      q = DbQuery(key: key1, value: true)
+      q = DbQuery[KeyId](key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -146,7 +149,7 @@ suite "queryTests":
 
   test "query should cancel":
     let
-      q = DbQuery(key: key1, value: true)
+      q = DbQuery[KeyId](key: key1, value: true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet

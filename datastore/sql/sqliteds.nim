@@ -39,7 +39,7 @@ proc has*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!bool =
 
   return success exists
 
-proc delete*[K,V](self: SQLiteBackend[K,V], key: DbKey): ?!void =
+proc delete*[K,V](self: SQLiteBackend[K,V], key: K): ?!void =
   return self.db.deleteStmt.exec((key))
 
 proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[DbKey]): ?!void =
@@ -58,7 +58,7 @@ proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[DbKey]): ?!void =
 
   return success()
 
-proc get*[K,V](self: SQLiteBackend[K,V], key: KeyId): ?!seq[byte] =
+proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!seq[byte] =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -78,7 +78,7 @@ proc get*[K,V](self: SQLiteBackend[K,V], key: KeyId): ?!seq[byte] =
 
   return success bytes
 
-proc put*[K,V](self: SQLiteBackend[K,V], key: KeyId, data: DataBuffer): ?!void =
+proc put*[K,V](self: SQLiteBackend[K,V], key: K, data: V): ?!void =
   return self.db.putStmt.exec((key, data, timestamp()))
 
 proc put*[K,V](self: SQLiteBackend[K,V], batch: openArray[DbBatchEntry]): ?!void =
@@ -106,7 +106,7 @@ proc close*[K,V](self: SQLiteBackend[K,V]): ?!void =
 proc query*[K,V](
     self: SQLiteBackend[K,V],
     query: DbQuery
-): Result[DbQueryHandle[RawStmtPtr], ref CatchableError] =
+): Result[DbQueryHandle[K, RawStmtPtr], ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -151,16 +151,16 @@ proc query*[K,V](
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  success DbQueryHandle[RawStmtPtr](query: query, env: s)
+  success DbQueryHandle[K, RawStmtPtr](query: query, env: s)
 
-proc close*(handle: var DbQueryHandle[RawStmtPtr]) =
+proc close*[K](handle: var DbQueryHandle[K, RawStmtPtr]) =
   if not handle.closed:
     handle.closed = true
     discard sqlite3_reset(handle.env)
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
 
-iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
+iterator iter*[K](handle: var DbQueryHandle[K, RawStmtPtr]): ?!DbQueryResponse =
   while not handle.cancel:
 
     let v = sqlite3_step(handle.env)
@@ -168,7 +168,7 @@ iterator iter*(handle: var DbQueryHandle[RawStmtPtr]): ?!DbQueryResponse =
     case v
     of SQLITE_ROW:
       let
-        key = KeyId.new(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
+        key = K.toKey(sqlite3_column_text_not_null(handle.env, QueryStmtIdCol))
 
         blob: ?pointer =
           if handle.query.value: sqlite3_column_blob(handle.env, QueryStmtDataCol).some
@@ -222,7 +222,7 @@ proc newSQLiteBackend*[K,V](
       if readOnly: SQLITE_OPEN_READONLY
       else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
-  success SQLiteBackend[K,V](db: ? SQLiteDsDb[KeyId,DataBuffer].open(path, flags))
+  success SQLiteBackend[K,V](db: ? SQLiteDsDb[K,V].open(path, flags))
     
 
 proc newSQLiteBackend*[K,V](

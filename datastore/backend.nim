@@ -20,17 +20,17 @@ type
   DbKey* = string | KeyId
   DbVal* = seq[byte] | DataBuffer
 
-  DbBatchEntry* = tuple[key: string, data: seq[byte]] | tuple[key: KeyId, data: DataBuffer]
+  DbBatchEntry*[K, V] = tuple[key: K, data: V]
 
-  DbQuery* = object
-    key*: KeyId         # Key to be queried
+  DbQuery*[K] = object
+    key*: K         # Key to be queried
     value*: bool      # Flag to indicate if data should be returned
     limit*: int       # Max items to return - not available in all backends
     offset*: int      # Offset from which to start querying - not available in all backends
     sort*: SortOrder  # Sort order - not available in all backends
 
-  DbQueryHandle*[T] = object
-    query*: DbQuery
+  DbQueryHandle*[K, T] = object
+    query*: DbQuery[K]
     cancel*: bool
     closed*: bool
     env*: T
@@ -38,6 +38,9 @@ type
   DbQueryResponse* = tuple[key: Option[KeyId], data: DataBuffer]
 
 proc `$`*(id: KeyId): string = $(id.data)
+
+proc toKey*(tp: typedesc[KeyId], id: cstring): KeyId = KeyId.new(id)
+proc toKey*(tp: typedesc[string], id: cstring): string = $(id)
 
 proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
   ## copy cstring including null terminator
