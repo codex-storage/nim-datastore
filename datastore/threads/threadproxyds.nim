@@ -84,7 +84,6 @@ template dispatchTask(self: ThreadDatastore,
     of Sqlite:
       var ds {.inject.} = self.backend.sql
       proc runTask() =
-        # self.tp.spawn `fn`(addr ctx, ds, args)
         `blk`
       runTask()
 
