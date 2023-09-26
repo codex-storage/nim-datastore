@@ -235,9 +235,10 @@ proc queryTask[DB](
       (?!QResult).ok(default(QResult))
     else:
       (?!QResult).err(qh.error())
+  if qh.isErr():
+    return
 
   var handle = qh.get()
-
   for item in handle.iter():
     executeTask(ctx):
       item
