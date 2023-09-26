@@ -4,9 +4,9 @@ import std/options
 import pkg/questionable/results
 
 import ./threads/databuffer
+import ./types
 
-export databuffer
-export SortOrder
+export databuffer, types, SortOrder
 
 type
 
