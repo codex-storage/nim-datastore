@@ -36,7 +36,7 @@ type
 
 proc dbQuery*[K](
     key: K,
-    value = true,
+    value = false,
     sort = SortOrder.Ascending,
     offset = 0,
     limit = -1

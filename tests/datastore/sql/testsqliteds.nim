@@ -126,7 +126,7 @@ suite "queryTests":
 
   test "Key should query all keys and all it's children":
     let
-      q = dbQuery(key: key1, value: true)
+      q = dbQuery(key=key1, value=true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -149,7 +149,7 @@ suite "queryTests":
 
   test "query should cancel":
     let
-      q = dbQuery(key: key1, value: true)
+      q = dbQuery(key= key1, value= true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -179,7 +179,7 @@ suite "queryTests":
 
   test "Key should query all keys without values":
     let
-      q = dbQuery(key: key1, value: false)
+      q = dbQuery(key= key1, value= false)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -204,7 +204,7 @@ suite "queryTests":
 
   test "Key should not query parent":
     let
-      q = dbQuery(key: key2, value: true)
+      q = dbQuery(key= key2, value= true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -226,7 +226,7 @@ suite "queryTests":
   test "Key should all list all keys at the same level":
     let
       queryKey = Key.init("/a").tryGet
-      q = dbQuery(key: key1, value: true)
+      q = dbQuery(key= key1, value= true)
 
     ds.put(key1, val1).tryGet
     ds.put(key2, val2).tryGet
@@ -253,7 +253,7 @@ suite "queryTests":
   test "Should apply limit":
     let
       key = Key.init("/a").tryGet
-      q = dbQuery(key: key1, limit: 10, value: false)
+      q = dbQuery(key= key1, limit= 10, value= false)
 
     for i in 0..<100:
       let
@@ -274,7 +274,7 @@ suite "queryTests":
     let
       key = Key.init("/a").tryGet
       keyId = KeyId.new $key
-      q = dbQuery(key: keyId, offset: 90)
+      q = dbQuery(key= keyId, offset= 90)
 
     for i in 0..<100:
       let
