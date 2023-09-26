@@ -135,7 +135,7 @@ suite "queryTests":
 
     var
       handle  = ds.query(q).tryGet
-      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
+      res = handle.iter().toSeq().mapIt(it.tryGet())
 
     check:
       res.len == 3
@@ -175,8 +175,8 @@ suite "queryTests":
       res[0].key.get == key2
       res[0].data == val2
 
-      res[1].key.get == key3
-      res[1].data == val3
+      res[1].key.get == key1
+      res[1].data == val1
 
   test "Key should query all keys without values":
     let
@@ -189,7 +189,7 @@ suite "queryTests":
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
+      res = handle.iter().toSeq().mapIt(it.tryGet())
  
     check:
       res.len == 3
@@ -214,7 +214,7 @@ suite "queryTests":
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
+      res = handle.iter().toSeq().mapIt(it.tryGet())
 
     check:
       res.len == 2
@@ -235,7 +235,7 @@ suite "queryTests":
 
     var
       handle  = ds.query(q).tryGet
-      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
+      res = handle.iter().toSeq().mapIt(it.tryGet())
 
     res.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
       cmp($a.key.get, $b.key.get)
@@ -266,7 +266,7 @@ suite "queryTests":
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet()).reversed()
+      res = handle.iter().toSeq().mapIt(it.tryGet())
 
     echo "RES: ", res.mapIt(it.key)
     check:

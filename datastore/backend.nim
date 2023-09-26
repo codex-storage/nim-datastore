@@ -13,6 +13,11 @@ export databuffer, threadresult, semaphore, types
 export upraises, results, SortOrder
 
 type
+
+  DbSortOrder* {.pure.} = enum
+    Ascending,
+    Descending
+
   KeyId* = object
     ## serialized Key ID, equivalent to `key.id()`
     data*: DataBuffer
@@ -27,7 +32,7 @@ type
     value*: bool      # Flag to indicate if data should be returned
     limit*: int       # Max items to return - not available in all backends
     offset*: int      # Offset from which to start querying - not available in all backends
-    sort*: SortOrder  # Sort order - not available in all backends
+    sort*: DbSortOrder  # Sort order - not available in all backends
 
   DbQueryHandle*[K, V, T] = object
     query*: DbQuery[K]

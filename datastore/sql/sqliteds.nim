@@ -114,7 +114,7 @@ proc query*[K,V](
       else:
         QueryStmtIdStr
 
-  if query.sort == SortOrder.Descending:
+  if query.sort == DbSortOrder.Descending:
     queryStr &= QueryStmtOrderDescending
   else:
     queryStr &= QueryStmtOrderAscending
