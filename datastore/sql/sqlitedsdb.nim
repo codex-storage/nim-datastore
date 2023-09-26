@@ -26,7 +26,7 @@ type
   EndStmt* = NoParamsStmt
   RollbackStmt* = NoParamsStmt
 
-  SQLiteDsDb*[K,V] = object
+  SQLiteDsDb*[K: DbKey, V: DbVal] = object
     readOnly*: bool
     dbPath*: DataBuffer
     containsStmt*: ContainsStmt[K]

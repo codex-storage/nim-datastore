@@ -15,7 +15,7 @@ export backend, sqlitedsdb
 push: {.upraises: [].}
 
 type
-  SQLiteBackend*[K, V] = object
+  SQLiteBackend*[K: DbKey, V: DbVal] = object
     db: SQLiteDsDb[K, V]
 
 proc path*[K,V](self: SQLiteBackend[K,V]): string =
