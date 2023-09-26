@@ -288,14 +288,14 @@ method query*(
     dispatchTask[void](self, signal):
       discard ctx.signal.fireSync()
 
-    # if ctx.res.isErr() and ctx.res.error()[0] == ErrorEnum.QueryEndedErr:
-    #   iter.finished = true
-    #   return
-    # elif ctx.res.isErr():
-    #   return err(ctx.res.error())
-    # else:
-    #   let qres = ctx.res.get()
-    #   return ok(default)
+    if ctx.res.isErr() and ctx.res.error()[0] == ErrorEnum.QueryEndedErr:
+      iter.finished = true
+      return
+    elif ctx.res.isErr():
+      return err(ctx.res.error())
+    else:
+      let qres = ctx.res.get()
+      return ok(default)
 
   iter.next = next
   return success iter
