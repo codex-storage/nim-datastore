@@ -73,12 +73,12 @@ proc acquireSignal(): ?!ThreadSignalPtr =
   else:
     success signal.get()
 
-template dispatchTask(self: ThreadDatastore,
-                      signal: ThreadSignalPtr,
-                      blk: untyped
-                      ): auto =
+template dispatchTask[T](self: ThreadDatastore,
+                          signal: ThreadSignalPtr,
+                          blk: untyped
+                        ): auto =
   var
-    ctx {.inject.} = TaskCtx[SqliteDB, bool](signal: signal)
+    ctx {.inject.} = TaskCtx[SqliteDB, T](signal: signal)
   try:
     case self.backend.kind:
     of Sqlite:
@@ -130,7 +130,7 @@ method has*(self: ThreadDatastore,
     return failure err
 
   let key = KeyId.new key.id()
-  dispatchTask(self, signal):
+  dispatchTask[bool](self, signal):
     self.tp.spawn hasTask(addr ctx, ds, key)
 
 proc deleteTask[DB](ctx: ptr TaskCtx, ds: DB;
@@ -146,7 +146,7 @@ method delete*(self: ThreadDatastore,
     return failure err
 
   let key = KeyId.new key.id()
-  dispatchTask(self, signal):
+  dispatchTask[void](self, signal):
     self.tp.spawn deleteTask(addr ctx, ds, key)
 
 method delete*(self: ThreadDatastore,
