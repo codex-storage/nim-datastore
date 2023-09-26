@@ -105,24 +105,16 @@ suite "Test DataBuffer SQLiteDatastore":
   testBasic(ds, key, bytes, otherBytes, batch)
 
 suite "queryTests":
-  let
-    ds = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-
-  var
-    key1: KeyId
-    key2: KeyId
-    key3: KeyId
-    val1: DataBuffer
-    val2: DataBuffer
-    val3: DataBuffer
 
   setup:
-    key1 = KeyId.new "/a"
-    key2 = KeyId.new "/a/b"
-    key3 = KeyId.new "/a/b/c"
-    val1 = DataBuffer.new "value for 1"
-    val2 = DataBuffer.new "value for 2"
-    val3 = DataBuffer.new "value for 3"
+    let
+      ds = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+      key1 = KeyId.new "/a"
+      key2 = KeyId.new "/a/b"
+      key3 = KeyId.new "/a/b/c"
+      val1 = DataBuffer.new "value for 1"
+      val2 = DataBuffer.new "value for 2"
+      val3 = DataBuffer.new "value for 3"
 
   test "Key should query all keys and all it's children":
     let
@@ -292,9 +284,9 @@ suite "queryTests":
     let
       res = handle.iter().toSeq().mapIt(it.tryGet())
 
+    echo "RES: ", res.mapIt(it.key)
     check:
       res.len == 10
-
 
   # test "Should not apply offset and limit":
   #   let
