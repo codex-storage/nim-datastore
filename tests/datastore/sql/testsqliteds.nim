@@ -317,35 +317,34 @@ suite "queryTests":
         res[i].key.get == key
         # res[i].data == val
 
+    test "Should apply sort order - descending":
+      let
+        key = Key.init("/a").tryGet
+        keyId = KeyId.new $key
+        q = dbQuery(key= keyId, sort= SortOrder.Descending)
 
-  #   test "Should apply sort order - descending":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       keyId = KeyId.new $key
-  #       q = DbQuery(key: keyId, sort: SortOrder.Descending)
+      var kvs: seq[DbQueryResponse[KeyId, DataBuffer]]
+      for i in 0..<100:
+        let
+          k = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = DataBuffer.new ("val " & $i)
 
-  #     var kvs: seq[DbQueryResponse]
-  #     for i in 0..<100:
-  #       let
-  #         k = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = DataBuffer.new ("val " & $i)
+        kvs.add((k.some, val))
+        ds.put(k, val).tryGet
 
-  #       kvs.add((k.some, val))
-  #       ds.put(k, val).tryGet
+      # lexicographic sort, as it comes from the backend
+      kvs.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
+        cmp($a.key.get, $b.key.get)
 
-  #     # lexicographic sort, as it comes from the backend
-  #     kvs.sort do (a, b: DbQueryResponse) -> int:
-  #       cmp($a.key.get, $b.key.get)
+      kvs = kvs.reversed
+      var
+        handle  = ds.query(q).tryGet
+        res = handle.iter().toSeq().mapIt(it.tryGet())
 
-  #     kvs = kvs.reversed
-  #     let
-  #       (handle, iter) = ds.query(q).tryGet
-  #       res = iter.mapIt(it.tryGet())
+      check:
+        res.len == 100
 
-  #     check:
-  #       res.len == 100
-
-  #     for i, r in res[1..^1]:
-  #       check:
-  #         res[i].key.get == kvs[i].key.get
-  #         res[i].data == kvs[i].data
+      for i, r in res[1..^1]:
+        check:
+          res[i].key.get == kvs[i].key.get
+          res[i].data == kvs[i].data
