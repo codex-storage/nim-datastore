@@ -49,7 +49,6 @@ proc dbQuery*[K](
     offset: offset,
     limit: limit)
 
-
 proc `$`*(id: KeyId): string = $(id.data)
 
 proc toKey*(tp: typedesc[KeyId], id: cstring): KeyId = KeyId.new(id)
