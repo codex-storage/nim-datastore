@@ -48,7 +48,6 @@ type
     of Sqlite:
       sql*: SQLiteBackend[KeyId,DataBuffer]
 
-
   TaskCtx[D; T: ThreadTypes] = object
     key: KeyId
     res: ThreadResult[T]
@@ -62,11 +61,11 @@ type
     semaphore: AsyncSemaphore # semaphore is used for backpressure \
                               # to avoid exhausting file descriptors
 
-var finishLock: Lock
-finishLock.initLock()
+var ctxLock: Lock
+ctxLock.initLock()
 
 proc setCancelled(ctx: var TaskCtx): bool =
-  withLock(finishLock):
+  withLock(ctxLock):
     if ctx.running:
       return false
     else:
@@ -110,8 +109,9 @@ proc hasTask[D](ctx: ptr TaskCtx, ds: D) =
 
   try:
     let res = has(ds, ctx.key)
-    ctx.res = res.mapErr() do(e: ref CatchableError) -> ThreadResErr:
-      e.toThreadErr()
+    withLock(ctxLock):
+      ctx.res = res.mapErr() do(e: ref CatchableError) -> ThreadResErr:
+        e.toThreadErr()
   except CatchableError as exc:
     trace "Unexpected exception thrown in asyncHasTask", exc = exc.msg
     raiseAssert exc.msg
