@@ -77,6 +77,9 @@ method queryIter*(
     for resp in qhandle.iter():
       without qres =? resp, err:
         yield QueryResponse.failure err
+      let k = qres.key.map(proc(k: KeyId): Key = Key.init($k).expect("valid key"))
+      let v: seq[byte] = qres.data
+      yield success (k, v)
   
   success iter
 
