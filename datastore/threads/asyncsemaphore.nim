@@ -21,6 +21,7 @@ type
   AsyncSemaphore* = ref object of RootObj
     size*: int
     count: int
+    exit: bool
     queue: seq[Future[void]]
 
 func new*(_: type AsyncSemaphore, size: int): AsyncSemaphore =
@@ -28,12 +29,16 @@ func new*(_: type AsyncSemaphore, size: int): AsyncSemaphore =
 
 proc `count`*(s: AsyncSemaphore): int = s.count
 
+proc waitAll*(s: AsyncSemaphore) {.async.} =
+  s.exit = true
+  await allFutures(s.queue)
+
 proc tryAcquire*(s: AsyncSemaphore): bool =
   ## Attempts to acquire a resource, if successful
   ## returns true, otherwise false
   ##
 
-  if s.count > 0 and s.queue.len == 0:
+  if s.count > 0 and s.queue.len == 0 and not s.exit:
     s.count.dec
     trace "Acquired slot", available = s.count, queue = s.queue.len
     return true
