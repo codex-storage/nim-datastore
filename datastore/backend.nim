@@ -9,7 +9,6 @@ import ./types
 export databuffer, types, SortOrder
 
 type
-
   DbQueryResponse*[K, V] = tuple[key: Option[K], data: V]
 
   DbQuery*[K] = object
@@ -41,13 +40,7 @@ proc dbQuery*[K](
     offset = 0,
     limit = -1
 ): DbQuery[K] =
-
-  DbQuery[K](
-    key: key,
-    value: value,
-    sort: sort,
-    offset: offset,
-    limit: limit)
+  DbQuery[K](key: key, value: value, sort: sort, offset: offset, limit: limit)
 
 proc `$`*(id: KeyId): string = $(id.data)
 
