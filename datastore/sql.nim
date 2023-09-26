@@ -51,9 +51,9 @@ method put*(self: SQLiteDatastore,
 
 method put*(self: SQLiteDatastore,
             batch: seq[BatchEntry]): Future[?!void] {.async.} =
-  var dbatch: seq[tuple[key: string, data: seq[byte]]]
+  var dbatch: seq[tuple[key: KeyId, data: DataBuffer]]
   for entry in batch:
-    dbatch.add((entry.key.id(), entry.data))
+    dbatch.add((KeyId.new entry.key.id(), DataBuffer.new entry.data))
   self.db.put(dbatch)
 
 method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
@@ -65,12 +65,12 @@ method query*(
 ): Future[?!QueryIter] {.async.} =
 
   var iter = QueryIter()
-  let dbquery = DbQuery(
-    key: KeyId.new query.key.id(),
-    value: query.value,
-    limit: query.limit,
-    offset: query.offset,
-    sort: query.sort,
+  let dbquery = dbQuery(
+    key= KeyId.new query.key.id(),
+    value= query.value,
+    limit= query.limit,
+    offset= query.offset,
+    sort= query.sort,
   )
   var queries = ? self.db.query(dbquery)
 
