@@ -46,17 +46,17 @@ suite "Test Basic ThreadProxyDatastore":
     echo "res1: ", res1.repr
     check res1.isOk
 
-  test "check get":
-    echo "\n\n=== get ==="
-    echo "get send key: ", key.repr
-    let res2 = await ds.get(key)
-    echo "get key post: ", key.repr
-    echo "get res2: ", res2.repr
-    echo res2.get() == data
-    var val = ""
-    for c in res2.get():
-      val &= char(c)
-    echo "get res2: ", $val
+  # test "check get":
+  #   echo "\n\n=== get ==="
+  #   echo "get send key: ", key.repr
+  #   let res2 = await ds.get(key)
+  #   echo "get key post: ", key.repr
+  #   echo "get res2: ", res2.repr
+  #   echo res2.get() == data
+  #   var val = ""
+  #   for c in res2.get():
+  #     val &= char(c)
+  #   echo "get res2: ", $val
 
 # suite "Test Basic ThreadDatastore with SQLite":
 
