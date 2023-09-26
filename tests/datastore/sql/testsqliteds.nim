@@ -277,14 +277,14 @@ suite "queryTests":
 
     var
       qr  = ds.query(q)
-    echo "RES: ", qr.repr
+    # echo "RES: ", qr.repr
 
     var
       handle  = ds.query(q).tryGet
     let
       res = handle.iter().toSeq().mapIt(it.tryGet())
 
-    echo "RES: ", res.mapIt(it.key)
+    # echo "RES: ", res.mapIt(it.key)
     check:
       res.len == 10
 

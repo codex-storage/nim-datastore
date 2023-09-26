@@ -126,7 +126,6 @@ proc query*[K,V](
   if query.offset != 0:
     queryStr &=  QueryStmtOffset
 
-  echo "QUERY_STR: ", queryStr
   let
     queryStmt = ? QueryStmt.prepare(self.db.env, queryStr)
 
