@@ -428,8 +428,8 @@ method query*(
 
     iter.finished = childIter.finished
     var
-      res = ThreadResult[DbQueryResponse]()
-      ctx = TaskCtx[DbQueryResponse](
+      res = ThreadResult[QueryResponse]()
+      ctx = TaskCtx[QueryResponse](
         ds: self.ds,
         res: addr res)
 
