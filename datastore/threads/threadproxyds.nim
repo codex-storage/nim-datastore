@@ -104,12 +104,10 @@ template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
     ctx.setDone()
     discard ctx[].signal.fireSync()
 
-template dispatchTask[T](self: ThreadDatastore,
+template dispatchTaskWrap[T](self: ThreadDatastore,
                           signal: ThreadSignalPtr,
                           blk: untyped
                         ): auto =
-  var
-    ctx {.inject.} = newSharedPtr(TaskCtxObj[T](signal: signal))
   try:
     case self.backend.kind:
     of Sqlite:
@@ -126,6 +124,13 @@ template dispatchTask[T](self: ThreadDatastore,
   finally:
     discard ctx[].signal.close()
     self.semaphore.release()
+
+template dispatchTask[T](self: ThreadDatastore,
+                          signal: ThreadSignalPtr,
+                          blk: untyped
+                        ): auto =
+  let ctx {.inject.} = newSharedPtr(TaskCtxObj[T](signal: signal))
+  dispatchTaskWrap[T](self, signal, blk)
 
 proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
   ## run backend command
@@ -284,6 +289,8 @@ method query*(
 
     await lock.acquire()
 
+    dispatchTask[DbQueryResponse[KeyId, DataBuffer]](self, signal):
+      self.tp.spawn queryTask(ctx, ds, dq)
     discard ctx[].signal.fireSync()
     await ctx[].signal.wait()
 
