@@ -203,7 +203,7 @@ method put*[BT](self: ThreadDatastore[BT],
 
   return ctx[].res.toRes()
   
-method put*(
+method put*[DB](
   self: ThreadDatastore,
   batch: seq[BatchEntry]): Future[?!void] {.async.} =
   ## put batch data
@@ -214,7 +214,7 @@ method put*(
   return success()
 
 
-proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
+method getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
                  key: KeyId) {.gcsafe, nimcall.} =
   ## run backend command
   executeTask(ctx):
@@ -242,9 +242,7 @@ method close*[BT](self: ThreadDatastore[BT]): Future[?!void] {.async.} =
 type
   QResult = DbQueryResponse[KeyId, DataBuffer]
 
-import os
-
-proc queryTask[DB](
+method queryTask[DB](
     ctx: TaskCtx[QResult],
     ds: DB,
     query: DbQuery[KeyId],
@@ -339,6 +337,7 @@ method query*[BT](self: ThreadDatastore[BT],
         trace "Cancelling thread future!", exc = exc.msg
         ctx.setCancelled()
         discard ctx[].signal.close()
+        echo "nextSignal:CLOSE!"
         discard nextSignal.close()
         self.semaphore.release()
         raise exc
@@ -348,6 +347,7 @@ method query*[BT](self: ThreadDatastore[BT],
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
     discard signal.close()
+    echo "nextSignal:CLOSE!"
     discard nextSignal.close()
     self.semaphore.release()
     raise exc
@@ -362,8 +362,5 @@ proc new*[DB](self: type ThreadDatastore,
   success ThreadDatastore[DB](
     tp: tp,
     backend: db,
-    # TODO: are these needed anymore??
-    # withLocks: withLocks,
-    # queryLock: newAsyncLock(),
     semaphore: AsyncSemaphore.new(tp.numThreads - 1)
   )
