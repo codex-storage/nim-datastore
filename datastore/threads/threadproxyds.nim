@@ -274,7 +274,6 @@ proc queryTask[DB](
       for item in handle.iter():
         # wait for next request from async thread
         echo "\tqueryTask:query:iter:wait! "
-        discard nextSignal.waitSync().get()
 
         if ctx[].cancelled:
           echo "\tqueryTask:query:iter:cancelled"
@@ -287,6 +286,7 @@ proc queryTask[DB](
           echo "\tqueryTask:query:iter:result: ", ctx[].res
           echo "\tqueryTask:query:iter:fireSync "
           discard ctx[].signal.fireSync()
+          discard nextSignal.waitSync().get()
 
       # set final result
       echo "\tqueryTask:query:iter:done "
