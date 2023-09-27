@@ -320,6 +320,9 @@ method query*(
     lock = newAsyncLock() # serialize querying under threads
     iter = QueryIter.new()
 
+  echo "query:first:iter:dispatch"
+  await nextSignal.fire()
+
   echo "query:next:ready: "
 
   proc next(): Future[?!QueryResponse] {.async.} =
@@ -337,18 +340,15 @@ method query*(
       echo "query:next:iter:finished"
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 
-    if not ctx[].running:
-      echo "query:next:iter:finished "
-      iter.finished = true
-      return
-
     echo "query:next:acquire:lock"
     await lock.acquire()
 
-    echo "query:next:iter:dispatch"
-    await nextSignal.fire()
-    echo "query:next:iter:dispatch:wait"
     await wait(ctx[].signal)
+
+    if not ctx[].running:
+      echo "query:next:iter:finished "
+      iter.finished = true
+      # return
 
     echo "query:next:iter:res: ", ctx[].res, "\n"
 
@@ -359,6 +359,9 @@ method query*(
       let key = qres.key.map(proc (k: KeyId): Key = k.toKey())
       let data = qres.data.toSeq()
       return (?!QueryResponse).ok((key: key, data: data))
+
+    echo "query:next:iter:dispatch"
+    await nextSignal.fire()
 
   iter.next = next
   return success iter
