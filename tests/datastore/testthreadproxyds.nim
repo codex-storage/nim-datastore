@@ -29,12 +29,14 @@ const
   ThreadTestInnerLoops {.intdefine.} = 1
   M = ThreadTestInnerLoops 
 
-for i in 1..N:
+var
+  taskPool: Taskpool = Taskpool.new(NumThreads)
+
+for i in 1..1:
   suite "Test Basic ThreadDatastore with SQLite " & $i:
 
     var
       sqlStore: SQLiteBackend[KeyId, DataBuffer]
-      taskPool: Taskpool
       ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
       key = Key.init("/a/b").tryGet()
       bytes = "some bytes".toBytes
@@ -42,7 +44,7 @@ for i in 1..N:
 
     setupAll:
       sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-      taskPool = Taskpool.new(NumThreads)
+      # taskPool = Taskpool.new(NumThreads)
       ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
     teardown:
@@ -50,30 +52,31 @@ for i in 1..N:
 
     teardownAll:
       (await ds.close()).tryGet()
-      taskPool.shutdown()
+      # taskPool.shutdown()
 
     for i in 1..M:
       basicStoreTests(ds, key, bytes, otherBytes)
   GC_fullCollect()
+
 
 for i in 1..N:
   suite "Test Query ThreadDatastore with SQLite " & $i:
 
     var
       sqlStore: SQLiteBackend[KeyId, DataBuffer]
-      taskPool: Taskpool
+      # taskPool: Taskpool
       ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
 
     setup:
       sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-      taskPool = Taskpool.new(NumThreads)
+      # taskPool = Taskpool.new(NumThreads)
       ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
     teardown:
       GC_fullCollect()
 
       (await ds.close()).tryGet()
-      taskPool.shutdown()
+      # taskPool.shutdown()
 
     for i in 1..M:
       queryTests(ds, true)

@@ -291,6 +291,8 @@ method query*[BT](self: ThreadDatastore[BT],
 
   proc iterDispose() =
     # echo "signal:CLOSE!"
+    ctx.setCancelled()
+    ctx[].nextSignal.fire()
     discard signal.close()
     # echo "nextSignal:CLOSE!"
     ctx[].nextSignal.close()
