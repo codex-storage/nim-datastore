@@ -87,7 +87,7 @@ proc setData*[T: byte | char](db: DataBuffer, data: openArray[T]) =
   copyMem(db[].buf, baseAddr data, data.len())
   db[].size = data.len()
 
-converter toSeq*(self: DataBuffer): seq[byte] =
+proc toSeq*(self: DataBuffer): seq[byte] =
   ## convert buffer to a seq type using copy and either a byte or char
   ##
 
@@ -102,7 +102,7 @@ proc `@`*(self: DataBuffer): seq[byte] =
 
   self.toSeq()
 
-converter toString*(data: DataBuffer): string =
+proc toString*(data: DataBuffer): string =
   ## convert buffer to string type using copy
   ##
 

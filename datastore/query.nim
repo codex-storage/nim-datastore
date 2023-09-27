@@ -44,4 +44,4 @@ proc init*(T: type Query,
   dbQuery[Key](key, value, sort, offset, limit)
 
 proc toKey*(key: KeyId): Key {.inline, raises: [].} =
-  Key.init(key.data).expect("expected valid key here for but got `" & $key.data & "`")
+  Key.init($key.data).expect("expected valid key here for but got `" & $key.data & "`")

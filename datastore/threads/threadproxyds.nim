@@ -122,14 +122,11 @@ template dispatchTaskWrap[T](self: ThreadDatastore,
   try:
     case self.backend.kind:
     of Sqlite:
-      echo "dispatchTask:sql:"
       var ds {.used, inject.} = self.backend.sql
       proc runTask() =
         `blk`
       runTask()
-      echo "dispatchTask:wait:start"
       await wait(ctx[].signal)
-      echo "dispatchTask:wait:done"
 
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
@@ -191,14 +188,8 @@ proc putTask[T, DB](ctx: TaskCtx[T], ds: DB;
                     key: KeyId,
                     data: DataBuffer) {.gcsafe, nimcall.} =
   ## run backend command
-  echo "\n\nputTask:start "
   executeTask(ctx):
-    echo "putTask:key: ", key
-    echo "putTask:data: ", data
-    echo "putTask:ctx: ", ctx.repr()
-    echo ""
     put(ds, key, data)
-  echo "putTask:done"
 
 method put*(self: ThreadDatastore,
             key: Key,
@@ -209,14 +200,8 @@ method put*(self: ThreadDatastore,
 
   let key = KeyId.new key.id()
   let data = DataBuffer.new data
-
   dispatchTask[void](self, signal):
-    echo "put:key: ", key
-    echo "put:data: ", data
-    echo "put:ctx: ", ctx.repr()
-    echo ""
     self.tp.spawn putTask(ctx, ds, key, data)
-  
   return ctx[].res
   
 method put*(
@@ -227,12 +212,14 @@ method put*(
     if err =? (await self.put(entry.key, entry.data)).errorOption:
       return failure err
 
-
-proc getTask[T, DB](ctx: TaskCtx[T], ds: DB;
+proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
                  key: KeyId) {.gcsafe, nimcall.} =
   ## run backend command
   executeTask(ctx):
-    get(ds, key)
+    let res = get(ds, key)
+    static:
+      echo "getTask:type: ", res.typeof
+    res
 
 method get*(self: ThreadDatastore,
             key: Key,
@@ -242,8 +229,9 @@ method get*(self: ThreadDatastore,
     return failure err
 
   let key = KeyId.new key.id()
-  dispatchTask[void](self, signal):
+  dispatchTask[DataBuffer](self, signal):
     self.tp.spawn getTask(ctx, ds, key)
+  # return ctx[].res
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
   await self.semaphore.closeAll()

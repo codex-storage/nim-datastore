@@ -58,13 +58,12 @@ proc delete*[K,V](self: SQLiteBackend[K,V], keys: openArray[K]): ?!void =
 
   return success()
 
-proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!seq[byte] =
+proc get*[K,V](self: SQLiteBackend[K,V], key: K): ?!V =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `proc get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
 
-  var
-    bytes: seq[byte]
+  var bytes: V
 
   proc onData(s: RawStmtPtr) =
     bytes = dataCol[V](self.db.getDataCol)
