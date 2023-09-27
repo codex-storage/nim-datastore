@@ -97,40 +97,40 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     (await iter.dispose()).tryGet
 
-  # test "Key should not query parent":
-  #   let
-  #     q = Query.init(key2)
+  test "Key should not query parent":
+    let
+      q = Query.init(key2)
 
-  #   (await ds.put(key1, val1)).tryGet
-  #   (await ds.put(key2, val2)).tryGet
-  #   (await ds.put(key3, val3)).tryGet
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   let
-  #     iter = (await ds.query(q)).tryGet
-  #     res = block:
-  #       var
-  #         res: seq[QueryResponse]
-  #         cnt = 0
+    let
+      iter = (await ds.query(q)).tryGet
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
 
-  #       for pair in iter:
-  #         let (key, val) = (await pair).tryGet
-  #         if key.isNone:
-  #           break
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
 
-  #         res.add((key, val))
-  #         cnt.inc
+          res.add((key, val))
+          cnt.inc
 
-  #       res
+        res
 
-  #   check:
-  #     res.len == 2
-  #     res[0].key.get == key2
-  #     res[0].data == val2
+    check:
+      res.len == 2
+      res[0].key.get == key2
+      res[0].data == val2
 
-  #     res[1].key.get == key3
-  #     res[1].data == val3
+      res[1].key.get == key3
+      res[1].data == val3
 
-  #   (await iter.dispose()).tryGet
+    (await iter.dispose()).tryGet
 
   # test "Key should all list all keys at the same level":
   #   let
