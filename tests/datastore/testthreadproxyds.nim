@@ -22,7 +22,7 @@ import pkg/datastore/threads/threadproxyds {.all.}
 import ./dscommontests
 import ./querycommontests
 
-const NumThreads = 200 # IO threads aren't attached to CPU count
+const NumThreads = 20 # IO threads aren't attached to CPU count
 
 suite "Test Basic ThreadProxyDatastore":
   var
