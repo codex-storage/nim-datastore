@@ -276,9 +276,12 @@ proc queryTask[DB](
           handle.cancel = true
           continue
         else:
+          if item.isOk:
+            echo "\tqueryTask:query:iter:result:data: ", $item.get().data
           ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
             exc
           echo "\tqueryTask:query:iter:result: ", ctx[].res
+
           echo "\tqueryTask:query:iter:fireSync "
           discard ctx[].signal.fireSync()
 

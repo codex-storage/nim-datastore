@@ -37,7 +37,7 @@ proc new*(T: type QueryIter, dispose = defaultDispose): T =
 
 proc init*(T: type Query,
            key: Key,
-           value = false,
+           value = true,
            sort = SortOrder.Ascending,
            offset = 0,
            limit = -1): Query =
