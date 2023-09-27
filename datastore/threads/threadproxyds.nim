@@ -342,9 +342,9 @@ method query*(
     await lock.acquire()
 
     echo "query:next:iter:dispatch"
-    await ctx[].signal.fire()
+    await nextSignal.fire()
     echo "query:next:iter:dispatch:wait"
-    await wait(nextSignal)
+    await wait(ctx[].signal)
 
     echo "query:next:iter:res: ", ctx[].res
 
