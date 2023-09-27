@@ -41,6 +41,7 @@ type
     signal: ThreadSignalPtr
     running: bool ## used to mark when a task worker is running
     cancelled: bool ## used to cancel a task before it's started
+    nextSignal: (Lock, Cond)
 
   TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
     ## Task context object.
@@ -71,6 +72,13 @@ proc setRunning[T](ctx: TaskCtx[T]): bool =
 proc setDone[T](ctx: TaskCtx[T]) =
   # withLock(ctxLock):
     ctx[].running = false
+
+proc waitSync*(sig: var (Lock, Cond)) =
+  withLock(sig[0]):
+    wait(sig[1], sig[0])
+proc fireSync*(sig: var (Lock, Cond)) =
+  withLock(sig[0]):
+    signal(sig[1])
 
 proc acquireSignal(): ?!ThreadSignalPtr =
   let signal = ThreadSignalPtr.new()

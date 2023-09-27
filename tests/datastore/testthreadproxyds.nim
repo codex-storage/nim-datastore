@@ -24,7 +24,7 @@ import ./querycommontests
 
 const
   NumThreads = 20 # IO threads aren't attached to CPU count
-  ThreadTestLoops {.intdefine.} = 10
+  ThreadTestLoops {.intdefine.} = 100
   N = ThreadTestLoops
 
 for i in 1..N:
