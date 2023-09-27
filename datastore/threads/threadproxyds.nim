@@ -274,7 +274,7 @@ proc queryTask[DB](
       for item in handle.iter():
         # wait for next request from async thread
         echo "\tqueryTask:query:iter:wait! "
-        discard ctx[].signal.waitSync().get()
+        discard nextSignal.waitSync().get()
 
         echo "\tqueryTask:query:iter:wait:done "
         if ctx[].cancelled:
@@ -344,7 +344,7 @@ method query*(
     echo "query:next:iter:dispatch"
     await ctx[].signal.fire()
     echo "query:next:iter:dispatch:wait"
-    await wait(ctx[].signal)
+    await wait(nextSignal)
 
     echo "query:next:iter:res: ", ctx[].res
 
