@@ -40,7 +40,6 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
         var res: seq[QueryResponse]
         for pair in iter:
           let (key, val) = (await pair).tryGet
-          echo "test:query:result: ", $key
           if key.isNone:
             break
           res.add((key, val))

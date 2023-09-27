@@ -63,17 +63,17 @@ var ctxLock: Lock
 ctxLock.initLock()
 
 proc setCancelled[T](ctx: TaskCtx[T]) =
-  withLock(ctxLock):
+  # withLock(ctxLock):
     ctx[].cancelled = true
 
 proc setRunning[T](ctx: TaskCtx[T]): bool =
-  withLock(ctxLock):
+  # withLock(ctxLock):
     if ctx[].cancelled:
       return false
     ctx[].running = true
     return true
 proc setDone[T](ctx: TaskCtx[T]) =
-  withLock(ctxLock):
+  # withLock(ctxLock):
     ctx[].running = false
 
 proc acquireSignal(): ?!ThreadSignalPtr =
