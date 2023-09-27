@@ -68,7 +68,7 @@ proc setDone[T](ctx: TaskCtx[T]) =
     ctx[].running = false
 
 proc acquireSignal(): ?!ThreadSignalPtr =
-  echo "signal:OPEN!"
+  # echo "signal:OPEN!"
   let signal = ThreadSignalPtr.new()
   if signal.isErr():
     failure (ref CatchableError)(msg: "failed to aquire ThreadSignalPtr: " & signal.error())
@@ -126,7 +126,7 @@ template dispatchTask[BT](self: ThreadDatastore[BT],
     ctx.setCancelled()
     raise exc
   finally:
-    echo "signal:CLOSE!"
+    # echo "signal:CLOSE!"
     discard ctx[].signal.close()
     self.semaphore.release()
 
@@ -286,13 +286,13 @@ method query*[BT](self: ThreadDatastore[BT],
   without signal =? acquireSignal(), err:
     return failure err
   let ctx = newTaskCtx(QResult, signal=signal)
-  echo "nextSignal:OPEN!"
+  # echo "nextSignal:OPEN!"
   ctx[].nextSignal.init()
 
   proc iterDispose() =
-    echo "signal:CLOSE!"
+    # echo "signal:CLOSE!"
     discard signal.close()
-    echo "nextSignal:CLOSE!"
+    # echo "nextSignal:CLOSE!"
     ctx[].nextSignal.close()
     self.semaphore.release()
 
