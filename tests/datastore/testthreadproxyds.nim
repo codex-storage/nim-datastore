@@ -32,7 +32,7 @@ const
 var
   taskPool: Taskpool = Taskpool.new(NumThreads)
 
-for i in 1..1:
+for i in 1..N:
   suite "Test Basic ThreadDatastore with SQLite " & $i:
 
     var
