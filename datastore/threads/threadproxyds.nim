@@ -348,6 +348,7 @@ method query*(self: ThreadDatastore,
         trace "Cancelling thread future!", exc = exc.msg
         ctx.setCancelled()
         discard ctx[].signal.close()
+        echo "nextSignal:CLOSE!"
         discard nextSignal.close()
         self.semaphore.release()
         raise exc
@@ -357,6 +358,7 @@ method query*(self: ThreadDatastore,
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
     discard signal.close()
+    echo "nextSignal:CLOSE!"
     discard nextSignal.close()
     self.semaphore.release()
     raise exc
