@@ -376,8 +376,5 @@ proc new*[DB](self: type ThreadDatastore,
   success ThreadDatastore(
     tp: tp,
     backend: backend,
-    # TODO: are these needed anymore??
-    # withLocks: withLocks,
-    # queryLock: newAsyncLock(),
     semaphore: AsyncSemaphore.new(tp.numThreads - 1)
   )
