@@ -162,6 +162,7 @@ proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
 
 method delete*(self: ThreadDatastore,
                key: Key): Future[?!void] {.async.} =
+  ## delete key
   await self.semaphore.acquire()
   without signal =? acquireSignal(), err:
     return failure err
@@ -174,7 +175,7 @@ method delete*(self: ThreadDatastore,
 
 method delete*(self: ThreadDatastore,
                keys: seq[Key]): Future[?!void] {.async.} =
-
+  ## delete batch
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure err
@@ -185,13 +186,13 @@ method delete*(self: ThreadDatastore,
 proc putTask[T, DB](ctx: TaskCtx[T], ds: DB;
                     key: KeyId,
                     data: DataBuffer) {.gcsafe, nimcall.} =
-  ## run backend command
   executeTask(ctx):
     put(ds, key, data)
 
 method put*(self: ThreadDatastore,
             key: Key,
             data: seq[byte]): Future[?!void] {.async.} =
+  ## put key with data
   await self.semaphore.acquire()
   without signal =? acquireSignal(), err:
     return failure err
@@ -206,7 +207,7 @@ method put*(self: ThreadDatastore,
 method put*(
   self: ThreadDatastore,
   batch: seq[BatchEntry]): Future[?!void] {.async.} =
-
+  ## put batch data
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
       return failure err
