@@ -260,8 +260,7 @@ method queryTask[DB](
       # otherwise manually an set empty ok result
       ctx[].res.ok (KeyId.none, DataBuffer(), )
       discard ctx[].signal.fireSync()
-      if not nextSignal.waitSync(10.seconds).get():
-        raise newException(DeadThreadDefect, "query task timeout; possible deadlock!")
+      ctx[].nextSignal.wait()
 
       var handle = handleRes.get()
       for item in handle.iter():
@@ -276,8 +275,7 @@ method queryTask[DB](
             exc
 
           discard ctx[].signal.fireSync()
-
-          discard nextSignal.waitSync().get()
+          ctx[].nextSignal.wait()
 
       # set final result
       (?!QResult).ok((KeyId.none, DataBuffer()))
@@ -302,7 +300,7 @@ method query*[BT](self: ThreadDatastore[BT],
     # setup initial queryTask
     dispatchTaskWrap(self, signal):
       self.tp.spawn queryTask(ctx, ds, query)
-    await nextSignal.fire()
+    ctx[].nextSignal.fire()
 
     var
       lock = newAsyncLock() # serialize querying under threads
@@ -323,7 +321,7 @@ method query*[BT](self: ThreadDatastore[BT],
           iter.finished = true
 
         defer:
-          await nextSignal.fire()
+          ctx[].nextSignal.fire()
 
         if ctx[].res.isErr():
           return err(ctx[].res.error())
@@ -337,7 +335,7 @@ method query*[BT](self: ThreadDatastore[BT],
         ctx.setCancelled()
         discard ctx[].signal.close()
         echo "nextSignal:CLOSE!"
-        discard nextSignal.close()
+        ctx[].nextSignal.close()
         self.semaphore.release()
         raise exc
 
@@ -347,7 +345,7 @@ method query*[BT](self: ThreadDatastore[BT],
     trace "Cancelling thread future!", exc = exc.msg
     discard signal.close()
     echo "nextSignal:CLOSE!"
-    discard nextSignal.close()
+    ctx[].nextSignal.close()
     self.semaphore.release()
     raise exc
 

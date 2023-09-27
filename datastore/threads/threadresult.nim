@@ -56,16 +56,16 @@ proc toRes*[T,S](res: ThreadResult[T],
 type
   MutexSignal* = tuple[lock: Lock, cond: Cond, open: bool]
 
-proc open*(sig: var MutexSignal) =
+proc init*(sig: var MutexSignal) =
   sig.lock.initLock()
   sig.cond.initCond()
   sig.open = true
 
-proc waitSync*(sig: var MutexSignal) =
+proc wait*(sig: var MutexSignal) =
   withLock(sig.lock):
     wait(sig.cond, sig.lock)
 
-proc fireSync*(sig: var MutexSignal) =
+proc fire*(sig: var MutexSignal) =
   withLock(sig.lock):
     signal(sig.cond)
 
