@@ -176,160 +176,160 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
   #   (await iter.dispose()).tryGet
 
-  # if extended:
-  #   test "Should apply limit":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, limit = 10)
+  if extended:
+    test "Should apply limit":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, limit = 10)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       iter = (await ds.query(q)).tryGet
-  #       res = block:
-  #         var
-  #           res: seq[QueryResponse]
-  #           cnt = 0
+      let
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
 
-  #         for pair in iter:
-  #           let (key, val) = (await pair).tryGet
-  #           if key.isNone:
-  #             break
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
 
-  #           res.add((key, val))
-  #           cnt.inc
+            res.add((key, val))
+            cnt.inc
 
-  #         res
+          res
 
-  #     check:
-  #       res.len == 10
+      check:
+        res.len == 10
 
-  #     (await iter.dispose()).tryGet
+      (await iter.dispose()).tryGet
 
-  #   test "Should not apply offset":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, offset = 90)
+    test "Should not apply offset":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, offset = 90)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       iter = (await ds.query(q)).tryGet
-  #       res = block:
-  #         var
-  #           res: seq[QueryResponse]
-  #           cnt = 0
+      let
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
 
-  #         for pair in iter:
-  #           let (key, val) = (await pair).tryGet
-  #           if key.isNone:
-  #             break
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
 
-  #           res.add((key, val))
-  #           cnt.inc
+            res.add((key, val))
+            cnt.inc
 
-  #         res
+          res
 
-  #     check:
-  #       res.len == 10
+      check:
+        res.len == 10
 
-  #     (await iter.dispose()).tryGet
+      (await iter.dispose()).tryGet
 
-  #   test "Should not apply offset and limit":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, offset = 95, limit = 5)
+    test "Should not apply offset and limit":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, offset = 95, limit = 5)
 
-  #     for i in 0..<100:
-  #       let
-  #         key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      for i in 0..<100:
+        let
+          key = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       (await ds.put(key, val)).tryGet
+        (await ds.put(key, val)).tryGet
 
-  #     let
-  #       iter = (await ds.query(q)).tryGet
-  #       res = block:
-  #         var
-  #           res: seq[QueryResponse]
-  #           cnt = 0
+      let
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
 
-  #         for pair in iter:
-  #           let (key, val) = (await pair).tryGet
-  #           if key.isNone:
-  #             break
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
 
-  #           res.add((key, val))
-  #           cnt.inc
+            res.add((key, val))
+            cnt.inc
 
-  #         res
+          res
 
-  #     check:
-  #       res.len == 5
+      check:
+        res.len == 5
 
-  #     for i in 0..<res.high:
-  #       let
-  #         val = ("val " & $(i + 95)).toBytes
-  #         key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+      for i in 0..<res.high:
+        let
+          val = ("val " & $(i + 95)).toBytes
+          key = Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
 
-  #       check:
-  #         res[i].key.get == key
-  #         res[i].data == val
+        check:
+          res[i].key.get == key
+          res[i].data == val
 
-  #     (await iter.dispose()).tryGet
+      (await iter.dispose()).tryGet
 
-  #   test "Should apply sort order - descending":
-  #     let
-  #       key = Key.init("/a").tryGet
-  #       q = Query.init(key, sort = SortOrder.Descending)
+    test "Should apply sort order - descending":
+      let
+        key = Key.init("/a").tryGet
+        q = Query.init(key, sort = SortOrder.Descending)
 
-  #     var kvs: seq[QueryResponse]
-  #     for i in 0..<100:
-  #       let
-  #         k = Key.init(key, Key.init("/" & $i).tryGet).tryGet
-  #         val = ("val " & $i).toBytes
+      var kvs: seq[QueryResponse]
+      for i in 0..<100:
+        let
+          k = Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = ("val " & $i).toBytes
 
-  #       kvs.add((k.some, val))
-  #       (await ds.put(k, val)).tryGet
+        kvs.add((k.some, val))
+        (await ds.put(k, val)).tryGet
 
-  #     # lexicographic sort, as it comes from the backend
-  #     kvs.sort do (a, b: QueryResponse) -> int:
-  #       cmp(a.key.get.id, b.key.get.id)
+      # lexicographic sort, as it comes from the backend
+      kvs.sort do (a, b: QueryResponse) -> int:
+        cmp(a.key.get.id, b.key.get.id)
 
-  #     kvs = kvs.reversed
-  #     let
-  #       iter = (await ds.query(q)).tryGet
-  #       res = block:
-  #         var
-  #           res: seq[QueryResponse]
-  #           cnt = 0
+      kvs = kvs.reversed
+      let
+        iter = (await ds.query(q)).tryGet
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
 
-  #         for pair in iter:
-  #           let (key, val) = (await pair).tryGet
-  #           if key.isNone:
-  #             break
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
 
-  #           res.add((key, val))
-  #           cnt.inc
+            res.add((key, val))
+            cnt.inc
 
-  #         res
+          res
 
-  #     check:
-  #       res.len == 100
+      check:
+        res.len == 100
 
-  #     for i, r in res[1..^1]:
-  #       check:
-  #         res[i].key.get == kvs[i].key.get
-  #         res[i].data == kvs[i].data
+      for i, r in res[1..^1]:
+        check:
+          res[i].key.get == kvs[i].key.get
+          res[i].data == kvs[i].data
 
-  #     (await iter.dispose()).tryGet
+      (await iter.dispose()).tryGet
