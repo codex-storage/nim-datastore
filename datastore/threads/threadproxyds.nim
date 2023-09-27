@@ -328,9 +328,9 @@ method query*(
   proc next(): Future[?!QueryResponse] {.async.} =
     echo "\n\nquery:next:exec: "
     let ctx = ctx
-    defer:
-      if lock.locked:
-        lock.release()
+    # defer:
+    #   if lock.locked:
+    #     lock.release()
 
     trace "About to query"
     if lock.locked:
@@ -340,9 +340,10 @@ method query*(
       echo "query:next:iter:finished"
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 
-    echo "query:next:acquire:lock"
-    await lock.acquire()
+    # echo "query:next:acquire:lock"
+    # await lock.acquire()
 
+    echo "query:next:wait:signal"
     await wait(ctx[].signal)
 
     if not ctx[].running:
