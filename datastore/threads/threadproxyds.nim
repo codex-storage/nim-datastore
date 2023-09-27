@@ -48,10 +48,12 @@ type
   TaskCtxObj*[T: ThreadTypes] = object
     res: ThreadResult[T]
     signal: ThreadSignalPtr
-    running: bool
-    cancelled: bool
+    running: bool ## used to mark when a task worker is running
+    cancelled: bool ## used to cancel a task before it's started
 
   TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
+    ## Task context object.
+    ## This is a SharedPtr to make the query iter simpler
 
   ThreadDatastore* = ref object of Datastore
     tp: Taskpool
