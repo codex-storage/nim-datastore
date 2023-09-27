@@ -202,10 +202,11 @@ method put*(self: ThreadDatastore,
   without signal =? acquireSignal(), err:
     return failure err
 
-  let key = KeyId.new key.id()
-  let data = DataBuffer.new data
   dispatchTask[void](self, signal):
+    let key = KeyId.new key.id()
+    let data = DataBuffer.new data
     self.tp.spawn putTask(ctx, ds, key, data)
+
   return ctx[].res.toRes()
   
 method put*(
@@ -221,8 +222,6 @@ proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
   ## run backend command
   executeTask(ctx):
     let res = get(ds, key)
-    static:
-      echo "getTask:type: ", res.typeof
     res
 
 method get*(self: ThreadDatastore,
@@ -235,6 +234,7 @@ method get*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[DataBuffer](self, signal):
     self.tp.spawn getTask(ctx, ds, key)
+
   return ctx[].res.toRes(v => v.toSeq())
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
