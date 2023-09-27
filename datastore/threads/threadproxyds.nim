@@ -159,6 +159,7 @@ method has*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[bool](self, signal):
     self.tp.spawn hasTask(ctx, ds, key)
+  return ctx[].res.toRes(v => v)
 
 proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
                        key: KeyId) {.gcsafe.} =
@@ -175,6 +176,7 @@ method delete*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[void](self, signal):
     self.tp.spawn deleteTask(ctx, ds, key)
+  return ctx[].res.toRes()
 
 method delete*(self: ThreadDatastore,
                keys: seq[Key]): Future[?!void] {.async.} =

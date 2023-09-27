@@ -58,29 +58,29 @@ suite "Test Basic ThreadProxyDatastore":
       val &= char(c)
     echo "get res2: ", $val
 
-# suite "Test Basic ThreadDatastore with SQLite":
+suite "Test Basic ThreadDatastore with SQLite":
 
-#   var
-#     sqlStore: SQLiteBackend[KeyId,DataBuffer]
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  var
+    sqlStore: SQLiteBackend[KeyId,DataBuffer]
+    ds: ThreadDatastore
+    taskPool: Taskpool
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   setupAll:
-#     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+  setupAll:
+    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+    taskPool = Taskpool.new(NumThreads)
+    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-#   teardown:
-#     GC_fullCollect()
+  teardown:
+    GC_fullCollect()
 
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+  teardownAll:
+    (await ds.close()).tryGet()
+    taskPool.shutdown()
 
-#   basicStoreTests(ds, key, bytes, otherBytes)
+  basicStoreTests(ds, key, bytes, otherBytes)
 
 # suite "Test Query ThreadDatastore with SQLite":
 
