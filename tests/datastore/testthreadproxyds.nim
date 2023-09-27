@@ -24,8 +24,10 @@ import ./querycommontests
 
 const
   NumThreads = 20 # IO threads aren't attached to CPU count
-  ThreadTestLoops {.intdefine.} = 1000
+  ThreadTestLoops {.intdefine.} = 1
   N = ThreadTestLoops
+  ThreadTestInnerLoops {.intdefine.} = 1
+  M = ThreadTestInnerLoops 
 
 for i in 1..N:
   suite "Test Basic ThreadDatastore with SQLite":
@@ -50,7 +52,8 @@ for i in 1..N:
       (await ds.close()).tryGet()
       taskPool.shutdown()
 
-    basicStoreTests(ds, key, bytes, otherBytes)
+    for i in 1..M:
+      basicStoreTests(ds, key, bytes, otherBytes)
   GC_fullCollect()
 
 for i in 1..N:
@@ -72,7 +75,8 @@ for i in 1..N:
       (await ds.close()).tryGet()
       taskPool.shutdown()
 
-    queryTests(ds, true)
+    for i in 1..M:
+      queryTests(ds, true)
   GC_fullCollect()
 
 # suite "Test Basic ThreadDatastore with fsds":

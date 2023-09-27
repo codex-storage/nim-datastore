@@ -131,6 +131,7 @@ template dispatchTask[BT](self: ThreadDatastore[BT],
     ctx.setCancelled()
     raise exc
   finally:
+    echo "signal:CLOSE!"
     discard ctx[].signal.close()
     self.semaphore.release()
 
@@ -333,6 +334,7 @@ method query*[BT](self: ThreadDatastore[BT],
       except CancelledError as exc:
         trace "Cancelling thread future!", exc = exc.msg
         ctx.setCancelled()
+        echo "signal:CLOSE!"
         discard ctx[].signal.close()
         echo "nextSignal:CLOSE!"
         ctx[].nextSignal.close()
@@ -343,6 +345,7 @@ method query*[BT](self: ThreadDatastore[BT],
     return success iter
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
+    echo "signal:CLOSE!"
     discard signal.close()
     echo "nextSignal:CLOSE!"
     ctx[].nextSignal.close()
