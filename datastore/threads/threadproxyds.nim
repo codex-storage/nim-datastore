@@ -136,6 +136,7 @@ template dispatchTask[T](self: ThreadDatastore,
   let ctx {.inject.} = newSharedPtr(TaskCtxObj[T](signal: signal))
   dispatchTaskWrap[T](self, signal, blk)
 
+
 proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
   ## run backend command
   executeTask(ctx):
@@ -151,6 +152,7 @@ method has*(self: ThreadDatastore,
   dispatchTask[bool](self, signal):
     self.tp.spawn hasTask(ctx, ds, key)
   return ctx[].res.toRes(v => v)
+
 
 proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
                        key: KeyId) {.gcsafe.} =
@@ -208,6 +210,9 @@ method put*(
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
       return failure err
+  
+  return success()
+
 
 proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
                  key: KeyId) {.gcsafe, nimcall.} =
