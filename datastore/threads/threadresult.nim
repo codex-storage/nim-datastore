@@ -1,5 +1,6 @@
 import std/atomics
 import std/options
+import std/locks
 
 import pkg/questionable/results
 import pkg/results
@@ -51,3 +52,24 @@ proc toRes*[T,S](res: ThreadResult[T],
     result.err res.error().toExc()
   else:
     result.ok m(res.get())
+
+type
+  MutexSignal* = tuple[lock: Lock, cond: Cond, open: bool]
+
+proc open*(sig: var MutexSignal) =
+  sig.lock.initLock()
+  sig.cond.initCond()
+  sig.open = true
+
+proc waitSync*(sig: var MutexSignal) =
+  withLock(sig.lock):
+    wait(sig.cond, sig.lock)
+
+proc fireSync*(sig: var MutexSignal) =
+  withLock(sig.lock):
+    signal(sig.cond)
+
+proc close*(sig: var MutexSignal) =
+  if sig.open:
+    sig.lock.deinitLock()
+    sig.cond.deinitCond()

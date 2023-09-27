@@ -41,7 +41,7 @@ type
     signal: ThreadSignalPtr
     running: bool ## used to mark when a task worker is running
     cancelled: bool ## used to cancel a task before it's started
-    nextSignal: (Lock, Cond)
+    nextSignal: MutexSignal
 
   TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
     ## Task context object.
@@ -72,13 +72,6 @@ proc setRunning[T](ctx: TaskCtx[T]): bool =
 proc setDone[T](ctx: TaskCtx[T]) =
   # withLock(ctxLock):
     ctx[].running = false
-
-proc waitSync*(sig: var (Lock, Cond)) =
-  withLock(sig[0]):
-    wait(sig[1], sig[0])
-proc fireSync*(sig: var (Lock, Cond)) =
-  withLock(sig[0]):
-    signal(sig[1])
 
 proc acquireSignal(): ?!ThreadSignalPtr =
   let signal = ThreadSignalPtr.new()
@@ -254,7 +247,6 @@ method queryTask[DB](
     ctx: TaskCtx[QResult],
     ds: DB,
     query: DbQuery[KeyId],
-    nextSignal: ThreadSignalPtr
 ) {.gcsafe, nimcall.} =
   ## run query command
   executeTask(ctx):
@@ -299,8 +291,8 @@ method query*[BT](self: ThreadDatastore[BT],
   await self.semaphore.acquire()
   without signal =? acquireSignal(), err:
     return failure err
-  without nextSignal =? acquireSignal(), err:
-    return failure err
+  let ctx = newTaskCtx(QResult, signal=signal)
+  ctx[].nextSignal.init()
 
   try:
     let query = dbQuery(
@@ -308,9 +300,8 @@ method query*[BT](self: ThreadDatastore[BT],
       value=q.value, limit=q.limit, offset=q.offset, sort=q.sort)
 
     # setup initial queryTask
-    let ctx = newTaskCtx(QResult, signal=signal)
     dispatchTaskWrap(self, signal):
-      self.tp.spawn queryTask(ctx, ds, query, nextSignal)
+      self.tp.spawn queryTask(ctx, ds, query)
     await nextSignal.fire()
 
     var
