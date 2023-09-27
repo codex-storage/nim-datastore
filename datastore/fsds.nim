@@ -8,6 +8,7 @@ import pkg/questionable/results
 from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
+import ./backend
 import ./datastore
 
 export datastore
@@ -16,15 +17,15 @@ push: {.upraises: [].}
 
 type
   FSDatastore* = ref object of Datastore
-    root*: string
+    root*: DataBuffer
     ignoreProtected: bool
     depth: int
 
 proc validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
 
-proc isRootSubdir*(self: FSDatastore, path: string): bool =
-  path.startsWith(self.root)
+proc isRootSubdir*(root, path: string): bool =
+  path.startsWith(root)
 
 proc path*(self: FSDatastore, key: Key): ?!string =
   ## Return filename corresponding to the key
@@ -53,21 +54,22 @@ proc path*(self: FSDatastore, key: Key): ?!string =
       segments.add(ns.field / ns.value)
 
   let
-    fullname = (self.root / segments.joinPath())
+    root = $self.root
+    fullname = (root / segments.joinPath())
       .absolutePath()
       .catch()
       .get()
       .addFileExt(FileExt)
 
-  if not self.isRootSubdir(fullname):
+  if not root.isRootSubdir(fullname):
     return failure "Path is outside of `root` directory!"
 
   return success fullname
 
-method has*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
+proc has*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
   return self.path(key).?fileExists()
 
-method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
+proc delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
   without path =? self.path(key), error:
     return failure error
 
@@ -81,7 +83,7 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   return success()
 
-method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+proc delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure err
@@ -118,7 +120,7 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   except CatchableError as e:
     return failure e
 
-method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+proc get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   without path =? self.path(key), error:
     return failure error
 
@@ -128,7 +130,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   return self.readFile(path)
 
-method put*(
+proc put*(
   self: FSDatastore,
   key: Key,
   data: seq[byte]): Future[?!void] {.async.} =
@@ -144,7 +146,7 @@ method put*(
 
   return success()
 
-method put*(
+proc put*(
   self: FSDatastore,
   batch: seq[BatchEntry]): Future[?!void] {.async.} =
 
@@ -165,10 +167,10 @@ proc dirWalker(path: string): iterator: string {.gcsafe.} =
     except CatchableError as exc:
       raise newException(Defect, exc.msg)
 
-method close*(self: FSDatastore): Future[?!void] {.async.} =
+proc close*(self: FSDatastore): Future[?!void] {.async.} =
   return success()
 
-method query*(
+proc query*(
   self: FSDatastore,
   query: Query): Future[?!QueryIter] {.async.} =
 
@@ -201,6 +203,7 @@ method query*(
       return failure (ref DatastoreError)(msg: "Should always await query features")
 
     let
+      root = $self.root
       path = walker()
 
     if iter.finished:
@@ -215,7 +218,7 @@ method query*(
     var
       keyPath = basePath
 
-    keyPath.removePrefix(self.root)
+    keyPath.removePrefix(root)
     keyPath = keyPath / path.changeFileExt("")
     keyPath = keyPath.replace("\\", "/")
 
