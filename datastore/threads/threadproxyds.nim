@@ -8,6 +8,8 @@ push: {.upraises: [].}
 
 import std/tables
 import std/locks
+import std/sugar
+
 
 import pkg/chronos
 import pkg/chronos/threadsync
@@ -231,8 +233,7 @@ method get*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[DataBuffer](self, signal):
     self.tp.spawn getTask(ctx, ds, key)
-  return ctx[].res.toRes() do(v: DataBuffer) -> seq[byte]:
-    v.toSeq()
+  return ctx[].res.toRes(v => v.toSeq())
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
   await self.semaphore.closeAll()

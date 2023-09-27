@@ -44,7 +44,9 @@ proc toRes*(res: ThreadResult[void]): ?!void =
   res.mapErr() do(e: ThreadResErr) -> ref CatchableError:
     e.toExc()
 
-proc toRes*[T,S](res: ThreadResult[T], m: proc(v: T): S = proc(v: T): T = v): ?!S =
+proc toRes*[T,S](res: ThreadResult[T],
+                 m: proc(v: T): S = proc(v: T): T = v): ?!S =
+  # todo: cleaner way to do this?
   if res.isErr():
     result.err res.error().toExc()
   else:
