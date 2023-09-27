@@ -13,7 +13,7 @@ import ../datastore
 import ./backend
 import ./sql/sqliteds
 
-export datastore
+export datastore, sqliteds
 
 push: {.upraises: [].}
 
@@ -42,7 +42,8 @@ method delete*(self: SQLiteDatastore,
 
 method get*(self: SQLiteDatastore,
             key: Key): Future[?!seq[byte]] {.async.} =
-  self.db.get(KeyId.new key.id())
+  self.db.get(KeyId.new key.id()).map() do(d: DataBuffer) -> seq[byte]:
+    d.toSeq()
 
 method put*(self: SQLiteDatastore,
             key: Key,
@@ -79,7 +80,7 @@ method queryIter*(
         yield QueryResponse.failure err
       let k = qres.key.map() do(k: KeyId) -> Key:
         Key.init($k).expect("valid key")
-      let v: seq[byte] = qres.data
+      let v: seq[byte] = qres.data.toSeq()
       yield success (k, v)
   
   success iter
@@ -87,20 +88,14 @@ method queryIter*(
 proc new*(
   T: type SQLiteDatastore,
   path: string,
-  readOnly = false): ?!T =
+  readOnly = false): ?!SQLiteDatastore =
 
-  let
-    flags =
-      if readOnly: SQLITE_OPEN_READONLY
-      else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
-
-  success T(
-    db: ? SQLiteDsDb.open(path, flags),
-    readOnly: readOnly)
+  success SQLiteDatastore(
+    db: ? newSQLiteBackend[KeyId, DataBuffer](path, readOnly))
 
 proc new*(
   T: type SQLiteDatastore,
-  db: SQLiteDsDb): ?!T =
+  db: SQLiteBackend[KeyId, DataBuffer]): ?!T =
 
   success T(
     db: db,

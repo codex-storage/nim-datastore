@@ -98,7 +98,6 @@ suite "AsyncSemaphore":
         resource.inc()
         check resource > 0 and resource <= 3
         let sleep = rand(0..10).millis
-        # echo sleep
         await sleepAsync(sleep)
       finally:
         resource.dec()

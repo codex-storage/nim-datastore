@@ -8,7 +8,7 @@ import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
-import pkg/datastore/sql/sqliteds
+import pkg/datastore/sql
 
 import ../dscommontests
 import ../querycommontests
