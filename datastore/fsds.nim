@@ -158,7 +158,7 @@ proc put*(
 
 proc put*(
   self: FSDatastore,
-  batch: seq[BatchEntry]): ?!void =
+  batch: seq[DbBatchEntry[KeyId, DataBuffer]]): ?!void =
 
   for entry in batch:
     if err =? self.put(entry.key, entry.data).errorOption:
@@ -182,7 +182,7 @@ proc close*(self: FSDatastore): ?!void =
 
 proc query*(
   self: FSDatastore,
-  query: DbQuery[KeyId, DataBuffer]): ?!QueryIter =
+  query: DbQuery[KeyId]): ?!QueryIter =
 
   without path =? self.path(query.key), error:
     return failure error
