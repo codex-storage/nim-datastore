@@ -142,13 +142,15 @@ proc put*(
   self: FSDatastore,
   key: KeyId,
   data: DataBuffer): ?!void =
+  let key = key.toKey()
 
   without path =? self.path(key), error:
     return failure error
 
   try:
+    var data = data
     createDir(parentDir(path))
-    writeFile(path, data)
+    writeFile(path, data.toOpenArray())
   except CatchableError as e:
     return failure e
 
