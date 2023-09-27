@@ -24,7 +24,7 @@ import ./querycommontests
 
 const
   NumThreads = 20 # IO threads aren't attached to CPU count
-  ThreadTestLoops {.intdefine.} = 100
+  ThreadTestLoops {.intdefine.} = 1000
   N = ThreadTestLoops
 
 for i in 1..N:
@@ -60,9 +60,6 @@ for i in 1..N:
       sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
       taskPool = Taskpool.new(NumThreads)
       ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
-      key = Key.init("/a/b").tryGet()
-      bytes = "some bytes".toBytes
-      otherBytes = "some other bytes".toBytes
 
     setup:
       sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
