@@ -345,17 +345,15 @@ method query*(
     echo "query:next:iter:dispatch:wait"
     await wait(ctx[].signal)
 
-    echo "query:next:iter:res: ", ctx[].res
+    echo "query:next:iter:res: ", ctx[].res, "\n"
 
     if not ctx[].running:
       echo "query:next:iter:finished "
       iter.finished = true
 
     if ctx[].res.isErr():
-      echo "query:next:iter:res:err "
       return err(ctx[].res.error())
     else:
-      echo "query:next:iter:res:ok "
       let qres = ctx[].res.get()
       let key = qres.key.map(proc (k: KeyId): Key = k.toKey())
       let data = qres.data.toSeq()
