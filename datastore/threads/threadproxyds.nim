@@ -53,27 +53,22 @@ type
     semaphore: AsyncSemaphore # semaphore is used for backpressure \
                               # to avoid exhausting file descriptors
 
-var ctxLock: Lock
-ctxLock.initLock()
-
 proc newTaskCtx*[T](tp: typedesc[T], signal: ThreadSignalPtr): TaskCtx[T] =
   newSharedPtr(TaskCtxObj[T](signal: signal))
 
 proc setCancelled[T](ctx: TaskCtx[T]) =
-  # withLock(ctxLock):
     ctx[].cancelled = true
 
 proc setRunning[T](ctx: TaskCtx[T]): bool =
-  # withLock(ctxLock):
     if ctx[].cancelled:
       return false
     ctx[].running = true
     return true
 proc setDone[T](ctx: TaskCtx[T]) =
-  # withLock(ctxLock):
     ctx[].running = false
 
 proc acquireSignal(): ?!ThreadSignalPtr =
+  echo "signal:OPEN!"
   let signal = ThreadSignalPtr.new()
   if signal.isErr():
     failure (ref CatchableError)(msg: "failed to aquire ThreadSignalPtr: " & signal.error())
