@@ -276,16 +276,15 @@ proc queryTask[DB](
         echo "\tqueryTask:query:iter:wait! "
         discard nextSignal.waitSync().get()
 
-        echo "\tqueryTask:query:iter:wait:done "
         if ctx[].cancelled:
           echo "\tqueryTask:query:iter:cancelled"
           # cancel iter, then run next cycle so it'll finish and close
           handle.cancel = true
           continue
         else:
-          echo "\tqueryTask:query:iter:result:"
           ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
             exc
+          echo "\tqueryTask:query:iter:result: ", ctx[].res
           echo "\tqueryTask:query:iter:fireSync "
           discard ctx[].signal.fireSync()
 
