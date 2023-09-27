@@ -286,6 +286,7 @@ method query*[BT](self: ThreadDatastore[BT],
   without signal =? acquireSignal(), err:
     return failure err
   let ctx = newTaskCtx(QResult, signal=signal)
+  echo "nextSignal:OPEN!"
   ctx[].nextSignal.init()
 
   try:
