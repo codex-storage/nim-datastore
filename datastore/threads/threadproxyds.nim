@@ -41,6 +41,7 @@ type
     # Filesystem
 
   ThreadBackend* = object
+    ## backend case type to avoid needing to make ThreadDatastore generic
     case kind*: ThreadBackendKinds
     of Sqlite:
       sql*: SQLiteBackend[KeyId,DataBuffer]
@@ -86,6 +87,8 @@ proc acquireSignal(): ?!ThreadSignalPtr =
     success signal.get()
 
 template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
+  ## executes a task on a thread work and handles cleanup after cancels/errors
+  ## 
   try:
     if not ctx.setRunning():
       return
@@ -108,7 +111,6 @@ template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
   #   ctx[].res.err exc.toThreadErr()
   finally:
     ctx.setDone()
-    # echo "\t\texecuteTask:fireSync!"
     discard ctx[].signal.fireSync()
 
 template dispatchTaskWrap[T](self: ThreadDatastore,
@@ -121,13 +123,15 @@ template dispatchTaskWrap[T](self: ThreadDatastore,
     proc runTask() =
       `blk`
     runTask()
-    # echo "\t\tdispatchTask:wait!"
     await wait(ctx[].signal)
 
 template dispatchTask[T](self: ThreadDatastore,
                           signal: ThreadSignalPtr,
                           blk: untyped
                         ): auto =
+  ## handles dispatching a task from an async context
+  ## `blk` is the actions, it has `ctx` and `ds` variables in scope.
+  ## note that `ds` is a generic
   let ctx {.inject.} = newSharedPtr(TaskCtxObj[T](signal: signal))
   try:
     dispatchTaskWrap[T](self, signal, blk)
