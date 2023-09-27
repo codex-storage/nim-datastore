@@ -265,7 +265,8 @@ proc queryTask[DB](
       # otherwise manually an set empty ok result
       ctx[].res.ok (KeyId.none, DataBuffer(), )
       discard ctx[].signal.fireSync()
-      discard nextSignal.waitSync().get()
+      if not nextSignal.waitSync(1.seconds).get():
+        raise newException(DeadThreadDefect, "query task timeout; possible deadlock!")
 
       var handle = handleRes.get()
       for item in handle.iter():
