@@ -8,7 +8,7 @@ import ./types
 
 export databuffer, types, SortOrder
 
-## Backend type for Datastores.
+## Types for datastore backends.
 ## 
 ## These should be syncrhonous and work with both GC types 
 ## and DataBuffer's. This makes it easier to make them threadsafe.
