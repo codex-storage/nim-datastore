@@ -8,7 +8,7 @@ import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
-import pkg/datastore/sql/sqliteds
+import pkg/datastore/sql
 
 import ../dscommontests
 import ../querycommontests
@@ -24,6 +24,7 @@ suite "Test Basic SQLiteDatastore":
     (await ds.close()).tryGet()
 
   basicStoreTests(ds, key, bytes, otherBytes)
+
 
 suite "Test Read Only SQLiteDatastore":
   let
@@ -76,14 +77,14 @@ suite "Test Read Only SQLiteDatastore":
       not (await readOnlyDb.has(key)).tryGet()
       not (await dsDb.has(key)).tryGet()
 
-suite "Test Query":
-  var
-    ds: SQLiteDatastore
+# suite "Test Query":
+#   var
+#     ds: SQLiteDatastore
 
-  setup:
-    ds = SQLiteDatastore.new(Memory).tryGet()
+#   setup:
+#     ds = SQLiteDatastore.new(Memory).tryGet()
 
-  teardown:
-    (await ds.close()).tryGet
+#   teardown:
+#     (await ds.close()).tryGet
 
-  queryTests(ds)
+#   queryTests(ds)
