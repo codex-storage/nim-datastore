@@ -202,7 +202,7 @@ method put*(self: ThreadDatastore,
   let data = DataBuffer.new data
   dispatchTask[void](self, signal):
     self.tp.spawn putTask(ctx, ds, key, data)
-  return ctx[].res
+  return ctx[].res.toRes()
   
 method put*(
   self: ThreadDatastore,
@@ -231,7 +231,8 @@ method get*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[DataBuffer](self, signal):
     self.tp.spawn getTask(ctx, ds, key)
-  # return ctx[].res
+  return ctx[].res.toRes() do(v: DataBuffer) -> seq[byte]:
+    v.toSeq()
 
 method close*(self: ThreadDatastore): Future[?!void] {.async.} =
   await self.semaphore.closeAll()
