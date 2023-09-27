@@ -8,6 +8,12 @@ import ./types
 
 export databuffer, types, SortOrder
 
+## Backend type for Datastores.
+## 
+## These should be syncrhonous and work with both GC types 
+## and DataBuffer's. This makes it easier to make them threadsafe.
+## 
+
 type
   DbQueryResponse*[K, V] = tuple[key: Option[K], data: V]
 
@@ -22,6 +28,7 @@ type
     ## serialized Key ID, equivalent to `key.id()`
     data*: DataBuffer
 
+  ## Accepted backend key and value types
   DbKey* = string | KeyId
   DbVal* = seq[byte] | DataBuffer
 
