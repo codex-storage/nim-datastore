@@ -106,6 +106,7 @@ template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
     ctx[].res.err exc.toThreadErr()
   finally:
     ctx.setDone()
+    # echo "\t\texecuteTask:fireSync!"
     discard ctx[].signal.fireSync()
 
 template dispatchTaskWrap[T](self: ThreadDatastore,
@@ -119,6 +120,7 @@ template dispatchTaskWrap[T](self: ThreadDatastore,
       proc runTask() =
         `blk`
       runTask()
+      # echo "\t\tdispatchTask:wait!"
       await wait(ctx[].signal)
 
   except CancelledError as exc:
@@ -271,14 +273,17 @@ proc queryTask[DB](
       var handle = qh.get()
       for item in handle.iter():
         # wait for next request from async thread
-        echo "\tqueryTask:query:iter:wait "
+        echo "\tqueryTask:query:iter:wait! "
         discard ctx[].signal.waitSync().get()
 
+        echo "\tqueryTask:query:iter:wait:done "
         if ctx[].cancelled:
+          echo "\tqueryTask:query:iter:cancelled"
           # cancel iter, then run next cycle so it'll finish and close
           handle.cancel = true
           continue
         else:
+          echo "\tqueryTask:query:iter:done"
           ctx[].res = item.mapErr() do(exc: ref CatchableError) -> ThreadResErr:
             exc
           echo "\tqueryTask:query:iter:fireSync "
@@ -335,10 +340,11 @@ method query*(
     await lock.acquire()
 
     echo "query:next:iter:dispatch"
+    await ctx[].signal.fire()
     dispatchTaskWrap[DbQueryResponse[KeyId, DataBuffer]](self, signal):
       # trigger query task to iterate then wait for new result!
-      discard ctx[].signal.fireSync()
-      echo "query:next:iter:dispatch:fire"
+      echo "query:next:iter:dispatch:fireSync"
+      echo "query:next:iter:dispatch:wait"
 
     echo "query:next:iter:res: "
     if not ctx[].running:
