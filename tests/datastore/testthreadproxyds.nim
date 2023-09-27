@@ -30,7 +30,7 @@ const
   M = ThreadTestInnerLoops 
 
 for i in 1..N:
-  suite "Test Basic ThreadDatastore with SQLite":
+  suite "Test Basic ThreadDatastore with SQLite " & $i:
 
     var
       sqlStore: SQLiteBackend[KeyId, DataBuffer]
@@ -57,7 +57,7 @@ for i in 1..N:
   GC_fullCollect()
 
 for i in 1..N:
-  suite "Test Query ThreadDatastore with SQLite":
+  suite "Test Query ThreadDatastore with SQLite " & $i:
 
     var
       sqlStore: SQLiteBackend[KeyId, DataBuffer]
