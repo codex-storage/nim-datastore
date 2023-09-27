@@ -85,25 +85,18 @@ proc acquireSignal(): ?!ThreadSignalPtr =
 
 template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
   try:
-    echo "executeTask:start:"
     if not ctx.setRunning():
-      echo "executeTask:notRunning!"
       return
     
     ## run backend command
-    echo "executeTask:run:"
     let res = `blk`
     if res.isOk():
-      echo "executeTask:run:ok"
       when T is void:
         ctx[].res.ok()
       else:
         ctx[].res.ok(res.get())
     else:
-      echo "executeTask:run:err"
       ctx[].res.err res.error().toThreadErr()
-    echo "executeTask:run:done: ", ctx[].res.repr
-    echo ""
 
   except CatchableError as exc:
     trace "Unexpected exception thrown in async task", exc = exc.msg
@@ -112,10 +105,8 @@ template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
     trace "Unexpected defect thrown in async task", exc = exc.msg
     ctx[].res.err exc.toThreadErr()
   finally:
-    echo "executeTask:finally:setDone"
     ctx.setDone()
     discard ctx[].signal.fireSync()
-    echo "executeTask:finally:done\n"
 
 template dispatchTaskWrap[T](self: ThreadDatastore,
                           signal: ThreadSignalPtr,
@@ -176,6 +167,7 @@ method delete*(self: ThreadDatastore,
   let key = KeyId.new key.id()
   dispatchTask[void](self, signal):
     self.tp.spawn deleteTask(ctx, ds, key)
+
   return ctx[].res.toRes()
 
 method delete*(self: ThreadDatastore,
