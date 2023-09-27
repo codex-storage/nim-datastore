@@ -25,14 +25,10 @@ import ./querycommontests
 const NumThreads = 20 # IO threads aren't attached to CPU count
 
 suite "Test Basic ThreadProxyDatastore":
+
   var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
     key = Key.init("/a").tryGet()
     data = "some bytes".toBytes
-
-  setupAll:
     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
@@ -61,17 +57,12 @@ suite "Test Basic ThreadProxyDatastore":
 suite "Test Basic ThreadDatastore with SQLite":
 
   var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
-
-  setupAll:
     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
   teardown:
     GC_fullCollect()
@@ -85,17 +76,12 @@ suite "Test Basic ThreadDatastore with SQLite":
 suite "Test Query ThreadDatastore with SQLite":
 
   var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
-
-  setup:
     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
     taskPool = Taskpool.new(NumThreads)
     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
   teardown:
     GC_fullCollect()
