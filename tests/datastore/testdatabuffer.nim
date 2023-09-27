@@ -101,7 +101,7 @@ suite "Share buffer test":
     check a.hash() != c.hash()
 
   test "key conversion":
-    check Key.init(a).tryGet == k1
+    check Key.init($a).tryGet == k1
 
   test "seq conversion":
     check string.fromBytes(a.toSeq()) == "/a/b"
