@@ -204,7 +204,7 @@ method put*[BT](self: ThreadDatastore[BT],
   return ctx[].res.toRes()
   
 method put*[DB](
-  self: ThreadDatastore,
+  self: ThreadDatastore[DB],
   batch: seq[BatchEntry]): Future[?!void] {.async.} =
   ## put batch data
   for entry in batch:

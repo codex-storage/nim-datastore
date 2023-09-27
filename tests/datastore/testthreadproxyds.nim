@@ -63,7 +63,6 @@ for i in 1..N:
       key = Key.init("/a/b").tryGet()
       bytes = "some bytes".toBytes
       otherBytes = "some other bytes".toBytes
-    
 
     setup:
       sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
