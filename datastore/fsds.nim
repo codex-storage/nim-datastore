@@ -184,7 +184,8 @@ proc query*(
   self: FSDatastore,
   query: DbQuery[KeyId]): ?!QueryIter =
 
-  without path =? self.path(query.key), error:
+  let key = query.key.toKey()
+  without path =? self.path(key), error:
     return failure error
 
   let basePath =
@@ -236,7 +237,7 @@ proc query*(
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          self.readFile[DataBuffer]((basePath / path).absolutePath)
+          readFile[DataBuffer](self, (basePath / path).absolutePath)
             .expect("Should read file")
         else:
           @[]
