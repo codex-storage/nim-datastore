@@ -92,7 +92,7 @@ proc delete*(self: FSDatastore, keys: openArray[KeyId]): ?!void =
 
   return success()
 
-proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
+proc readFile*[V](self: FSDatastore, path: string): ?!V =
   var
     file: File
 
@@ -104,14 +104,19 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
 
   try:
     let
-      size = file.getFileSize
+      size = file.getFileSize().int
 
+    when V is seq[byte]:
+      var bytes = newSeq[byte](size)
+    elif V is DataBuffer:
+      var bytes = DataBuffer.new(capacity=size)
+    else:
+      {.error: "unhandled result type".}
     var
-      bytes = newSeq[byte](size)
       read = 0
 
     while read < size:
-      read += file.readBytes(bytes, read, size)
+      read += file.readBytes(bytes.toOpenArray(), read, size)
 
     if read < size:
       return failure $read & " bytes were read from " & path &
@@ -122,7 +127,8 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   except CatchableError as e:
     return failure e
 
-proc get*(self: FSDatastore, key: Key): ?!seq[byte] =
+proc get*(self: FSDatastore, key: KeyId): ?!DataBuffer =
+  let key = key.toKey()
   without path =? self.path(key), error:
     return failure error
 
@@ -130,12 +136,12 @@ proc get*(self: FSDatastore, key: Key): ?!seq[byte] =
     return failure(
       newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
-  return self.readFile(path)
+  return readFile[DataBuffer](self, path)
 
 proc put*(
   self: FSDatastore,
-  key: Key,
-  data: seq[byte]): ?!void =
+  key: KeyId,
+  data: DataBuffer): ?!void =
 
   without path =? self.path(key), error:
     return failure error
@@ -174,7 +180,7 @@ proc close*(self: FSDatastore): ?!void =
 
 proc query*(
   self: FSDatastore,
-  query: Query): ?!QueryIter =
+  query: DbQuery[KeyId, DataBuffer]): ?!QueryIter =
 
   without path =? self.path(query.key), error:
     return failure error
@@ -228,7 +234,7 @@ proc query*(
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          self.readFile((basePath / path).absolutePath)
+          self.readFile[DataBuffer]((basePath / path).absolutePath)
             .expect("Should read file")
         else:
           @[]
