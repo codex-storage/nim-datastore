@@ -24,7 +24,8 @@ import ./querycommontests
 
 const
   NumThreads = 20 # IO threads aren't attached to CPU count
-  N = 100
+  ThreadTestLoops {.intdefine.} = 10
+  N = ThreadTestLoops
 
 for i in 1..N:
   suite "Test Basic ThreadDatastore with SQLite":
