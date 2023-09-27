@@ -337,6 +337,11 @@ method query*(
       echo "query:next:iter:finished"
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 
+    if not ctx[].running:
+      echo "query:next:iter:finished "
+      iter.finished = true
+      return
+
     echo "query:next:acquire:lock"
     await lock.acquire()
 
@@ -346,10 +351,6 @@ method query*(
     await wait(ctx[].signal)
 
     echo "query:next:iter:res: ", ctx[].res, "\n"
-
-    if not ctx[].running:
-      echo "query:next:iter:finished "
-      iter.finished = true
 
     if ctx[].res.isErr():
       return err(ctx[].res.error())
