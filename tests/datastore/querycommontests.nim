@@ -59,43 +59,43 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     (await iter.dispose()).tryGet
 
-  # test "Key should query all keys without values":
-  #   let
-  #     q = Query.init(key1, value = false)
+  test "Key should query all keys without values":
+    let
+      q = Query.init(key1, value = false)
 
-  #   (await ds.put(key1, val1)).tryGet
-  #   (await ds.put(key2, val2)).tryGet
-  #   (await ds.put(key3, val3)).tryGet
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
 
-  #   let
-  #     iter = (await ds.query(q)).tryGet
-  #     res = block:
-  #       var
-  #         res: seq[QueryResponse]
-  #         cnt = 0
+    let
+      iter = (await ds.query(q)).tryGet
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
 
-  #       for pair in iter:
-  #         let (key, val) = (await pair).tryGet
-  #         if key.isNone:
-  #           break
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
 
-  #         res.add((key, val))
-  #         cnt.inc
+          res.add((key, val))
+          cnt.inc
 
-  #       res
+        res
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data.len == 0
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data.len == 0
 
-  #     res[1].key.get == key2
-  #     res[1].data.len == 0
+      res[1].key.get == key2
+      res[1].data.len == 0
 
-  #     res[2].key.get == key3
-  #     res[2].data.len == 0
+      res[2].key.get == key3
+      res[2].data.len == 0
 
-  #   (await iter.dispose()).tryGet
+    (await iter.dispose()).tryGet
 
   # test "Key should not query parent":
   #   let
