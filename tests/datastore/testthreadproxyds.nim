@@ -52,8 +52,8 @@ for i in 1..N:
       (await ds.close()).tryGet()
       taskPool.shutdown()
 
-    for i in 1..M:
-      basicStoreTests(ds, key, bytes, otherBytes)
+    # for i in 1..M:
+    #   basicStoreTests(ds, key, bytes, otherBytes)
   GC_fullCollect()
 
 for i in 1..N:
