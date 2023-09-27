@@ -306,7 +306,9 @@ method query*(
     echo "query:init:dispatch:queryTask"
     self.tp.spawn queryTask(ctx, ds, dq)
 
-  echo "query:init:dispatch:queryTask:done"
+  echo "query:init:dispatch:started"
+  echo "query:init:dispatch:res: ", ctx[].res
+
   var
     lock = newAsyncLock() # serialize querying under threads
     iter = QueryIter.new()
@@ -323,22 +325,31 @@ method query*(
 
     trace "About to query"
     if lock.locked:
+      echo "query:next:lock:fail:alreadyLock "
       return failure (ref DatastoreError)(msg: "Should always await query features")
     if iter.finished == true:
+      echo "query:next:iter:finished"
       return failure (ref QueryEndedError)(msg: "Calling next on a finished query!")
 
+    echo "query:next:acquire:lock"
     await lock.acquire()
 
+    echo "query:next:iter:dispatch"
     dispatchTaskWrap[DbQueryResponse[KeyId, DataBuffer]](self, signal):
       # trigger query task to iterate then wait for new result!
       discard ctx[].signal.fireSync()
+      echo "query:next:iter:dispatch:fire"
 
+    echo "query:next:iter:res: "
     if not ctx[].running:
+      echo "query:next:iter:finished "
       iter.finished = true
 
     if ctx[].res.isErr():
+      echo "query:next:iter:res:err "
       return err(ctx[].res.error())
     else:
+      echo "query:next:iter:res:ok "
       let qres = ctx[].res.get()
       let key = qres.key.map(proc (k: KeyId): Key = k.toKey())
       let data = qres.data.toSeq()
