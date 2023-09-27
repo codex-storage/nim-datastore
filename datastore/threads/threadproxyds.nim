@@ -50,7 +50,6 @@ type
     signal: ThreadSignalPtr
     running: bool
     cancelled: bool
-    nextSignal: (Lock, Cond)
 
   TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
 
@@ -252,6 +251,7 @@ proc queryTask[DB](
     ctx: TaskCtx[QResult],
     ds: DB,
     query: DbQuery[KeyId],
+    nextSignal: ThreadSignalPtr
 ) {.gcsafe, nimcall.} =
   ## run query command
   executeTask(ctx):
@@ -265,11 +265,8 @@ proc queryTask[DB](
       # otherwise manually an set empty ok result
       ctx[].res.ok (KeyId.none, DataBuffer(), )
       discard ctx[].signal.fireSync()
-
-      withLock(ctx[].nextSignal[0]):
-        wait(ctx[].nextSignal[1], ctx[].nextSignal[0])
-      # if not nextSignal.waitSync(10.seconds).get():
-      #   raise newException(DeadThreadDefect, "query task timeout; possible deadlock!")
+      if not nextSignal.waitSync(10.seconds).get():
+        raise newException(DeadThreadDefect, "query task timeout; possible deadlock!")
 
       var handle = handleRes.get()
       for item in handle.iter():
@@ -285,9 +282,7 @@ proc queryTask[DB](
 
           discard ctx[].signal.fireSync()
 
-          # discard nextSignal.waitSync().get()
-          withLock(ctx[].nextSignal[0]):
-            wait(ctx[].nextSignal[1], ctx[].nextSignal[0])
+          discard nextSignal.waitSync().get()
 
       # set final result
       (?!QResult).ok((KeyId.none, DataBuffer()))
@@ -301,11 +296,8 @@ method query*(self: ThreadDatastore,
   await self.semaphore.acquire()
   without signal =? acquireSignal(), err:
     return failure err
-  # without nextSignal =? acquireSignal(), err:
-  #   return failure err
-  let ctx {.inject.} = newSharedPtr(TaskCtxObj[QResult](signal: signal))
-  ctx[].nextSignal[0].initLock()
-  ctx[].nextSignal[1].initCond()
+  without nextSignal =? acquireSignal(), err:
+    return failure err
 
   try:
     let query = dbQuery(
@@ -313,10 +305,10 @@ method query*(self: ThreadDatastore,
       value=q.value, limit=q.limit, offset=q.offset, sort=q.sort)
 
     # setup initial queryTask
+    let ctx {.inject.} = newSharedPtr(TaskCtxObj[QResult](signal: signal))
     dispatchTaskWrap[DbQueryResponse[KeyId, DataBuffer]](self, signal):
-      self.tp.spawn queryTask(ctx, ds, query)
-    withLock(ctx[].nextSignal[0]):
-      signal(ctx[].nextSignal[1])
+      self.tp.spawn queryTask(ctx, ds, query, nextSignal)
+    await nextSignal.fire()
 
     var
       lock = newAsyncLock() # serialize querying under threads
@@ -337,8 +329,7 @@ method query*(self: ThreadDatastore,
           iter.finished = true
 
         defer:
-          withLock(ctx[].nextSignal[0]):
-            signal(ctx[].nextSignal[1])
+          await nextSignal.fire()
 
         if ctx[].res.isErr():
           return err(ctx[].res.error())
@@ -351,7 +342,7 @@ method query*(self: ThreadDatastore,
         trace "Cancelling thread future!", exc = exc.msg
         ctx.setCancelled()
         discard ctx[].signal.close()
-        # discard nextSignal.close()
+        discard nextSignal.close()
         self.semaphore.release()
         raise exc
 
@@ -360,7 +351,7 @@ method query*(self: ThreadDatastore,
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
     discard signal.close()
-    # discard nextSignal.close()
+    discard nextSignal.close()
     self.semaphore.release()
     raise exc
 
