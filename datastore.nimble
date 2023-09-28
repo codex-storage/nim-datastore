@@ -9,7 +9,7 @@ license       = "Apache License 2.0 or MIT"
 requires "nim >= 1.6.14",
          "asynctest >= 0.3.1 & < 0.4.0",
          "chronos#0277b65be2c7a365ac13df002fba6e172be55537",
-         "questionable",
+         "questionable#head",
          "sqlite3_abi",
          "stew",
          "unittest2",

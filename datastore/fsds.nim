@@ -190,7 +190,6 @@ proc query*[K,V](
   let key = query.key
   without path =? self.findPath(key), error:
     return failure error
-  echo "query:key: ", key
 
   let basePath =
     # it there is a file in the directory
