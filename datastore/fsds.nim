@@ -23,7 +23,7 @@ type
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)
 
-proc path*(root: string, depth: int, key: Key): ?!string =
+proc findPath*(root: string, depth: int, key: Key): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
   ##
@@ -65,17 +65,17 @@ proc path*(root: string, depth: int, key: Key): ?!string =
 
   return success fullname
 
-proc path*(self: FSDatastore, key: Key): ?!string =
-  path($self.root, self.depth, key)
+proc findPath*(self: FSDatastore, key: Key): ?!string =
+  findPath($self.root, self.depth, key)
 
 proc has*(self: FSDatastore, key: KeyId): ?!bool =
   let key = key.toKey()
-  return self.path(key).?fileExists()
+  return self.findPath(key).?fileExists()
 
 proc delete*(self: FSDatastore, key: KeyId): ?!void =
   let key = key.toKey()
 
-  without path =? self.path(key), error:
+  without path =? self.findPath(key), error:
     return failure error
 
   if not path.fileExists():
@@ -132,7 +132,7 @@ proc readFile*[V](self: FSDatastore, path: string): ?!V =
 
 proc get*(self: FSDatastore, key: KeyId): ?!DataBuffer =
   let key = key.toKey()
-  without path =? self.path(key), error:
+  without path =? self.findPath(key), error:
     return failure error
 
   if not path.fileExists():
@@ -147,7 +147,7 @@ proc put*(
   data: DataBuffer): ?!void =
   let key = key.toKey()
 
-  without path =? self.path(key), error:
+  without path =? self.findPath(key), error:
     return failure error
 
   try:
@@ -188,7 +188,7 @@ proc query*(
 ): Result[DbQueryHandle[KeyId, DataBuffer, KeyId], ref CatchableError] =
 
   let key = query.key.toKey()
-  without path =? self.path(key), error:
+  without path =? self.findPath(key), error:
     return failure error
 
   let basePath =
