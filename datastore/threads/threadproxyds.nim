@@ -128,8 +128,10 @@ template dispatchTask*[BT](self: ThreadDatastore[BT],
     trace "Cancelling thread future!", exc = exc.msg
     ctx.setCancelled()
     raise exc
+  except CatchableError as exc:
+    ctx.setCancelled()
+    raise exc
   finally:
-    # echo "signal:CLOSE!"
     discard ctx[].signal.close()
     self.semaphore.release()
 
@@ -359,6 +361,7 @@ method query*[BT](self: ThreadDatastore[BT],
     return success iter
   except CancelledError as exc:
     trace "Cancelling thread future!", exc = exc.msg
+    ctx.setCancelled()
     await iterDispose()
     raise exc
 

@@ -14,6 +14,7 @@ import pkg/taskpools
 import pkg/questionable/results
 import pkg/chronicles
 import pkg/threading/smartptrs
+import pkg/threading/atomics
 
 import pkg/datastore/fsds
 import pkg/datastore/sql/sqliteds
@@ -176,7 +177,8 @@ suite "Test ThreadDatastore cancelations":
     var
       signal = ThreadSignalPtr.new().tryGet()
       ms {.global.}: MutexSignal
-      flag {.global.}: int = 0
+      flag {.global.}: Atomic[bool]
+      ready {.global.}: Atomic[bool]
 
     ms.init()
 
@@ -186,12 +188,25 @@ suite "Test ThreadDatastore cancelations":
 
     proc `=destroy`(obj: var TestValue) =
       echo "destroy TestObj!"
-      flag = 10
+      flag.store(true)
+
+    proc wait(flag: var Atomic[bool]) =
+      echo "wait for task to be ready..."
+      defer: echo ""
+      for i in 1..100:
+        stdout.write(".")
+        if flag.load() == true: 
+          return
+        os.sleep(10)
+      raise newException(Defect, "timeout")
 
     proc errorTestTask(ctx: TaskCtx[ThreadTestInt]) {.gcsafe, nimcall.} =
       executeTask(ctx):
+        echo "task:exec"
         discard ctx[].signal.fireSync()
+        ready.store(true)
         ms.wait()
+        echo "ctx:task: ", ctx[]
         (?!ThreadTestInt).ok(default(ThreadTestInt))
 
     proc runTestTask() {.async.} =
@@ -199,17 +214,21 @@ suite "Test ThreadDatastore cancelations":
       let ctx = newTaskCtx(ThreadTestInt, signal=signal)
       dispatchTask(sds, signal):
         sds.tp.spawn errorTestTask(ctx)
-      
-      echo "raise error"
-      raise newException(ValueError, "fake error")
+        ready.wait()
+        echo "raise error"
+        raise newException(ValueError, "fake error")
 
     try:
-      await runTestTask()
+      block:
+        await runTestTask()
     except CatchableError as exc:
       echo "caught: ", $exc
     finally:
       echo "finish"
+      check ready.load() == true
+
       ms.fire()
-      os.sleep(10)
-      check flag == 10
+      GC_fullCollect()
+      flag.wait()
+      check flag.load() == true
 
