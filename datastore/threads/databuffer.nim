@@ -137,5 +137,5 @@ template toOpenArray*[T: byte | char](data: var DataBuffer, t: typedesc[T]): var
   var bf = cast[ptr UncheckedArray[T]](data[].buf)
   bf.toOpenArray(0, data[].size-1)
 
-template toOpenArray*(data: var DataBuffer): var openArray[byte] =
-  toOpenArray(data, byte)
+template toOpenArray*(data: var DataBuffer, first, last: int): var openArray[byte] =
+  toOpenArray(data, byte).toOpenArray(first, last)

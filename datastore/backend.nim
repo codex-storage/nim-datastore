@@ -62,6 +62,3 @@ proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
 
 proc new*(tp: typedesc[KeyId], id: string): KeyId =
   KeyId(data: DataBuffer.new(id))
-
-template toOpenArray*(x: DbKey): openArray[char] =
-  x.data.toOpenArray(char)

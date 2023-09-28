@@ -110,8 +110,8 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
 
     when V is seq[byte]:
       var bytes = newSeq[byte](size)
-    elif V is DataBuffer:
-      var bytes = DataBuffer.new(size=size)
+    elif V is V:
+      var bytes = V.new(size=size)
     else:
       {.error: "unhandled result type".}
     var
@@ -119,7 +119,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
 
     echo "BYTES: ", bytes.repr
     while read < size:
-      read += file.readBytes(bytes.toOpenArray(), read, size)
+      read += file.readBytes(bytes.toOpenArray(0, size-1), read, size)
 
     if read < size:
       return failure $read & " bytes were read from " & path &
@@ -130,7 +130,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
   except CatchableError as e:
     return failure e
 
-proc get*[K,V](self: FSDatastore[K,V], key: K): ?!DataBuffer =
+proc get*[K,V](self: FSDatastore[K,V], key: K): ?!V =
   without path =? self.findPath(key), error:
     return failure error
 
@@ -138,12 +138,12 @@ proc get*[K,V](self: FSDatastore[K,V], key: K): ?!DataBuffer =
     return failure(
       newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
-  return readFile[DataBuffer](self, path)
+  return readFile[V](self, path)
 
-proc put*[K,V](
-  self: FSDatastore[K,V],
-  key: KeyId,
-  data: DataBuffer): ?!void =
+proc put*[K,V](self: FSDatastore[K,V],
+               key: K,
+               data: V
+              ): ?!void =
 
   without path =? self.findPath(key), error:
     return failure error
@@ -151,7 +151,7 @@ proc put*[K,V](
   try:
     var data = data
     createDir(parentDir(path))
-    writeFile(path, data.toOpenArray())
+    writeFile(path, data.toOpenArray(0, data.len()-1))
   except CatchableError as e:
     return failure e
 
@@ -178,12 +178,12 @@ proc close*[K,V](self: FSDatastore[K,V]): ?!void =
   return success()
 
 type
-  FsQueryEnv*[K,V] = tuple[self: FSDatastore[K,V], basePath: DataBuffer]
+  FsQueryEnv*[K,V] = tuple[self: FSDatastore[K,V], basePath: V]
 
-proc query*(
-  self: FSDatastore,
-  query: DbQuery[KeyId],
-): Result[DbQueryHandle[KeyId, DataBuffer, FsQueryEnv], ref CatchableError] =
+proc query*[K,V](
+  self: FSDatastore[K,V],
+  query: DbQuery[K],
+): Result[DbQueryHandle[KeyId, V, FsQueryEnv], ref CatchableError] =
 
   let key = query.key.toKey()
   without path =? self.findPath(key), error:
@@ -199,10 +199,10 @@ proc query*(
     else:
       path.changeFileExt("")
   
-  let env: FsQueryEnv = (self: self, basePath: DataBuffer.new(basePath))
-  success DbQueryHandle[KeyId, DataBuffer, FsQueryEnv](env: env)
+  let env: FsQueryEnv = (self: self, basePath: V.new(basePath))
+  success DbQueryHandle[KeyId, V, FsQueryEnv](env: env)
 
-iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResponse[K, V] =
+iterator iter*[K, V](handle: var DbQueryHandle[K, V, V]): ?!DbQueryResponse[K, V] =
   let root = $(handle.env)
 
   for path in root.dirIter():
@@ -220,12 +220,12 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResp
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          let res = readFile[DataBuffer](handle.env.self, fl)
+          let res = readFile[V](handle.env.self, fl)
           if res.isErr():
             yield failure res.error()
           res.get()
         else:
-          DataBuffer.new()
+          V.new()
 
     yield success (key.some, data)
 
