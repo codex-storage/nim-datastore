@@ -212,9 +212,11 @@ proc close*[K,V](handle: var DbQueryHandle[K,V,FsQueryEnv[K,V]]) =
 iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
                     ): ?!DbQueryResponse[K, V] =
   let root = $(handle.env.self.root)
+  let basePath = $(handle.env.basePath)
   echo "FS:root: ", root
+  echo "FS:basePath: ", basePath
 
-  for path in root.dirIter():
+  for path in basePath.dirIter():
     echo "FS:path: ", path
     if handle.cancel:
       # echo "FS:CANCELLED!"
