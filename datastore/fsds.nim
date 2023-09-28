@@ -211,15 +211,18 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResp
     keyPath = keyPath.replace("\\", "/")
 
     let
+      fl = (handle.env.basePath / path).absolutePath()
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          let fl = (handle.env.basePath / path).absolutePath()
-          readFile[DataBuffer](handle.env.self, fl).expect("Should read file")
+          let res = readFile[DataBuffer](handle.env.self, fl)
+          if res.isErr():
+            yield failure res.error()
+          res.get()
         else:
-          DataBuffer.new(0)
+          DataBuffer.new()
 
-    return success (key.some, data)
+    yield success (key.some, data)
 
 proc new*(
   T: type FSDatastore,
