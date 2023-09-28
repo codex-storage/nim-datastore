@@ -197,109 +197,110 @@ template queryTests*(
       res[2].key.get == key3
       res[2].data == val3
 
-  test "Should apply limit":
-    let
-      key = Key.init("/a").tryGet
-      q = dbQuery(key= key1, limit= 10, value= false)
-
-    for i in 0..<100:
+  if extended:
+    test "Should apply limit":
       let
-        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-        val = DataBuffer.new("val " & $i)
+        key = Key.init("/a").tryGet
+        q = dbQuery(key= key1, limit= 10, value= false)
 
-      ds.put(key, val).tryGet
+      for i in 0..<100:
+        let
+          key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = DataBuffer.new("val " & $i)
 
-    var
-      handle  = ds.query(q).tryGet
-    let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+        ds.put(key, val).tryGet
 
-    check:
-      res.len == 10
-
-  test "Should not apply offset":
-    let
-      key = Key.init("/a").tryGet
-      keyId = KeyId.new $key
-      q = dbQuery(key= keyId, offset= 90)
-
-    for i in 0..<100:
+      var
+        handle  = ds.query(q).tryGet
       let
-        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-        val = DataBuffer.new("val " & $i)
-
-      ds.put(key, val).tryGet
-
-    var
-      qr  = ds.query(q)
-    # echo "RES: ", qr.repr
-
-    var
-      handle  = ds.query(q).tryGet
-    let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
-
-    # echo "RES: ", res.mapIt(it.key)
-    check:
-      res.len == 10
-
-  test "Should not apply offset and limit":
-    let
-      key = Key.init("/a").tryGet
-      keyId = KeyId.new $key
-      q = dbQuery(key= keyId, offset= 95, limit= 5)
-
-    for i in 0..<100:
-      let
-        key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-        val = DataBuffer.new("val " & $i)
-
-      ds.put(key, val).tryGet
-
-    var
-      handle  = ds.query(q).tryGet
-      res = handle.iter().toSeq().mapIt(it.tryGet())
-
-    check:
-      res.len == 5
-
-    for i in 0..<res.high:
-      let
-        val = DataBuffer.new("val " & $(i + 95))
-        key = KeyId.new $Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+        res = handle.iter().toSeq().mapIt(it.tryGet())
 
       check:
-        res[i].key.get == key
-        # res[i].data == val
+        res.len == 10
 
-    test "Should apply sort order - descending":
+    test "Should not apply offset":
       let
         key = Key.init("/a").tryGet
         keyId = KeyId.new $key
-        q = dbQuery(key= keyId, value=true, sort= SortOrder.Descending)
+        q = dbQuery(key= keyId, offset= 90)
 
-      var kvs: seq[DbQueryResponse[KeyId, DataBuffer]]
       for i in 0..<100:
         let
-          k = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
-          val = DataBuffer.new ("val " & $i)
+          key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = DataBuffer.new("val " & $i)
 
-        kvs.add((k.some, val))
-        ds.put(k, val).tryGet
+        ds.put(key, val).tryGet
 
-      # lexicographic sort, as it comes from the backend
-      kvs.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
-        cmp($a.key.get, $b.key.get)
+      var
+        qr  = ds.query(q)
+      # echo "RES: ", qr.repr
 
-      kvs = kvs.reversed
+      var
+        handle  = ds.query(q).tryGet
+      let
+        res = handle.iter().toSeq().mapIt(it.tryGet())
+
+      # echo "RES: ", res.mapIt(it.key)
+      check:
+        res.len == 10
+
+    test "Should not apply offset and limit":
+      let
+        key = Key.init("/a").tryGet
+        keyId = KeyId.new $key
+        q = dbQuery(key= keyId, offset= 95, limit= 5)
+
+      for i in 0..<100:
+        let
+          key = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+          val = DataBuffer.new("val " & $i)
+
+        ds.put(key, val).tryGet
+
       var
         handle  = ds.query(q).tryGet
         res = handle.iter().toSeq().mapIt(it.tryGet())
 
       check:
-        res.len == 100
+        res.len == 5
 
-      for i, r in res[1..^1]:
+      for i in 0..<res.high:
+        let
+          val = DataBuffer.new("val " & $(i + 95))
+          key = KeyId.new $Key.init(key, Key.init("/" & $(i + 95)).tryGet).tryGet
+
         check:
-          res[i].key.get == kvs[i].key.get
-          res[i].data == kvs[i].data
+          res[i].key.get == key
+          # res[i].data == val
+
+      test "Should apply sort order - descending":
+        let
+          key = Key.init("/a").tryGet
+          keyId = KeyId.new $key
+          q = dbQuery(key= keyId, value=true, sort= SortOrder.Descending)
+
+        var kvs: seq[DbQueryResponse[KeyId, DataBuffer]]
+        for i in 0..<100:
+          let
+            k = KeyId.new $Key.init(key, Key.init("/" & $i).tryGet).tryGet
+            val = DataBuffer.new ("val " & $i)
+
+          kvs.add((k.some, val))
+          ds.put(k, val).tryGet
+
+        # lexicographic sort, as it comes from the backend
+        kvs.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
+          cmp($a.key.get, $b.key.get)
+
+        kvs = kvs.reversed
+        var
+          handle  = ds.query(q).tryGet
+          res = handle.iter().toSeq().mapIt(it.tryGet())
+
+        check:
+          res.len == 100
+
+        for i, r in res[1..^1]:
+          check:
+            res[i].key.get == kvs[i].key.get
+            res[i].data == kvs[i].data

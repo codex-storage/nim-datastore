@@ -232,6 +232,7 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
     if flres.isErr():
       # echo "FS:ERROR: ", flres.error()
       yield DbQueryResponse[K,V].failure flres.error()
+      continue
 
     let
       key = K.toKey($Key.init(keyPath).expect("valid key"))
@@ -241,8 +242,8 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
           if res.isErr():
             # echo "FS:ERROR: ", res.error()
             yield DbQueryResponse[K,V].failure res.error()
-          else:
-            res.get()
+            continue
+          res.get()
         else:
           V.new()
 
