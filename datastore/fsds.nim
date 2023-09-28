@@ -65,16 +65,15 @@ proc findPath*[K,V](self: FSDatastore[K,V], key: K): ?!string =
 
   return success fullname
 
-proc has*[K,V](self: FSDatastore[K,V], key: KeyId): ?!bool =
-  let key = key.toKey()
-  return self.findPath(key).?fileExists()
+proc has*[K,V](self: FSDatastore[K,V], key: K): ?!bool =
+  without path =? self.findPath(key), error:
+    return failure error
+  success path.fileExists()
 
 proc contains*[K](self: FSDatastore, key: K): bool =
   return self.has(key).get()
 
-proc delete*[K,V](self: FSDatastore[K,V], key: KeyId): ?!void =
-  let key = key.toKey()
-
+proc delete*[K,V](self: FSDatastore[K,V], key: K): ?!void =
   without path =? self.findPath(key), error:
     return failure error
 
@@ -88,7 +87,7 @@ proc delete*[K,V](self: FSDatastore[K,V], key: KeyId): ?!void =
 
   return success()
 
-proc delete*[K,V](self: FSDatastore[K,V], keys: openArray[KeyId]): ?!void =
+proc delete*[K,V](self: FSDatastore[K,V], keys: openArray[K]): ?!void =
   for key in keys:
     if err =? self.delete(key).errorOption:
       return failure err
@@ -131,8 +130,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
   except CatchableError as e:
     return failure e
 
-proc get*[K,V](self: FSDatastore[K,V], key: KeyId): ?!DataBuffer =
-  let key = key.toKey()
+proc get*[K,V](self: FSDatastore[K,V], key: K): ?!DataBuffer =
   without path =? self.findPath(key), error:
     return failure error
 
@@ -159,9 +157,9 @@ proc put*[K,V](
 
   return success()
 
-proc put*(
+proc put*[K,V](
   self: FSDatastore,
-  batch: seq[DbBatchEntry[KeyId, DataBuffer]]): ?!void =
+  batch: seq[DbBatchEntry[K, V]]): ?!void =
 
   for entry in batch:
     if err =? self.put(entry.key, entry.data).errorOption:
