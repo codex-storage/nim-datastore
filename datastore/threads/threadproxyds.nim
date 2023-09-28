@@ -305,11 +305,9 @@ method query*[BT](self: ThreadDatastore[BT],
   let ctx = newTaskCtx(QResult, signal=signal, nextSignal=nextSignal)
 
   proc iterDispose() {.async.} =
-    # echo "signal:CLOSE!"
     ctx.setCancelled()
     await ctx[].nextSignal.fire()
     discard ctx[].signal.close()
-    # echo "nextSignal:CLOSE!"
     discard ctx[].nextSignal.close()
     self.semaphore.release()
 
