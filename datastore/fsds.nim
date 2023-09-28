@@ -20,18 +20,18 @@ type
     ignoreProtected: bool
     depth: int
 
-proc validDepth*(self: FSDatastore, key: Key): bool =
-  key.len <= self.depth
-
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)
 
-proc path*(self: FSDatastore, key: Key): ?!string =
+proc path*(root: string, depth: int, key: Key): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
   ##
 
-  if not self.validDepth(key):
+  proc validDepth(depth: int, key: Key): bool =
+    key.len <= depth
+
+  if not validDepth(depth, key):
     return failure "Path has invalid depth!"
 
   var
@@ -53,7 +53,7 @@ proc path*(self: FSDatastore, key: Key): ?!string =
       segments.add(ns.field / ns.value)
 
   let
-    root = $self.root
+    root = root
     fullname = (root / segments.joinPath())
       .absolutePath()
       .catch()
@@ -64,6 +64,9 @@ proc path*(self: FSDatastore, key: Key): ?!string =
     return failure "Path is outside of `root` directory!"
 
   return success fullname
+
+proc path*(self: FSDatastore, key: Key): ?!string =
+  path($self.root, self.depth, key)
 
 proc has*(self: FSDatastore, key: KeyId): ?!bool =
   let key = key.toKey()
@@ -166,23 +169,23 @@ proc put*(
 
   return success()
 
-proc dirWalker(path: string): iterator: string {.gcsafe.} =
-  var localPath {.threadvar.}: string
-
-  localPath = path
-  return iterator(): string =
-    try:
-      for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
-        yield p
-    except CatchableError as exc:
-      raise newException(Defect, exc.msg)
+iterator dirIter(path: string): string {.gcsafe.} =
+  try:
+    for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
+      yield p
+  except CatchableError as exc:
+    raise newException(Defect, exc.msg)
 
 proc close*(self: FSDatastore): ?!void =
   return success()
 
+type
+  FsQueryEnv* = tuple[path: DataBuffer, root: DataBuffer]
+
 proc query*(
   self: FSDatastore,
-  query: DbQuery[KeyId]): ?!QueryIter =
+  query: DbQuery[KeyId],
+): Result[DbQueryHandle[KeyId, DataBuffer, KeyId], ref CatchableError] =
 
   let key = query.key.toKey()
   without path =? self.path(key), error:
@@ -198,20 +201,13 @@ proc query*(
     else:
       path.changeFileExt("")
 
-  let
-    walker = dirWalker(basePath)
 
-  var
-    iter = QueryIter.new()
 
-  # var lock = newAsyncLock() # serialize querying under threads
-  proc next(): ?!QueryResponse =
-    # defer:
-    #   if lock.locked:
-    #     lock.release()
+iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResponse[K, V] =
 
-    # if lock.locked:
-    #   return failure (ref DatastoreError)(msg: "Should always await query features")
+  let root = $(handle.env)
+  
+  for path in root.dirIter():
 
     let
       root = $self.root
@@ -240,7 +236,7 @@ proc query*(
           readFile[DataBuffer](self, (basePath / path).absolutePath)
             .expect("Should read file")
         else:
-          @[]
+          DataBuffer.new(0)
 
     return success (key.some, data)
 
