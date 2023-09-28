@@ -3,15 +3,44 @@ import std/sequtils
 import std/os
 from std/algorithm import sort, reversed
 
-import pkg/asynctest
+import pkg/unittest2
 import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
 import pkg/datastore/fsds
+import pkg/datastore/key
+import pkg/datastore/backend
 
-import ./dscommontests
-import ./querycommontests
+import ./backendCommonTests
+
+
+suite "Test Basic FSDatastore":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    keyFull = Key.init("/a/b").tryGet()
+    key = KeyId.new keyFull.id()
+    bytes = DataBuffer.new "some bytes"
+    otherBytes = DataBuffer.new "some other bytes".toBytes
+
+  var batch: seq[tuple[key: KeyId, data: DataBuffer]]
+  for k in 0..<100:
+    let kk = Key.init($keyFull, $k).tryGet().id()
+    batch.add( (KeyId.new kk, DataBuffer.new @[k.byte]) )
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+  createDir(basePathAbs)
+
+  var
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
+
+  testBasicBackend(fsStore, key, bytes, otherBytes, batch)
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
 
 suite "Test Basic FSDatastore":
   let
@@ -22,21 +51,22 @@ suite "Test Basic FSDatastore":
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
+  var batch: seq[tuple[key: Key, data: seq[byte]]]
+  for k in 0..<100:
+    let kk = Key.init($key, $k).tryGet()
+    batch.add( (kk, @[k.byte]) )
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+  createDir(basePathAbs)
+
   var
-    fsStore: FSDatastore
+    fsStore = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
 
-  setupAll:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
+  testBasicBackend(fsStore, key, bytes, otherBytes, batch)
 
-    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-
-  teardownAll:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-
-  basicStoreTests(fsStore, key, bytes, otherBytes)
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
 
 suite "Test Misc FSDatastore":
   let
@@ -56,7 +86,7 @@ suite "Test Misc FSDatastore":
 
   test "Test validDepth()":
     let
-      fs = FSDatastore.new(root = "/", depth = 3).tryGet()
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
       invalid = Key.init("/a/b/c/d").tryGet()
       valid = Key.init("/a/b/c").tryGet()
 
@@ -66,40 +96,40 @@ suite "Test Misc FSDatastore":
 
   test "Test invalid key (path) depth":
     let
-      fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
       key = Key.init("/a/b/c/d").tryGet()
 
     check:
-      (await fs.put(key, bytes)).isErr
-      (await fs.get(key)).isErr
-      (await fs.delete(key)).isErr
-      (await fs.has(key)).isErr
+      (fs.put(key, bytes)).isErr
+      (fs.get(key)).isErr
+      (fs.delete(key)).isErr
+      (fs.has(key)).isErr
 
   test "Test valid key (path) depth":
     let
-      fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
       key = Key.init("/a/b/c").tryGet()
 
     check:
-      (await fs.put(key, bytes)).isOk
-      (await fs.get(key)).isOk
-      (await fs.delete(key)).isOk
-      (await fs.has(key)).isOk
+      (fs.put(key, bytes)).isOk
+      (fs.get(key)).isOk
+      (fs.delete(key)).isOk
+      (fs.has(key)).isOk
 
   test "Test key cannot write outside of root":
     let
-      fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
       key = Key.init("/a/../../c").tryGet()
 
     check:
-      (await fs.put(key, bytes)).isErr
-      (await fs.get(key)).isErr
-      (await fs.delete(key)).isErr
-      (await fs.has(key)).isErr
+      (fs.put(key, bytes)).isErr
+      (fs.get(key)).isErr
+      (fs.delete(key)).isErr
+      (fs.has(key)).isErr
 
   test "Test key cannot convert to invalid path":
     let
-      fs = FSDatastore.new(root = basePathAbs).tryGet()
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs).tryGet()
 
     for c in invalidFilenameChars:
       if c == ':': continue
@@ -109,30 +139,57 @@ suite "Test Misc FSDatastore":
         key = Key.init("/" & c).tryGet()
 
       check:
-        (await fs.put(key, bytes)).isErr
-        (await fs.get(key)).isErr
-        (await fs.delete(key)).isErr
-        (await fs.has(key)).isErr
+        (fs.put(key, bytes)).isErr
+        (fs.get(key)).isErr
+        (fs.delete(key)).isErr
+        (fs.has(key)).isErr
 
-suite "Test Query":
+
+# suite "Test Query":
+#   let
+#     path = currentSourcePath() # get this file's name
+#     basePath = "tests_data"
+#     basePathAbs = path.parentDir / basePath
+
+#   var
+#     ds: FSDatastore
+
+#   setup:
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
+#     createDir(basePathAbs)
+
+#     ds = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
+
+#   teardown:
+
+#     removeDir(basePathAbs)
+#     require(not dirExists(basePathAbs))
+
+#   queryTests(ds, false)
+
+suite "queryTests":
+
   let
     path = currentSourcePath() # get this file's name
     basePath = "tests_data"
     basePathAbs = path.parentDir / basePath
 
-  var
-    ds: FSDatastore
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+  createDir(basePathAbs)
 
-  setup:
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-    createDir(basePathAbs)
+  let
+    fsNew = proc(): FSDatastore[KeyId, DataBuffer] =
+      newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
+    key1 = KeyId.new "/a"
+    key2 = KeyId.new "/a/b"
+    key3 = KeyId.new "/a/b/c"
+    val1 = DataBuffer.new "value for 1"
+    val2 = DataBuffer.new "value for 2"
+    val3 = DataBuffer.new "value for 3"
 
-    ds = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
+  queryTests(fsNew, key1, key2, key3, val1, val2, val3, extended=false)
 
-  teardown:
-
-    removeDir(basePathAbs)
-    require(not dirExists(basePathAbs))
-
-  queryTests(ds, false)
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))

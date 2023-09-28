@@ -47,14 +47,14 @@ template `==`*[T: char | byte](a: DataBuffer, b: openArray[T]): bool =
   elif a[].size != b.len: false
   else: a.hash() == b.hash()
 
-proc new(tp: type DataBuffer, capacity: int = 0): DataBuffer =
+proc new*(tp: type DataBuffer, size: int = 0): DataBuffer =
   ## allocate new buffer with given capacity
   ##
 
   newSharedPtr(DataBufferHolder(
-    buf: cast[typeof(result[].buf)](allocShared0(capacity)),
-    size: 0,
-    cap: capacity,
+    buf: cast[typeof(result[].buf)](allocShared0(size)),
+    size: size,
+    cap: size,
   ))
 
 proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[DataBufferOpt] = {}): DataBuffer =
@@ -130,9 +130,12 @@ converter toBuffer*(err: ref CatchableError): DataBuffer =
 
   return DataBuffer.new(err.msg)
 
-template toOpenArray*[T: byte | char](data: DataBuffer, t: typedesc[T]): openArray[T] =
+template toOpenArray*[T: byte | char](data: var DataBuffer, t: typedesc[T]): var openArray[T] =
   ## get openArray from DataBuffer as char
   ## 
   ## this is explicit since sqlite treats string differently from openArray[byte]
-  let bf = cast[ptr UncheckedArray[T]](data[].buf)
+  var bf = cast[ptr UncheckedArray[T]](data[].buf)
   bf.toOpenArray(0, data[].size-1)
+
+template toOpenArray*(data: var DataBuffer, first, last: int): var openArray[byte] =
+  toOpenArray(data, byte).toOpenArray(first, last)

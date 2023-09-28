@@ -14,240 +14,236 @@ import pkg/taskpools
 import pkg/questionable/results
 import pkg/chronicles
 import pkg/threading/smartptrs
+import pkg/threading/atomics
 
-import pkg/datastore/sql/sqliteds
 import pkg/datastore/fsds
+import pkg/datastore/sql/sqliteds
 import pkg/datastore/threads/threadproxyds {.all.}
 
 import ./dscommontests
 import ./querycommontests
 
-const NumThreads = 20 # IO threads aren't attached to CPU count
+const
+  NumThreads = 20 # IO threads aren't attached to CPU count
+  ThreadTestLoops {.intdefine.} = 1
+  N = ThreadTestLoops
+  ThreadTestInnerLoops {.intdefine.} = 1
+  M = ThreadTestInnerLoops 
 
-suite "Test Basic ThreadProxyDatastore":
-  var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a").tryGet()
-    data = "some bytes".toBytes
+var
+  taskPool: Taskpool = Taskpool.new(NumThreads)
 
-  setupAll:
-    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+for i in 1..N:
+  suite "Test Basic ThreadDatastore with SQLite " & $i:
 
-  teardownAll:
-    echo "teardown done"
+    var
+      sqlStore: SQLiteBackend[KeyId, DataBuffer]
+      ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+      key = Key.init("/a/b").tryGet()
+      bytes = "some bytes".toBytes
+      otherBytes = "some other bytes".toBytes
 
-  test "check put":
-    echo "\n\n=== put ==="
-    let res1 = await ds.put(key, data)
-    echo "res1: ", res1.repr
-    check res1.isOk
+    setupAll:
+      sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+      ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-  test "check get":
-    echo "\n\n=== get ==="
-    echo "get send key: ", key.repr
-    let res2 = await ds.get(key)
-    echo "get key post: ", key.repr
-    echo "get res2: ", res2.repr
-    echo res2.get() == data
-    var val = ""
-    for c in res2.get():
-      val &= char(c)
-    echo "get res2: ", $val
+    teardown:
+      GC_fullCollect()
 
-suite "Test Basic ThreadDatastore with SQLite":
+    teardownAll:
+      (await ds.close()).tryGet()
 
-  var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
+    for i in 1..M:
+      basicStoreTests(ds, key, bytes, otherBytes)
+  GC_fullCollect()
+
+
+for i in 1..N:
+  suite "Test Query ThreadDatastore with SQLite " & $i:
+
+    var
+      sqlStore: SQLiteBackend[KeyId, DataBuffer]
+      # taskPool: Taskpool
+      ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+
+    setup:
+      sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+      # taskPool = Taskpool.new(NumThreads)
+      ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+
+    teardown:
+      GC_fullCollect()
+
+      (await ds.close()).tryGet()
+
+    for i in 1..M:
+      queryTests(ds, true)
+  GC_fullCollect()
+
+suite "Test Basic ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
     key = Key.init("/a/b").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
+  var
+    fsStore: FSDatastore[KeyId, DataBuffer]
+    ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
+
   setupAll:
-    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
+
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
+    ds = ThreadDatastore.new(fsStore, tp = taskPool).tryGet()
 
   teardown:
     GC_fullCollect()
 
   teardownAll:
     (await ds.close()).tryGet()
-    taskPool.shutdown()
+
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
 
   basicStoreTests(ds, key, bytes, otherBytes)
 
-suite "Test Query ThreadDatastore with SQLite":
+suite "Test Query ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
 
   var
-    sqlStore: SQLiteBackend[KeyId,DataBuffer]
-    ds: ThreadDatastore
-    taskPool: Taskpool
-    key = Key.init("/a/b").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+    fsStore: FSDatastore[KeyId, DataBuffer]
+    ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
 
   setup:
-    sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-    taskPool = Taskpool.new(NumThreads)
-    ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
+
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 5).tryGet()
+    ds = ThreadDatastore.new(fsStore, tp = taskPool).tryGet()
 
   teardown:
     GC_fullCollect()
-
     (await ds.close()).tryGet()
-    taskPool.shutdown()
 
-  queryTests(ds, true)
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
 
-# suite "Test Basic ThreadDatastore with fsds":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+  queryTests(ds, false)
 
-#   var
-#     fsStore: FSDatastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+for i in 1..N:
+  suite "Test ThreadDatastore cancelations":
+    var
+      sqlStore: SQLiteBackend[KeyId,DataBuffer]
+      sds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
 
-#   setupAll:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+    privateAccess(ThreadDatastore) # expose private fields
+    privateAccess(TaskCtx) # expose private fields
 
-#     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+    setupAll:
+      sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
+      sds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
 
-#   teardown:
-#     GC_fullCollect()
+    teardown:
+      GC_fullCollect() # run full collect after each test
 
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+    test "Should monitor signal and cancel":
+      var
+        signal = ThreadSignalPtr.new().tryGet()
 
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
+      proc cancelTestTask(ctx: TaskCtx[bool]) {.gcsafe.} =
+        executeTask(ctx):
+          (?!bool).ok(true)
 
-#   basicStoreTests(fsStore, key, bytes, otherBytes)
+      let ctx = newTaskCtx(bool, signal=signal)
+      ctx[].cancelled = true
+      dispatchTask(sds, signal):
+        sds.tp.spawn cancelTestTask(ctx)
 
-# suite "Test Query ThreadDatastore with fsds":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
+      check:
+        ctx[].res.isErr == true
+        ctx[].cancelled == true
+        ctx[].running == false
 
-#   var
-#     fsStore: FSDatastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+    test "Should cancel future":
 
-#   setup:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+      var
+        signal = ThreadSignalPtr.new().tryGet()
+        ms {.global.}: MutexSignal
+        flag {.global.}: Atomic[bool]
+        futFreed {.global.}: Atomic[bool]
+        ready {.global.}: Atomic[bool]
 
-#     fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+      ms.init()
 
-#   teardown:
-#     GC_fullCollect()
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+      type
+        FutTestObj = object
+          val: int
+        TestValue = object
+        ThreadTestInt = (TestValue, )
 
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
+      proc `=destroy`(obj: var TestValue) =
+        # echo "destroy TestObj!"
+        flag.store(true)
 
-#   queryTests(ds, false)
+      proc `=destroy`(obj: var FutTestObj) =
+        # echo "destroy FutTestObj!"
+        futFreed.store(true)
 
-# suite "Test ThreadDatastore cancelations":
-#   var
-#     sqlStore: SQLiteBackend[KeyId,DataBuffer]
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+      proc wait(flag: var Atomic[bool], name = "task") =
+        # echo "wait for " & name & " to be ready..."
+        # defer: echo ""
+        for i in 1..100:
+          # stdout.write(".")
+          if flag.load() == true: 
+            return
+          os.sleep(10)
+        raise newException(Defect, "timeout")
 
-#   privateAccess(ThreadDatastore) # expose private fields
-#   privateAccess(TaskCtx) # expose private fields
+      proc errorTestTask(ctx: TaskCtx[ThreadTestInt]) {.gcsafe, nimcall.} =
+        executeTask(ctx):
+          # echo "task:exec"
+          discard ctx[].signal.fireSync()
+          ready.store(true)
+          ms.wait()
+          echo "task context memory: ", ctx[]
+          (?!ThreadTestInt).ok(default(ThreadTestInt))
 
-#   setupAll:
-#     sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+      proc runTestTask() {.async.} =
+        let obj = FutTestObj(val: 42)
+        await sleepAsync(1.milliseconds)
+        try:
+          let ctx = newTaskCtx(ThreadTestInt, signal=signal)
+          dispatchTask(sds, signal):
+            sds.tp.spawn errorTestTask(ctx)
+            ready.wait()
+            # echo "raise error"
+            raise newException(ValueError, "fake error")
+        finally:
+          # echo "fut FutTestObj: ", obj
+          assert obj.val == 42 # need to force future to keep ref here
+      try:
+        block:
+          await runTestTask()
+      except CatchableError as exc:
+        # echo "caught: ", $exc
+        discard
+      finally:
+        # echo "finish"
+        check ready.load() == true
+        GC_fullCollect()
+        futFreed.wait("futFreed")
+        echo "future freed it's mem!"
+        check futFreed.load() == true
 
-#   teardown:
-#     GC_fullCollect() # run full collect after each test
-
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
-
-  # test "Should monitor signal and cancel":
-  #   var
-  #     signal = ThreadSignalPtr.new().tryGet()
-  #     res = ThreadResult[void]()
-  #     ctx = newSharedPtr(TaskCtxObj[void](signal: signal))
-  #     fut = newFuture[void]("signalMonitor")
-  #     threadArgs = (addr ctx, addr fut)
-  #     thread: Thread[type threadArgs]
-
-  #   proc threadTask(args: type threadArgs) =
-  #     var (ctx, fut) = args
-  #     proc asyncTask() {.async.} =
-  #       let
-  #         monitor = signalMonitor(ctx, fut[])
-
-  #       await monitor
-
-  #     waitFor asyncTask()
-
-  #   createThread(thread, threadTask, threadArgs)
-  #   ctx.cancelled = true
-  #   check: ctx.signal.fireSync.tryGet
-
-  #   joinThreads(thread)
-
-  #   check: fut.cancelled
-  #   check: ctx.signal.close().isOk
-  #   fut = nil
-
-  # test "Should monitor and not cancel":
-  #   var
-  #     signal = ThreadSignalPtr.new().tryGet()
-  #     res = ThreadResult[void]()
-  #     ctx = TaskCtx[void](
-  #       ds: sqlStore,
-  #       res: addr res,
-  #       signal: signal)
-  #     fut = newFuture[void]("signalMonitor")
-  #     threadArgs = (addr ctx, addr fut)
-  #     thread: Thread[type threadArgs]
-
-  #   proc threadTask(args: type threadArgs) =
-  #     var (ctx, fut) = args
-  #     proc asyncTask() {.async.} =
-  #       let
-  #         monitor = signalMonitor(ctx, fut[])
-
-  #       await monitor
-
-  #     waitFor asyncTask()
-
-  #   createThread(thread, threadTask, threadArgs)
-  #   ctx.cancelled = false
-  #   check: ctx.signal.fireSync.tryGet
-
-  #   joinThreads(thread)
-
-  #   check: not fut.cancelled
-  #   check: ctx.signal.close().isOk
-  #   fut = nil
+        ms.fire()
+        flag.wait("flag")
+        check flag.load() == true

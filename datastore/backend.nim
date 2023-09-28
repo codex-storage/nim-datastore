@@ -51,8 +51,9 @@ proc dbQuery*[K](
 
 proc `$`*(id: KeyId): string = $(id.data)
 
-proc toKey*(tp: typedesc[KeyId], id: cstring): KeyId = KeyId.new(id)
-proc toKey*(tp: typedesc[string], id: cstring): string = $(id)
+proc toKey*(tp: typedesc[KeyId], id: string|cstring): KeyId = KeyId.new($id)
+proc toKey*(tp: typedesc[string], id: string|cstring): string = $(id)
+# proc toKey*(tp: typedesc[Key], id: string|cstring): KeyId = Key.init($id).expect("valid key")
 
 template toVal*(tp: typedesc[DataBuffer], id: openArray[byte]): DataBuffer = DataBuffer.new(id)
 template toVal*(tp: typedesc[seq[byte]], id: openArray[byte]): seq[byte] = @(id)
@@ -62,6 +63,3 @@ proc new*(tp: typedesc[KeyId], id: cstring): KeyId =
 
 proc new*(tp: typedesc[KeyId], id: string): KeyId =
   KeyId(data: DataBuffer.new(id))
-
-template toOpenArray*(x: DbKey): openArray[char] =
-  x.data.toOpenArray(char)
