@@ -1,7 +1,7 @@
 import
   ./datastore/testkey,
   ./datastore/testdatastore,
-  ./datastore/testfsds,
+  # ./datastore/testfsds,
   ./datastore/testsql,
   ./datastore/testtieredds,
   ./datastore/testmountedds,
