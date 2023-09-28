@@ -50,9 +50,9 @@ suite "Test Basic FSDatastore":
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
 
-  var batch: seq[tuple[key: string, data: seq[byte]]]
+  var batch: seq[tuple[key: Key, data: seq[byte]]]
   for k in 0..<100:
-    let kk = Key.init($key, $k).tryGet().id()
+    let kk = Key.init($key, $k).tryGet()
     batch.add( (kk, @[k.byte]) )
 
   removeDir(basePathAbs)
