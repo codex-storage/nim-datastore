@@ -141,8 +141,9 @@ proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
 method has*[BT](self: ThreadDatastore[BT],
                 key: Key): Future[?!bool] {.async.} =
   await self.semaphore.acquire()
-  without signal =? acquireSignal(), err:
-    return failure err
+  let signal = acquireSignal().get()
+  # without signal =? acquireSignal(), err:
+  #   return failure err
 
   let ctx = newTaskCtx(bool, signal=signal)
   dispatchTask(self, signal):
@@ -160,8 +161,9 @@ method delete*[BT](self: ThreadDatastore[BT],
                key: Key): Future[?!void] {.async.} =
   ## delete key
   await self.semaphore.acquire()
-  without signal =? acquireSignal(), err:
-    return failure err
+  let signal = acquireSignal().get()
+  # without signal =? acquireSignal(), err:
+  #   return failure err
 
   let ctx = newTaskCtx(void, signal=signal)
   dispatchTask(self, signal):
@@ -191,8 +193,9 @@ method put*[BT](self: ThreadDatastore[BT],
             data: seq[byte]): Future[?!void] {.async.} =
   ## put key with data
   await self.semaphore.acquire()
-  without signal =? acquireSignal(), err:
-    return failure err
+  let signal = acquireSignal().get()
+  # without signal =? acquireSignal(), err:
+  #   return failure err
 
   let ctx = newTaskCtx(void, signal=signal)
   dispatchTask(self, signal):
@@ -224,8 +227,9 @@ method get*[BT](self: ThreadDatastore[BT],
                 key: Key,
                 ): Future[?!seq[byte]] {.async.} =
   await self.semaphore.acquire()
-  without signal =? acquireSignal(), err:
-    return failure err
+  let signal = acquireSignal().get()
+  # without signal =? acquireSignal(), err:
+  #   return failure err
 
   let ctx = newTaskCtx(DataBuffer, signal=signal)
   dispatchTask(self, signal):
@@ -287,10 +291,12 @@ method query*[BT](self: ThreadDatastore[BT],
   ## keeps one thread running queryTask until finished 
   ## 
   await self.semaphore.acquire()
-  without signal =? acquireSignal(), err:
-    return failure err
-  without nextSignal =? acquireSignal(), err:
-    return failure err
+  let signal = acquireSignal().get()
+  # without signal =? acquireSignal(), err:
+  #   return failure err
+  let nextSignal = acquireSignal().get()
+  # without nextSignal =? acquireSignal(), err:
+  #   return failure err
   let ctx = newTaskCtx(QResult, signal=signal, nextSignal=nextSignal)
 
   proc iterDispose() {.async.} =
