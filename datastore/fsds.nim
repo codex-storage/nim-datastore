@@ -213,13 +213,9 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
                     ): ?!DbQueryResponse[K, V] =
   let root = $(handle.env.self.root)
   let basePath = $(handle.env.basePath)
-  echo "FS:root: ", root
-  echo "FS:basePath: ", basePath
 
   for path in basePath.dirIter():
-    echo "FS:path: ", path
     if handle.cancel:
-      # echo "FS:CANCELLED!"
       break
 
     var
@@ -233,7 +229,6 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
     let
       flres = (basePath / path).absolutePath().catch
     if flres.isErr():
-      # echo "FS:ERROR: ", flres.error()
       yield DbQueryResponse[K,V].failure flres.error()
       continue
 
@@ -243,14 +238,12 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
         if handle.query.value:
           let res = readFile[V](handle.env.self, flres.get)
           if res.isErr():
-            # echo "FS:ERROR: ", res.error()
             yield DbQueryResponse[K,V].failure res.error()
             continue
           res.get()
         else:
           V.new()
 
-    # echo "FS:SUCCESS: ", key
     yield success (key.some, data)
   handle.close()
 
