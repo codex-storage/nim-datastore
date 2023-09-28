@@ -230,7 +230,7 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
       yield DbQueryResponse[K,V].failure flres.error()
 
     let
-      key = K.toKey(keyPath)
+      key = K.toKey($Key.init(keyPath).expect("valid key"))
       data =
         if handle.query.value:
           let res = readFile[V](handle.env.self, flres.get)
