@@ -178,14 +178,16 @@ proc close*[K,V](self: FSDatastore[K,V]): ?!void =
   return success()
 
 type
-  FsQueryEnv*[K,V] = tuple[self: FSDatastore[K,V], basePath: V]
+  FsQueryEnv*[K,V] = object
+    self: FSDatastore[K,V]
+    basePath: DataBuffer
 
 proc query*[K,V](
   self: FSDatastore[K,V],
   query: DbQuery[K],
-): Result[DbQueryHandle[KeyId, V, FsQueryEnv], ref CatchableError] =
+): Result[DbQueryHandle[K, V, FsQueryEnv[K,V]], ref CatchableError] =
 
-  let key = query.key.toKey()
+  let key = query.key
   without path =? self.findPath(key), error:
     return failure error
 
@@ -199,8 +201,8 @@ proc query*[K,V](
     else:
       path.changeFileExt("")
   
-  let env: FsQueryEnv = (self: self, basePath: V.new(basePath))
-  success DbQueryHandle[KeyId, V, FsQueryEnv](env: env)
+  let env = FsQueryEnv[K,V](self: self, basePath: DataBuffer.new(basePath))
+  success DbQueryHandle[KeyId, V, FsQueryEnv[K,V]](env: env)
 
 iterator iter*[K, V](handle: var DbQueryHandle[K, V, V]): ?!DbQueryResponse[K, V] =
   let root = $(handle.env)
