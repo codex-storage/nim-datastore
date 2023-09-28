@@ -117,7 +117,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
     var
       read = 0
 
-    echo "BYTES: ", bytes.repr
+    # echo "BYTES: ", bytes.repr
     while read < size:
       read += file.readBytes(bytes.toOpenArray(0, size-1), read, size)
 
@@ -208,7 +208,9 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]): ?!DbQuer
   let root = $(handle.env)
 
   for path in root.dirIter():
+    echo "FS:path: ", path
     if handle.cancel:
+      echo "FS:CANCELLED!"
       break
 
     var
@@ -222,6 +224,7 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]): ?!DbQuer
     let
       flres = (basePath / path).absolutePath().catch
     if flres.isErr():
+      echo "FS:ERROR: ", flres.error()
       yield DbQueryResponse[K,V].failure flres.error()
 
     let
@@ -230,11 +233,13 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]): ?!DbQuer
         if handle.query.value:
           let res = readFile[V](handle.env.self, flres.get)
           if res.isErr():
+            echo "FS:ERROR: ", res.error()
             yield DbQueryResponse[K,V].failure res.error()
           res.get()
         else:
           V.new()
 
+    echo "FS:SUCCESS: ", key
     yield success (key.some, data)
 
 proc newFSDatastore*[K,V](root: string,
