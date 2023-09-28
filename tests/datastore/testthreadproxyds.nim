@@ -178,17 +178,23 @@ suite "Test ThreadDatastore cancelations":
       signal = ThreadSignalPtr.new().tryGet()
       ms {.global.}: MutexSignal
       flag {.global.}: Atomic[bool]
+      futFreed {.global.}: Atomic[bool]
       ready {.global.}: Atomic[bool]
 
     ms.init()
 
     type
+      FutTestObj = object
       TestValue = object
       ThreadTestInt = (TestValue, )
 
     proc `=destroy`(obj: var TestValue) =
       echo "destroy TestObj!"
       flag.store(true)
+
+    proc `=destroy`(obj: var FutTestObj) =
+      echo "destroy FutTestObj!"
+      futFreed.store(true)
 
     proc wait(flag: var Atomic[bool]) =
       echo "wait for task to be ready..."
@@ -211,6 +217,10 @@ suite "Test ThreadDatastore cancelations":
 
     proc runTestTask() {.async.} =
 
+      let obj = FutTestObj()
+      await sleepAsync(1.milliseconds)
+      defer: echo "fut FutTestObj: ", obj
+
       let ctx = newTaskCtx(ThreadTestInt, signal=signal)
       dispatchTask(sds, signal):
         sds.tp.spawn errorTestTask(ctx)
@@ -226,9 +236,12 @@ suite "Test ThreadDatastore cancelations":
     finally:
       echo "finish"
       check ready.load() == true
+      GC_fullCollect()
+      futFreed.wait()
+      echo "future freed it's mem!"
+      check futFreed.load() == true
 
       ms.fire()
-      GC_fullCollect()
       flag.wait()
       check flag.load() == true
 
