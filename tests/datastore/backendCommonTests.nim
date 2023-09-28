@@ -81,7 +81,7 @@ template queryTests*(
 
     var
       handle  = ds.query(q).tryGet
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+      res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
     check:
       res.len == 3
@@ -107,7 +107,7 @@ template queryTests*(
     
     var res: seq[DbQueryResponse[KeyId, DataBuffer]]
     var cnt = 0
-    for item in handle.iter():
+    for item in handle.queryIter():
       cnt.inc
       res.insert(item.tryGet(), 0)
       if cnt > 1:
@@ -135,7 +135,7 @@ template queryTests*(
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+      res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
     check:
       res.len == 3
@@ -160,7 +160,7 @@ template queryTests*(
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+      res = handle.queryIter().toSeq().mapIt(it.tryGet())
         # ).filterIt(it.isOk).mapIt(it.tryGet())
 
     check:
@@ -182,7 +182,7 @@ template queryTests*(
 
     var
       handle  = ds.query(q).tryGet
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+      res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
     res.sort do (a, b: DbQueryResponse[KeyId, DataBuffer]) -> int:
       cmp($a.key.get, $b.key.get)
@@ -214,7 +214,7 @@ template queryTests*(
       var
         handle  = ds.query(q).tryGet
       let
-        res = handle.iter().toSeq().mapIt(it.tryGet())
+        res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
       check:
         res.len == 10
@@ -239,7 +239,7 @@ template queryTests*(
       var
         handle  = ds.query(q).tryGet
       let
-        res = handle.iter().toSeq().mapIt(it.tryGet())
+        res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
       # echo "RES: ", res.mapIt(it.key)
       check:
@@ -260,7 +260,7 @@ template queryTests*(
 
       var
         handle  = ds.query(q).tryGet
-        res = handle.iter().toSeq().mapIt(it.tryGet())
+        res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
       check:
         res.len == 5
@@ -296,7 +296,7 @@ template queryTests*(
         kvs = kvs.reversed
         var
           handle  = ds.query(q).tryGet
-          res = handle.iter().toSeq().mapIt(it.tryGet())
+          res = handle.queryIter().toSeq().mapIt(it.tryGet())
 
         check:
           res.len == 100
