@@ -54,18 +54,22 @@ template testBasicBackend*[K, V, DB](
     expect(DatastoreKeyNotFound):
       discard ds.get(key).tryGet() # non existing key
 
-template queryTests*[K, V, DB](
-  ds: DB,
+template queryTests*(
+  ds: untyped,
+  key1, key2, key3: untyped,
+  val1, val2, val3: untyped,
+  extended = true
 ) =
 
   setup:
     let
-      key1 = KeyId.new "/a"
-      key2 = KeyId.new "/a/b"
-      key3 = KeyId.new "/a/b/c"
-      val1 = DataBuffer.new "value for 1"
-      val2 = DataBuffer.new "value for 2"
-      val3 = DataBuffer.new "value for 3"
+      ds = dsNew()
+      key1 = key1
+      key2 = key2
+      key3 = key3
+      val1 = val1
+      val2 = val2
+      val3 = val3
 
   test "Key should query all keys and all it's children":
     let
