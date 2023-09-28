@@ -160,7 +160,10 @@ template queryTests*(
     var
       handle  = ds.query(q).tryGet
     let
-      res = handle.iter().toSeq().mapIt(it.tryGet())
+      res = handle.iter().toSeq().mapIt(block:
+        echo "RES: ", it.repr
+        it.tryGet()
+        )
 
     check:
       res.len == 2

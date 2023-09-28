@@ -102,7 +102,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
     file.close
 
   if not file.open(path):
-    return failure "unable to open file!"
+    return failure "unable to open file! path: " & path
 
   try:
     let
