@@ -200,7 +200,7 @@ for i in 1..N:
 
       proc wait(flag: var Atomic[bool], name = "task") =
         # echo "wait for " & name & " to be ready..."
-        defer: echo ""
+        # defer: echo ""
         for i in 1..100:
           # stdout.write(".")
           if flag.load() == true: 
@@ -214,7 +214,7 @@ for i in 1..N:
           discard ctx[].signal.fireSync()
           ready.store(true)
           ms.wait()
-          # echo "ctx:task: ", ctx[]
+          echo "task context memory: ", ctx[]
           (?!ThreadTestInt).ok(default(ThreadTestInt))
 
       proc runTestTask() {.async.} =
@@ -247,4 +247,3 @@ for i in 1..N:
         ms.fire()
         flag.wait("flag")
         check flag.load() == true
-
