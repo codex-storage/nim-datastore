@@ -1,60 +1,65 @@
-import std/options
-import std/os
-import std/sequtils
-from std/algorithm import sort, reversed
 
-import pkg/unittest2
-import pkg/chronos
-import pkg/stew/results
-import pkg/stew/byteutils
+template testBasicBackend*[K, V, DB](
+  ds: DB,
+  key: K,
+  bytes: V,
+  otherBytes: V,
+  batch: untyped,
+  extended = true
+): untyped =
 
-import pkg/datastore/sql/sqliteds
-import pkg/datastore/key
+  test "put":
+    ds.put(key, bytes).tryGet()
 
-import ../backendCommonTests
+  test "get":
+    check:
+      ds.get(key).tryGet() == bytes
 
+  test "put update":
+    ds.put(key, otherBytes).tryGet()
 
-suite "Test Basic SQLiteDatastore":
-  let
-    ds = newSQLiteBackend[string, seq[byte]](path=Memory).tryGet()
-    keyFull = Key.init("a:b/c/d:e").tryGet()
-    key = keyFull.id()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+  test "get updated":
+    check:
+      ds.get(key).tryGet() == otherBytes
 
-  var batch: seq[tuple[key: string, data: seq[byte]]]
-  for k in 0..<100:
-    let kk = Key.init(key, $k).tryGet().id()
-    batch.add( (kk, @[k.byte]) )
+  test "delete":
+    ds.delete(key).tryGet()
 
-  suiteTeardown:
-    ds.close().tryGet()
+  test "contains":
+    check key notin ds
 
-  testBasicBackend(ds, key, bytes, otherBytes, batch)
+  test "put batch":
 
-suite "Test DataBuffer SQLiteDatastore":
-  let
-    ds = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-    keyFull = Key.init("a:b/c/d:e").tryGet()
-    key = KeyId.new keyFull.id()
-    bytes = DataBuffer.new "some bytes"
-    otherBytes = DataBuffer.new "some other bytes"
+    ds.put(batch).tryGet
 
-  var batch: seq[tuple[key: KeyId, data: DataBuffer]]
-  for k in 0..<100:
-    let kk = Key.init(keyFull.id(), $k).tryGet().id()
-    batch.add( (KeyId.new kk, DataBuffer.new @[k.byte]) )
+    for (k, v) in batch:
+      check: ds.has(k).tryGet
 
-  suiteTeardown:
-    ds.close().tryGet()
+  test "delete batch":
+    var keys: seq[K]
+    for (k, v) in batch:
+      keys.add(k)
 
-  testBasicBackend(ds, key, bytes, otherBytes, batch)
+    ds.delete(keys).tryGet
 
-suite "queryTests":
+    for (k, v) in batch:
+      check: not ds.has(k).tryGet
+
+  test "handle missing key":
+    when K is KeyId:
+      let key = KeyId.new Key.init("/missing/key").tryGet().id()
+    elif K is string:
+      let key = $KeyId.new Key.init("/missing/key").tryGet().id()
+
+    expect(DatastoreKeyNotFound):
+      discard ds.get(key).tryGet() # non existing key
+
+template queryTests*[K, V, DB](
+  ds: DB,
+) =
 
   setup:
     let
-      ds = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
       key1 = KeyId.new "/a"
       key2 = KeyId.new "/a/b"
       key3 = KeyId.new "/a/b/c"
@@ -127,7 +132,7 @@ suite "queryTests":
       handle  = ds.query(q).tryGet
     let
       res = handle.iter().toSeq().mapIt(it.tryGet())
- 
+
     check:
       res.len == 3
       res[0].key.get == key1
