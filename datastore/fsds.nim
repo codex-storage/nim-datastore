@@ -23,15 +23,15 @@ type
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)
 
-proc findPath*(root: string, depth: int, key: Key): ?!string =
+proc validDepth(self: FSDatastore, key: Key): bool =
+  key.len <= self.depth
+
+proc findPath*(self: FSDatastore, key: Key): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
   ##
-
-  proc validDepth(depth: int, key: Key): bool =
-    key.len <= depth
-
-  if not validDepth(depth, key):
+  let root = $self.root
+  if not self.validDepth(key):
     return failure "Path has invalid depth!"
 
   var
@@ -53,7 +53,6 @@ proc findPath*(root: string, depth: int, key: Key): ?!string =
       segments.add(ns.field / ns.value)
 
   let
-    root = root
     fullname = (root / segments.joinPath())
       .absolutePath()
       .catch()
@@ -64,9 +63,6 @@ proc findPath*(root: string, depth: int, key: Key): ?!string =
     return failure "Path is outside of `root` directory!"
 
   return success fullname
-
-proc findPath*(self: FSDatastore, key: Key): ?!string =
-  findPath($self.root, self.depth, key)
 
 proc has*(self: FSDatastore, key: KeyId): ?!bool =
   let key = key.toKey()
@@ -95,7 +91,7 @@ proc delete*(self: FSDatastore, keys: openArray[KeyId]): ?!void =
 
   return success()
 
-proc readFile*[V](self: FSDatastore, path: string): ?!V =
+proc readFile[V](self: FSDatastore, path: string): ?!V =
   var
     file: File
 
@@ -180,7 +176,7 @@ proc close*(self: FSDatastore): ?!void =
   return success()
 
 type
-  FsQueryEnv* = tuple[path: DataBuffer, root: DataBuffer]
+  FsQueryEnv* = tuple[basePath: DataBuffer, self: FSDatastore]
 
 proc query*(
   self: FSDatastore,
@@ -201,29 +197,14 @@ proc query*(
     else:
       path.changeFileExt("")
 
-
-
 iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResponse[K, V] =
-
   let root = $(handle.env)
-  
+
   for path in root.dirIter():
+    if handle.cancel:
+      return
 
-    let
-      root = $self.root
-      path = walker()
-
-    if iter.finished:
-      return failure "iterator is finished"
-
-    # await lock.acquire()
-
-    if finished(walker):
-      iter.finished = true
-      return success (Key.none, EmptyBytes)
-
-    var
-      keyPath = basePath
+    var keyPath = handle.basePath
 
     keyPath.removePrefix(root)
     keyPath = keyPath / path.changeFileExt("")
@@ -233,15 +214,12 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, DataBuffer]): ?!DbQueryResp
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          readFile[DataBuffer](self, (basePath / path).absolutePath)
-            .expect("Should read file")
+          let fl = (handle.env.basePath / path).absolutePath()
+          readFile[DataBuffer](handle.env.self, fl).expect("Should read file")
         else:
           DataBuffer.new(0)
 
     return success (key.some, data)
-
-  iter.next = next
-  return success iter
 
 proc new*(
   T: type FSDatastore,
