@@ -28,7 +28,8 @@ suite "Test Basic Mounted Datastore":
 
   var
     sql: SQLiteDatastore
-    fs: FSDatastore
+    sql2: SQLiteDatastore
+    # fs: FSDatastore
     mountedDs: MountedDatastore
 
   setupAll:
@@ -37,10 +38,11 @@ suite "Test Basic Mounted Datastore":
     createDir(rootAbs)
 
     sql = SQLiteDatastore.new(Memory).tryGet
-    fs = FSDatastore.new(rootAbs, depth = 5).tryGet
+    sql2 = SQLiteDatastore.new(Memory).tryGet
+    # fs = FSDatastore.new(rootAbs, depth = 5).tryGet
     mountedDs = MountedDatastore.new({
       sqlKey: Datastore(sql),
-      fsKey: Datastore(fs)}.toTable)
+      fsKey: Datastore(sql2)}.toTable)
       .tryGet
 
   teardownAll:
