@@ -47,14 +47,14 @@ template `==`*[T: char | byte](a: DataBuffer, b: openArray[T]): bool =
   elif a[].size != b.len: false
   else: a.hash() == b.hash()
 
-proc new*(tp: type DataBuffer, capacity: int = 0): DataBuffer =
+proc new*(tp: type DataBuffer, size: int = 0): DataBuffer =
   ## allocate new buffer with given capacity
   ##
 
   newSharedPtr(DataBufferHolder(
-    buf: cast[typeof(result[].buf)](allocShared0(capacity)),
-    size: 0,
-    cap: capacity,
+    buf: cast[typeof(result[].buf)](allocShared0(size)),
+    size: size,
+    cap: size,
   ))
 
 proc new*[T: byte | char](tp: type DataBuffer, data: openArray[T], opts: set[DataBufferOpt] = {}): DataBuffer =

@@ -111,12 +111,13 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
     when V is seq[byte]:
       var bytes = newSeq[byte](size)
     elif V is DataBuffer:
-      var bytes = DataBuffer.new(capacity=size)
+      var bytes = DataBuffer.new(size=size)
     else:
       {.error: "unhandled result type".}
     var
       read = 0
 
+    echo "BYTES: ", bytes.repr
     while read < size:
       read += file.readBytes(bytes.toOpenArray(), read, size)
 
