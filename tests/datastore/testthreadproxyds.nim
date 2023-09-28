@@ -114,7 +114,6 @@ suite "Test Basic ThreadDatastore with fsds":
 
   basicStoreTests(ds, key, bytes, otherBytes)
 
-
 # suite "Test Query ThreadDatastore with fsds":
 #   let
 #     path = currentSourcePath() # get this file's name

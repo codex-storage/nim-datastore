@@ -133,7 +133,6 @@ template dispatchTask[BT](self: ThreadDatastore[BT],
     discard ctx[].signal.close()
     self.semaphore.release()
 
-
 proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
   ## run backend command
   executeTask(ctx):
