@@ -41,6 +41,32 @@ suite "Test Basic FSDatastore":
   removeDir(basePathAbs)
   require(not dirExists(basePathAbs))
 
+suite "Test Basic FSDatastore":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
+
+  var batch: seq[tuple[key: string, data: seq[byte]]]
+  for k in 0..<100:
+    let kk = Key.init($key, $k).tryGet().id()
+    batch.add( (kk, @[k.byte]) )
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+  createDir(basePathAbs)
+
+  var
+    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+
+  testBasicBackend(fsStore, key, bytes, otherBytes, batch)
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+
 # suite "Test Misc FSDatastore":
 #   let
 #     path = currentSourcePath() # get this file's name
