@@ -227,7 +227,7 @@ proc newSQLiteBackend*[K,V](
   success SQLiteBackend[K,V](db: ? SQLiteDsDb[K,V].open(path, flags))
     
 
-proc newSQLiteBackend*[K,V](
-          db: SQLiteDsDb[K,V]): ?!SQLiteBackend[K,V] =
+proc newSQLiteBackend*[K,V](db: SQLiteDsDb[K,V]
+                           ): ?!SQLiteBackend[K,V] =
 
   success SQLiteBackend[K,V](db: db)

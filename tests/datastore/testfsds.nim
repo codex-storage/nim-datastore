@@ -34,7 +34,7 @@ suite "Test Basic FSDatastore":
   createDir(basePathAbs)
 
   var
-    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
 
   testBasicBackend(fsStore, key, bytes, otherBytes, batch)
 
@@ -60,7 +60,7 @@ suite "Test Basic FSDatastore":
   createDir(basePathAbs)
 
   var
-    fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
 
   testBasicBackend(fsStore, key, bytes, otherBytes, batch)
 
