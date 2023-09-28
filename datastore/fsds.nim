@@ -204,19 +204,19 @@ proc query*[K,V](
   let env = FsQueryEnv[K,V](self: self, basePath: DataBuffer.new(basePath))
   success DbQueryHandle[KeyId, V, FsQueryEnv[K,V]](query: query, env: env)
 
-proc close*[K,V](handle: var DbQueryHandle[K,V,FsQueryEnv]) =
+proc close*[K,V](handle: var DbQueryHandle[K,V,FsQueryEnv[K,V]]) =
   if not handle.closed:
     handle.closed = true
 
 iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
                     ): ?!DbQueryResponse[K, V] =
   let root = $(handle.env.self.root)
-  echo "FS:root: ", root
+  # echo "FS:root: ", root
 
   for path in root.dirIter():
-    echo "FS:path: ", path
+    # echo "FS:path: ", path
     if handle.cancel:
-      echo "FS:CANCELLED!"
+      # echo "FS:CANCELLED!"
       break
 
     var
@@ -230,7 +230,7 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
     let
       flres = (basePath / path).absolutePath().catch
     if flres.isErr():
-      echo "FS:ERROR: ", flres.error()
+      # echo "FS:ERROR: ", flres.error()
       yield DbQueryResponse[K,V].failure flres.error()
 
     let
@@ -239,14 +239,15 @@ iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
         if handle.query.value:
           let res = readFile[V](handle.env.self, flres.get)
           if res.isErr():
-            echo "FS:ERROR: ", res.error()
+            # echo "FS:ERROR: ", res.error()
             yield DbQueryResponse[K,V].failure res.error()
           res.get()
         else:
           V.new()
 
-    echo "FS:SUCCESS: ", key
+    # echo "FS:SUCCESS: ", key
     yield success (key.some, data)
+  handle.close()
 
 proc newFSDatastore*[K,V](root: string,
                           depth = 2,
