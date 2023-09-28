@@ -161,9 +161,11 @@ template queryTests*(
       handle  = ds.query(q).tryGet
     let
       res = handle.iter().toSeq().mapIt(block:
-        echo "RES: ", it.repr
+        echo "\nRES: ", it.repr
+        # quit(1)
         it.tryGet()
-        )
+      )
+        # ).filterIt(it.isOk).mapIt(it.tryGet())
 
     check:
       res.len == 2

@@ -190,6 +190,7 @@ proc query*[K,V](
   let key = query.key
   without path =? self.findPath(key), error:
     return failure error
+  echo "query:key: ", key
 
   let basePath =
     # it there is a file in the directory
@@ -211,10 +212,10 @@ proc close*[K,V](handle: var DbQueryHandle[K,V,FsQueryEnv[K,V]]) =
 iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
                     ): ?!DbQueryResponse[K, V] =
   let root = $(handle.env.self.root)
-  # echo "FS:root: ", root
+  echo "FS:root: ", root
 
   for path in root.dirIter():
-    # echo "FS:path: ", path
+    echo "FS:path: ", path
     if handle.cancel:
       # echo "FS:CANCELLED!"
       break
