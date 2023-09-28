@@ -67,81 +67,81 @@ suite "Test Basic FSDatastore":
   removeDir(basePathAbs)
   require(not dirExists(basePathAbs))
 
-# suite "Test Misc FSDatastore":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
-#     bytes = "some bytes".toBytes
+suite "Test Misc FSDatastore":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    bytes = "some bytes".toBytes
 
-#   setup:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+  setup:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
 
-#   teardown:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
+  teardown:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
 
-#   test "Test validDepth()":
-#     let
-#       fs = FSDatastore.new(root = "/", depth = 3).tryGet()
-#       invalid = Key.init("/a/b/c/d").tryGet()
-#       valid = Key.init("/a/b/c").tryGet()
+  test "Test validDepth()":
+    let
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
+      invalid = Key.init("/a/b/c/d").tryGet()
+      valid = Key.init("/a/b/c").tryGet()
 
-#     check:
-#       not fs.validDepth(invalid)
-#       fs.validDepth(valid)
+    check:
+      not fs.validDepth(invalid)
+      fs.validDepth(valid)
 
-#   test "Test invalid key (path) depth":
-#     let
-#       fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-#       key = Key.init("/a/b/c/d").tryGet()
+  test "Test invalid key (path) depth":
+    let
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
+      key = Key.init("/a/b/c/d").tryGet()
 
-#     check:
-#       (await fs.put(key, bytes)).isErr
-#       (await fs.get(key)).isErr
-#       (await fs.delete(key)).isErr
-#       (await fs.has(key)).isErr
+    check:
+      (fs.put(key, bytes)).isErr
+      (fs.get(key)).isErr
+      (fs.delete(key)).isErr
+      (fs.has(key)).isErr
 
-#   test "Test valid key (path) depth":
-#     let
-#       fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-#       key = Key.init("/a/b/c").tryGet()
+  test "Test valid key (path) depth":
+    let
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
+      key = Key.init("/a/b/c").tryGet()
 
-#     check:
-#       (await fs.put(key, bytes)).isOk
-#       (await fs.get(key)).isOk
-#       (await fs.delete(key)).isOk
-#       (await fs.has(key)).isOk
+    check:
+      (fs.put(key, bytes)).isOk
+      (fs.get(key)).isOk
+      (fs.delete(key)).isOk
+      (fs.has(key)).isOk
 
-#   test "Test key cannot write outside of root":
-#     let
-#       fs = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-#       key = Key.init("/a/../../c").tryGet()
+  test "Test key cannot write outside of root":
+    let
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs, depth = 3).tryGet()
+      key = Key.init("/a/../../c").tryGet()
 
-#     check:
-#       (await fs.put(key, bytes)).isErr
-#       (await fs.get(key)).isErr
-#       (await fs.delete(key)).isErr
-#       (await fs.has(key)).isErr
+    check:
+      (fs.put(key, bytes)).isErr
+      (fs.get(key)).isErr
+      (fs.delete(key)).isErr
+      (fs.has(key)).isErr
 
-#   test "Test key cannot convert to invalid path":
-#     let
-#       fs = FSDatastore.new(root = basePathAbs).tryGet()
+  test "Test key cannot convert to invalid path":
+    let
+      fs = newFSDatastore[Key, seq[byte]](root = basePathAbs).tryGet()
 
-#     for c in invalidFilenameChars:
-#       if c == ':': continue
-#       if c == '/': continue
+    for c in invalidFilenameChars:
+      if c == ':': continue
+      if c == '/': continue
 
-#       let
-#         key = Key.init("/" & c).tryGet()
+      let
+        key = Key.init("/" & c).tryGet()
 
-#       check:
-#         (await fs.put(key, bytes)).isErr
-#         (await fs.get(key)).isErr
-#         (await fs.delete(key)).isErr
-#         (await fs.has(key)).isErr
+      check:
+        (fs.put(key, bytes)).isErr
+        (fs.get(key)).isErr
+        (fs.delete(key)).isErr
+        (fs.has(key)).isErr
 
 
 # suite "Test Query":

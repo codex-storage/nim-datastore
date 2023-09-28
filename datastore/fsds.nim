@@ -23,7 +23,7 @@ type
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)
 
-proc validDepth(self: FSDatastore, key: Key): bool =
+proc validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
 
 proc findPath*[K,V](self: FSDatastore[K,V], key: K): ?!string =
