@@ -38,10 +38,10 @@ logScope:
 type
 
   TaskCtxObj*[T: ThreadTypes] = object
-    res: ThreadResult[T]
+    res*: ThreadResult[T]
     signal: ThreadSignalPtr
-    running: bool ## used to mark when a task worker is running
-    cancelled: bool ## used to cancel a task before it's started
+    running*: bool ## used to mark when a task worker is running
+    cancelled*: bool ## used to cancel a task before it's started
     nextSignal: ThreadSignalPtr
 
   TaskCtx*[T] = SharedPtr[TaskCtxObj[T]]
@@ -78,7 +78,7 @@ proc acquireSignal(): ?!ThreadSignalPtr =
   else:
     success signal.get()
 
-template executeTask[T](ctx: TaskCtx[T], blk: untyped) =
+template executeTask*[T](ctx: TaskCtx[T], blk: untyped) =
   ## executes a task on a thread work and handles cleanup after cancels/errors
   ## 
   try:
@@ -115,7 +115,7 @@ template dispatchTaskWrap[BT](self: ThreadDatastore[BT],
   runTask()
   await wait(ctx[].signal)
 
-template dispatchTask[BT](self: ThreadDatastore[BT],
+template dispatchTask*[BT](self: ThreadDatastore[BT],
                           signal: ThreadSignalPtr,
                           blk: untyped
                           ): auto =
