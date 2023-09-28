@@ -103,10 +103,17 @@ proc close*[K,V](self: SQLiteBackend[K,V]): ?!void =
 
   return success()
 
+type
+  SqQueryHandle*[K, V] = object
+    query*: DbQuery[K]
+    cancel*: bool
+    closed*: bool
+    env*: RawStmtPtr
+
 proc query*[K,V](
     self: SQLiteBackend[K,V],
     query: DbQuery[K]
-): Result[DbQueryHandle[K,V,RawStmtPtr], ref CatchableError] =
+): Result[SqQueryHandle[K,V], ref CatchableError] =
 
   var
     queryStr = if query.value:
@@ -151,16 +158,18 @@ proc query*[K,V](
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  success DbQueryHandle[K,V,RawStmtPtr](query: query, env: s)
+  success SqQueryHandle[K,V](query: query, env: s)
 
-proc close*[K,V](handle: var DbQueryHandle[K,V,RawStmtPtr]) =
+proc close*[K,V](handle: var SqQueryHandle[K,V]) =
   if not handle.closed:
     handle.closed = true
     discard sqlite3_reset(handle.env)
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
 
-iterator iter*[K, V](handle: var DbQueryHandle[K, V, RawStmtPtr]): ?!DbQueryResponse[K, V] =
+iterator queyIter*[K, V](
+    handle: var SqQueryHandle[K, V]
+): ?!DbQueryResponse[K, V] =
   while not handle.cancel:
 
     let v = sqlite3_step(handle.env)

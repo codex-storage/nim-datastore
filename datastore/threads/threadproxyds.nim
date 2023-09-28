@@ -23,6 +23,7 @@ import ../key
 import ../query
 import ../datastore
 import ../backend
+import ../fsds
 import ../sql/sqliteds
 
 import ./asyncsemaphore
@@ -251,10 +252,13 @@ method queryTask[DB](
     query: DbQuery[KeyId],
 ) {.gcsafe, nimcall.} =
   ## run query command
+  mixin queryIter
   executeTask(ctx):
     # we execute this all inside `executeTask`
     # so we need to return a final result
-    let handleRes = ds.query(query)
+    let handleRes = query(ds, query)
+    static:
+      echo "HANDLE_RES: ", typeof(handleRes)
     if handleRes.isErr():
       # set error and exit executeTask, which will fire final signal
       (?!QResult).err(handleRes.error())
@@ -266,7 +270,9 @@ method queryTask[DB](
         raise newException(DeadThreadDefect, "queryTask timed out")
 
       var handle = handleRes.get()
-      for item in handle.iter():
+      static:
+        echo "HANDLE: ", typeof(handle)
+      for item in handle.queyIter():
         # wait for next request from async thread
 
         if ctx[].cancelled:

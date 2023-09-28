@@ -15,8 +15,8 @@ import pkg/questionable/results
 import pkg/chronicles
 import pkg/threading/smartptrs
 
-import pkg/datastore/sql/sqliteds
 import pkg/datastore/fsds
+import pkg/datastore/sql/sqliteds
 import pkg/datastore/threads/threadproxyds {.all.}
 
 import ./dscommontests
@@ -82,40 +82,39 @@ for i in 1..N:
       queryTests(ds, true)
   GC_fullCollect()
 
-# suite "Test Basic ThreadDatastore with fsds":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
-#     key = Key.init("/a/b").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+suite "Test Basic ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+    key = Key.init("/a/b").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   var
-#     fsStore: FSDatastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+  var
+    fsStore: FSDatastore[KeyId, DataBuffer]
+    ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
+    taskPool: Taskpool
 
-#   setupAll:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+  setupAll:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
 
-#     fsStore = FSDatastore.new(root = basePathAbs, depth = 3).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
+    ds = ThreadDatastore.new(fsStore, tp = taskPool).tryGet()
 
-#   teardown:
-#     GC_fullCollect()
+  teardown:
+    GC_fullCollect()
 
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+  teardownAll:
+    (await ds.close()).tryGet()
 
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
 
-#   basicStoreTests(fsStore, key, bytes, otherBytes)
+  basicStoreTests(ds, key, bytes, otherBytes)
+
 
 # suite "Test Query ThreadDatastore with fsds":
 #   let
