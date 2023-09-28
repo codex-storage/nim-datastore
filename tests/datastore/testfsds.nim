@@ -166,3 +166,29 @@ suite "Test Misc FSDatastore":
 #     require(not dirExists(basePathAbs))
 
 #   queryTests(ds, false)
+
+suite "queryTests":
+
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))
+  createDir(basePathAbs)
+
+  let
+    fsNew = proc(): FSDatastore[KeyId, DataBuffer] =
+      newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 3).tryGet()
+    key1 = KeyId.new "/a"
+    key2 = KeyId.new "/a/b"
+    key3 = KeyId.new "/a/b/c"
+    val1 = DataBuffer.new "value for 1"
+    val2 = DataBuffer.new "value for 2"
+    val3 = DataBuffer.new "value for 3"
+
+  queryTests(fsNew, key1, key2, key3, val1, val2, val3, extended=true)
+
+  removeDir(basePathAbs)
+  require(not dirExists(basePathAbs))

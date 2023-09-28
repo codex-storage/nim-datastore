@@ -62,4 +62,4 @@ suite "queryTests":
     val2 = DataBuffer.new "value for 2"
     val3 = DataBuffer.new "value for 3"
 
-  queryTests(ds, key1, key2, key3, val1, val2, val3, extended=true)
+  queryTests(dsNew, key1, key2, key3, val1, val2, val3, extended=true)

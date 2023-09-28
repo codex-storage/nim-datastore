@@ -55,7 +55,7 @@ template testBasicBackend*[K, V, DB](
       discard ds.get(key).tryGet() # non existing key
 
 template queryTests*(
-  ds: untyped,
+  dsNew: untyped,
   key1, key2, key3: untyped,
   val1, val2, val3: untyped,
   extended = true
