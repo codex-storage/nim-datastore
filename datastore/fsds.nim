@@ -210,7 +210,7 @@ proc query*[K,V](
   let env = FsQueryEnv[K,V](self: self, basePath: DataBuffer.new(basePath))
   success FsQueryHandle[K, V](query: query, env: env)
 
-proc close*[K,V](handle: var DbQueryHandle[K,V,FsQueryEnv[K,V]]) =
+proc close*[K,V](handle: var FsQueryHandle[K,V]) =
   if not handle.closed:
     handle.closed = true
 

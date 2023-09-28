@@ -152,7 +152,7 @@ method has*[BT](self: ThreadDatastore[BT],
     self.tp.spawn hasTask(ctx, ds, key)
   return ctx[].res.toRes(v => v)
 
-method deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
+proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
                        key: KeyId) {.gcsafe.} =
   ## run backend command
   executeTask(ctx):
@@ -217,7 +217,7 @@ method put*[DB](
   return success()
 
 
-method getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
+proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
                  key: KeyId) {.gcsafe, nimcall.} =
   ## run backend command
   executeTask(ctx):
@@ -246,11 +246,11 @@ method close*[BT](self: ThreadDatastore[BT]): Future[?!void] {.async.} =
 type
   QResult = DbQueryResponse[KeyId, DataBuffer]
 
-method queryTask[DB](
+proc queryTask[DB](
     ctx: TaskCtx[QResult],
     ds: DB,
     query: DbQuery[KeyId],
-) {.gcsafe, nimcall.} =
+) =
   ## run query command
   mixin queryIter
   executeTask(ctx):
@@ -272,7 +272,7 @@ method queryTask[DB](
       var handle = handleRes.get()
       static:
         echo "HANDLE: ", typeof(handle)
-      for item in handle.queyIter():
+      for item in handle.queryIter():
         # wait for next request from async thread
 
         if ctx[].cancelled:

@@ -167,7 +167,7 @@ proc close*[K,V](handle: var SqQueryHandle[K,V]) =
     discard sqlite3_clear_bindings(handle.env)
     handle.env.dispose()
 
-iterator queyIter*[K, V](
+iterator queryIter*[K, V](
     handle: var SqQueryHandle[K, V]
 ): ?!DbQueryResponse[K, V] =
   while not handle.cancel:
