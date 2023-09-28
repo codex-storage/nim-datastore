@@ -114,35 +114,32 @@ suite "Test Basic ThreadDatastore with fsds":
 
   basicStoreTests(ds, key, bytes, otherBytes)
 
-# suite "Test Query ThreadDatastore with fsds":
-#   let
-#     path = currentSourcePath() # get this file's name
-#     basePath = "tests_data"
-#     basePathAbs = path.parentDir / basePath
+suite "Test Query ThreadDatastore with fsds":
+  let
+    path = currentSourcePath() # get this file's name
+    basePath = "tests_data"
+    basePathAbs = path.parentDir / basePath
 
-#   var
-#     fsStore: FSDatastore
-#     ds: ThreadDatastore
-#     taskPool: Taskpool
+  var
+    fsStore: FSDatastore[KeyId, DataBuffer]
+    ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
 
-#   setup:
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
-#     createDir(basePathAbs)
+  setup:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+    createDir(basePathAbs)
 
-#     fsStore = FSDatastore.new(root = basePathAbs, depth = 5).tryGet()
-#     taskPool = Taskpool.new(NumThreads)
-#     ds = ThreadDatastore.new(fsStore, withLocks = true, tp = taskPool).tryGet()
+    fsStore = newFSDatastore[KeyId, DataBuffer](root = basePathAbs, depth = 5).tryGet()
+    ds = ThreadDatastore.new(fsStore, tp = taskPool).tryGet()
 
-#   teardown:
-#     GC_fullCollect()
-#     (await ds.close()).tryGet()
-#     taskPool.shutdown()
+  teardown:
+    GC_fullCollect()
+    (await ds.close()).tryGet()
 
-#     removeDir(basePathAbs)
-#     require(not dirExists(basePathAbs))
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
 
-#   queryTests(ds, false)
+  queryTests(ds, false)
 
 # suite "Test ThreadDatastore cancelations":
 #   var
