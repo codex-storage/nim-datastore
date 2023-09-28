@@ -204,8 +204,9 @@ proc query*[K,V](
   let env = FsQueryEnv[K,V](self: self, basePath: DataBuffer.new(basePath))
   success DbQueryHandle[KeyId, V, FsQueryEnv[K,V]](query: query, env: env)
 
-iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]): ?!DbQueryResponse[K, V] =
-  let root = $(handle.env)
+iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]
+                    ): ?!DbQueryResponse[K, V] =
+  let root = $(handle.env.self.root)
   echo "FS:root: ", root
 
   for path in root.dirIter():
