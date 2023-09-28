@@ -202,29 +202,35 @@ proc query*[K,V](
       path.changeFileExt("")
   
   let env = FsQueryEnv[K,V](self: self, basePath: DataBuffer.new(basePath))
-  success DbQueryHandle[KeyId, V, FsQueryEnv[K,V]](env: env)
+  success DbQueryHandle[KeyId, V, FsQueryEnv[K,V]](query: query, env: env)
 
-iterator iter*[K, V](handle: var DbQueryHandle[K, V, V]): ?!DbQueryResponse[K, V] =
+iterator iter*[K, V](handle: var DbQueryHandle[K, V, FsQueryEnv[K,V]]): ?!DbQueryResponse[K, V] =
   let root = $(handle.env)
 
   for path in root.dirIter():
     if handle.cancel:
-      return
+      break
 
-    var keyPath = handle.basePath
+    var
+      basePath = $handle.env.basePath
+      keyPath = basePath
 
     keyPath.removePrefix(root)
     keyPath = keyPath / path.changeFileExt("")
     keyPath = keyPath.replace("\\", "/")
 
     let
-      fl = (handle.env.basePath / path).absolutePath()
-      key = Key.init(keyPath).expect("should not fail")
+      flres = (basePath / path).absolutePath().catch
+    if flres.isErr():
+      yield DbQueryResponse[K,V].failure flres.error()
+
+    let
+      key = K.toKey(keyPath)
       data =
-        if query.value:
-          let res = readFile[V](handle.env.self, fl)
+        if handle.query.value:
+          let res = readFile[V](handle.env.self, flres.get)
           if res.isErr():
-            yield failure res.error()
+            yield DbQueryResponse[K,V].failure res.error()
           res.get()
         else:
           V.new()
