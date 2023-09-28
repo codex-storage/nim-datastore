@@ -68,6 +68,9 @@ proc has*(self: FSDatastore, key: KeyId): ?!bool =
   let key = key.toKey()
   return self.findPath(key).?fileExists()
 
+proc contains*[K](self: FSDatastore, key: K): bool =
+  return self.has(key).get()
+
 proc delete*(self: FSDatastore, key: KeyId): ?!void =
   let key = key.toKey()
 
@@ -243,6 +246,6 @@ proc new*(
     return failure "directory does not exist: " & root
 
   success T(
-    root: root,
+    root: DataBuffer.new root,
     ignoreProtected: ignoreProtected,
     depth: depth)
