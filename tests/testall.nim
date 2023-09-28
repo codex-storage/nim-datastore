@@ -1,8 +1,8 @@
 import
   ./datastore/testkey,
   ./datastore/testdatastore,
-  # ./datastore/testfsds,
   ./datastore/testsql,
+  ./datastore/testfsds,
   ./datastore/testtieredds,
   ./datastore/testmountedds,
   ./datastore/testdatabuffer,
