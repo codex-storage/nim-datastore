@@ -94,7 +94,6 @@ suite "Test Basic ThreadDatastore with fsds":
   var
     fsStore: FSDatastore[KeyId, DataBuffer]
     ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
-    taskPool: Taskpool
 
   setupAll:
     removeDir(basePathAbs)
