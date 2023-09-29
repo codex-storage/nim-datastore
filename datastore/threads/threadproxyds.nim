@@ -16,12 +16,12 @@ import pkg/chronos/threadsync
 import pkg/questionable
 import pkg/questionable/results
 import pkg/taskpools
+import std/isolation
 import pkg/chronicles
 import pkg/threading/smartptrs
 
 import ../key
 import ../query
-import ../datastore
 import ./backend
 import ./fsbackend
 import ./sqlbackend
@@ -30,7 +30,7 @@ import ./asyncsemaphore
 import ./databuffer
 import ./threadresult
 
-export threadresult
+export threadresult, smartptrs, isolation, chronicles
 
 logScope:
   topics = "datastore threadproxyds"
@@ -48,10 +48,10 @@ type
     ## Task context object.
     ## This is a SharedPtr to make the query iter simpler
 
-  ThreadDatastore*[BT] = ref object of Datastore
-    tp: Taskpool
-    backend: BT
-    semaphore: AsyncSemaphore # semaphore is used for backpressure \
+  ThreadDatastore*[BT] = object
+    tp*: Taskpool
+    backend*: BT
+    semaphore*: AsyncSemaphore # semaphore is used for backpressure \
                               # to avoid exhausting file descriptors
 
 proc newTaskCtx*[T](tp: typedesc[T],
@@ -207,9 +207,9 @@ proc put*[BT](self: ThreadDatastore[BT],
 
   return ctx[].res.toRes()
 
-proc put*[DB](
+proc put*[E, DB](
   self: ThreadDatastore[DB],
-  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  batch: seq[E]): Future[?!void] {.async.} =
   ## put batch data
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:

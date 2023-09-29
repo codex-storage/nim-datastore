@@ -37,15 +37,13 @@ for i in 1..N:
   suite "Test Basic ThreadDatastore with SQLite " & $i:
 
     var
-      sqlStore: SQLiteBackend[KeyId, DataBuffer]
-      ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+      ds: SQLiteDatastore
       key = Key.init("/a/b").tryGet()
       bytes = "some bytes".toBytes
       otherBytes = "some other bytes".toBytes
 
     setupAll:
-      sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-      ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+      ds = SQLiteDatastore.new(Memory, tp = taskPool).tryGet()
 
     teardown:
       GC_fullCollect()
