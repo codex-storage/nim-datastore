@@ -14,7 +14,7 @@ import ./threads/sqlbackend
 import ./threads/threadproxyds
 import ./datastore
 
-export datastore, Taskpool
+export datastore, keys, query, Taskpool
 
 push: {.upraises: [].}
 

@@ -11,8 +11,7 @@ import pkg/stew/byteutils
 import pkg/datastore/threads/sqlbackend
 import pkg/datastore/key
 
-import ../backendCommonTests
-
+import ./backendCommonTests
 
 suite "Test Basic SQLiteDatastore":
   let
