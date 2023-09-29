@@ -46,12 +46,12 @@ method put*(self: FSDatastore,
             batch: seq[BatchEntry]): Future[?!void] {.async.} =
   await self.db.put(batch)
 
-method close*(self: FSDatastore): Future[?!void] {.async.} =
-  await self.db.close()
-
 method query*(self: FSDatastore,
               q: Query): Future[?!QueryIter] {.async.} =
   await self.db.query(q)
+
+method close*(self: FSDatastore): Future[?!void] {.async.} =
+  await self.db.close()
 
 proc new*(
   T: type FSDatastore,
