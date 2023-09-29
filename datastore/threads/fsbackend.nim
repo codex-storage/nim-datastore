@@ -22,7 +22,7 @@ type
 var keyTable: SharedTable[KeyId, KeyLock]
 keyTable.init()
 
-template lockKeyImpl(key: KeyId, blk: untyped) =
+template lockKeyImpl(key: KeyId, blk: untyped): untyped =
   var hasLock = false
   try:
     while not hasLock:
@@ -41,10 +41,10 @@ template lockKeyImpl(key: KeyId, blk: untyped) =
         klock.locked = false
         exists = false
 
-template withReadLock(key: KeyId, blk: untyped) =
+template withReadLock(key: KeyId, blk: untyped): untyped =
   lockKeyImpl(key, blk)
 
-template withWriteLock(key: KeyId, blk: untyped) =
+template withWriteLock(key: KeyId, blk: untyped): untyped =
   lockKeyImpl(key, blk)
 
 type
@@ -129,7 +129,7 @@ proc delete*[K,V](self: FSBackend[K,V], keys: openArray[K]): ?!void =
 
   return success()
 
-proc readFile[V](self: FSBackend, path: string): ?!V =
+proc readFile[K, V](self: FSBackend, key: K, path: string): ?!V =
   var
     file: File
 
@@ -174,7 +174,7 @@ proc get*[K,V](self: FSBackend[K,V], key: K): ?!V =
     return failure(
       newException(DatastoreKeyNotFound, "Key doesn't exist"))
 
-  return readFile[V](self, path)
+  return readFile[K, V](self, key, path)
 
 proc put*[K,V](self: FSBackend[K,V],
                key: K,
@@ -189,11 +189,14 @@ proc put*[K,V](self: FSBackend[K,V],
     withWriteLock(KeyId.new path):
       createDir(parentDir(path))
 
-    let tmpPath = genTempPath("temp", "", path.splitPath.tail)
+    let tmpPath = genTempPath("temp", path.splitPath.tail)
     writeFile(tmpPath, data.toOpenArray(0, data.len()-1))
 
     withWriteLock(key):
-      moveFile(tmpPath, path)
+      try:
+        moveFile(tmpPath, path)
+      except Exception as e:
+        return failure e.msg
   except CatchableError as e:
     return failure e
 
@@ -284,7 +287,7 @@ iterator queryIter*[K, V](
       key = K.toKey($Key.init(keyPath).expect("valid key"))
       data =
         if handle.query.value:
-          let res = readFile[V](handle.env.self, flres.get)
+          let res = readFile[K, V](handle.env.self, key, flres.get)
           if res.isErr():
             yield DbQueryResponse[K,V].failure res.error()
             continue
