@@ -31,7 +31,6 @@ template lockKeyImpl(key: KeyId, blk: untyped): untyped =
           klock.locked = true
         exists = true
         hasLock = klock.locked
-      os.sleep(1)
 
     `blk`
   finally:
