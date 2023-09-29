@@ -3,8 +3,8 @@ import std/options
 
 import pkg/questionable/results
 
-import ./threads/databuffer
-import ./types
+import ./databuffer
+import ../types
 
 export databuffer, types, SortOrder
 

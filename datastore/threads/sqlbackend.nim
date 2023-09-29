@@ -7,8 +7,8 @@ import pkg/sqlite3_abi
 from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
-import ../backend
-import ./sqlitedsdb
+import ./backend
+import ../sql/sqlitedsdb
 
 export backend, sqlitedsdb
 

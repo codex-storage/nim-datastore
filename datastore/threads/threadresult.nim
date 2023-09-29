@@ -9,7 +9,7 @@ import ../types
 import ../query
 import ../key
 
-import ../backend
+import ./backend
 import ./databuffer
 
 type

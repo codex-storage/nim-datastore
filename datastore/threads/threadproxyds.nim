@@ -22,9 +22,9 @@ import pkg/threading/smartptrs
 import ../key
 import ../query
 import ../datastore
-import ../backend
-import ../fsds
-import ../sql/sqliteds
+import ./backend
+import ./fsbackend
+import ./sqlbackend
 
 import ./asyncsemaphore
 import ./databuffer
@@ -140,7 +140,7 @@ proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
   executeTask(ctx):
     has(ds, key)
 
-method has*[BT](self: ThreadDatastore[BT],
+proc has*[BT](self: ThreadDatastore[BT],
                 key: Key): Future[?!bool] {.async.} =
   await self.semaphore.acquire()
   let signal = acquireSignal().get()
@@ -159,7 +159,7 @@ proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
   executeTask(ctx):
     delete(ds, key)
 
-method delete*[BT](self: ThreadDatastore[BT],
+proc delete*[BT](self: ThreadDatastore[BT],
                key: Key): Future[?!void] {.async.} =
   ## delete key
   await self.semaphore.acquire()
@@ -174,7 +174,7 @@ method delete*[BT](self: ThreadDatastore[BT],
 
   return ctx[].res.toRes()
 
-method delete*[BT](self: ThreadDatastore[BT],
+proc delete*[BT](self: ThreadDatastore[BT],
                keys: seq[Key]): Future[?!void] {.async.} =
   ## delete batch
   for key in keys:
@@ -190,7 +190,7 @@ proc putTask[T, DB](ctx: TaskCtx[T], ds: DB;
   executeTask(ctx):
     put(ds, key, data)
 
-method put*[BT](self: ThreadDatastore[BT],
+proc put*[BT](self: ThreadDatastore[BT],
             key: Key,
             data: seq[byte]): Future[?!void] {.async.} =
   ## put key with data
@@ -206,8 +206,8 @@ method put*[BT](self: ThreadDatastore[BT],
     self.tp.spawn putTask(ctx, ds, key, data)
 
   return ctx[].res.toRes()
-  
-method put*[DB](
+
+proc put*[DB](
   self: ThreadDatastore[DB],
   batch: seq[BatchEntry]): Future[?!void] {.async.} =
   ## put batch data
@@ -225,7 +225,7 @@ proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
     let res = get(ds, key)
     res
 
-method get*[BT](self: ThreadDatastore[BT],
+proc get*[BT](self: ThreadDatastore[BT],
                 key: Key,
                 ): Future[?!seq[byte]] {.async.} =
   await self.semaphore.acquire()
@@ -240,7 +240,7 @@ method get*[BT](self: ThreadDatastore[BT],
 
   return ctx[].res.toRes(v => v.toSeq())
 
-method close*[BT](self: ThreadDatastore[BT]): Future[?!void] {.async.} =
+proc close*[BT](self: ThreadDatastore[BT]): Future[?!void] {.async.} =
   await self.semaphore.closeAll()
   self.backend.close()
 
@@ -291,7 +291,7 @@ proc queryTask[DB](
       # set final result
       (?!QResult).ok((KeyId.none, DataBuffer()))
 
-method query*[BT](self: ThreadDatastore[BT],
+proc query*[BT](self: ThreadDatastore[BT],
               q: Query
               ): Future[?!QueryIter] {.async.} =
   ## performs async query

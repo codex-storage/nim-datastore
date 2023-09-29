@@ -8,7 +8,7 @@ import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
-import pkg/datastore/sql/sqliteds
+import pkg/datastore/threads/sqlbackend
 import pkg/datastore/key
 
 import ../backendCommonTests

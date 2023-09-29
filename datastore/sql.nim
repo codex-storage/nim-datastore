@@ -10,10 +10,10 @@ import pkg/upraises
 
 import std/sequtils
 import ../datastore
-import ./backend
-import ./sql/sqliteds
+import ./threads/backend
+import ./threads/sqlbackend
 
-export datastore, sqliteds
+export datastore, sqlbackend
 
 push: {.upraises: [].}
 

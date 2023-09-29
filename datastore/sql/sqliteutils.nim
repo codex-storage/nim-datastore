@@ -3,7 +3,7 @@ import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/upraises
 
-import ../backend
+import ../threads/backend
 
 export sqlite3_abi
 

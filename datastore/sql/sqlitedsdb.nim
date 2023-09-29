@@ -4,7 +4,7 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 
-import ../backend
+import ../threads/backend
 import ./sqliteutils
 
 export sqliteutils

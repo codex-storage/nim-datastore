@@ -16,9 +16,9 @@ import pkg/chronicles
 import pkg/threading/smartptrs
 import pkg/threading/atomics
 
-import pkg/datastore/fsds
-import pkg/datastore/sql/sqliteds
-import pkg/datastore/threads/threadproxyds {.all.}
+import pkg/datastore/threads/fsbackend
+import pkg/datastore/threads/sqlbackend
+import pkg/datastore/threads/threadproxyds
 
 import ./dscommontests
 import ./querycommontests

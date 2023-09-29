@@ -10,7 +10,7 @@ import pkg/stew/byteutils
 
 import pkg/datastore/fsds
 import pkg/datastore/key
-import pkg/datastore/backend
+import pkg/datastore/threads/backend
 
 import ./backendCommonTests
 
