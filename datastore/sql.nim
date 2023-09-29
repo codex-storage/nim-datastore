@@ -14,7 +14,7 @@ import ./threads/sqlbackend
 import ./threads/threadproxyds
 import ./datastore
 
-export datastore, keys, query, Taskpool
+export datastore, keys, query, Taskpool, Memory
 
 push: {.upraises: [].}
 
@@ -63,15 +63,11 @@ method query*(self: SQLiteDatastore,
 proc new*(
   T: type SQLiteDatastore,
   path: string,
+  tp: Taskpool,
   readOnly = false): ?!SQLiteDatastore =
 
-  success SQLiteDatastore(
-    db: ? newSQLiteBackend[KeyId, DataBuffer](path, readOnly))
+  let
+    backend = ? newSQLiteBackend[KeyId, DataBuffer](path, readOnly)
+    db = ? ThreadDatastore.new(backend, tp = tp)
+  success SQLiteDatastore(db: db)
 
-proc new*(
-  T: type SQLiteDatastore,
-  db: SQLiteBackend[KeyId, DataBuffer]): ?!T =
-
-  success T(
-    db: db,
-    readOnly: db.readOnly)

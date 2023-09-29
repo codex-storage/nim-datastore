@@ -55,12 +55,15 @@ method query*(self: FSDatastore,
 
 proc new*(
   T: type FSDatastore,
-  path: string,
-  readOnly = false,
+  root: string,
   tp: Taskpool,
+  depth = 2,
+  caseSensitive = true,
+  ignoreProtected = false
 ): ?!FSDatastore =
 
   let
-    backend = ? newSQLiteBackend[KeyId, DataBuffer](path, readOnly)
+    backend = ? newFSBackend[KeyId, DataBuffer](
+      root=root, depth=depth, caseSensitive=caseSensitive, ignoreProtected=ignoreProtected)
     db = ? ThreadDatastore.new(backend, tp = tp)
   success FSDatastore(db: db)
