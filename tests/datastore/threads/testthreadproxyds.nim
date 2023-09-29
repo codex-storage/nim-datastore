@@ -131,8 +131,8 @@ for i in 1..N:
   suite "Test ThreadDatastore cancelations":
 
     privateAccess(SQLiteDatastore) # expose private fields
-    privateAccess(ThreadDatastore) # expose private fields
-    # privateAccess(TaskCtx) # expose private fields
+    privateAccess(ThreadProxy) # expose private fields
+    privateAccess(TaskCtx) # expose private fields
 
     var sds: SQLiteDatastore
 

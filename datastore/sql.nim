@@ -20,7 +20,7 @@ push: {.upraises: [].}
 
 type
   SQLiteDatastore* = ref object of Datastore
-    db: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+    db: ThreadProxy[SQLiteBackend[KeyId, DataBuffer]]
 
 proc path*(self: SQLiteDatastore): string =
   self.db.backend.path()
@@ -68,6 +68,6 @@ proc new*(
 
   let
     backend = ? newSQLiteBackend[KeyId, DataBuffer](path, readOnly)
-    db = ? ThreadDatastore.new(backend, tp = tp)
+    db = ? ThreadProxy.new(backend, tp = tp)
   success SQLiteDatastore(db: db)
 

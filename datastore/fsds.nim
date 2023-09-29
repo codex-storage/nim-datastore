@@ -19,7 +19,7 @@ push: {.upraises: [].}
 
 type
   FSDatastore* = ref object of Datastore
-    db: ThreadDatastore[FSBackend[KeyId, DataBuffer]]
+    db: ThreadProxy[FSBackend[KeyId, DataBuffer]]
 
 method has*(self: FSDatastore,
             key: Key): Future[?!bool] {.async.} =
@@ -65,5 +65,5 @@ proc new*(
   let
     backend = ? newFSBackend[KeyId, DataBuffer](
       root=root, depth=depth, caseSensitive=caseSensitive, ignoreProtected=ignoreProtected)
-    db = ? ThreadDatastore.new(backend, tp = tp)
+    db = ? ThreadProxy.new(backend, tp = tp)
   success FSDatastore(db: db)
