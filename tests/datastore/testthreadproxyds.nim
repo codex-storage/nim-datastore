@@ -60,14 +60,10 @@ for i in 1..N:
   suite "Test Query ThreadDatastore with SQLite " & $i:
 
     var
-      sqlStore: SQLiteBackend[KeyId, DataBuffer]
-      # taskPool: Taskpool
-      ds: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+      ds: SQLiteDatastore
 
     setup:
-      sqlStore = newSQLiteBackend[KeyId, DataBuffer](Memory).tryGet()
-      # taskPool = Taskpool.new(NumThreads)
-      ds = ThreadDatastore.new(sqlStore, tp = taskPool).tryGet()
+      ds = SQLiteDatastore.new(Memory, tp = taskPool).tryGet()
 
     teardown:
       GC_fullCollect()
@@ -88,8 +84,7 @@ suite "Test Basic ThreadDatastore with fsds":
     otherBytes = "some other bytes".toBytes
 
   var
-    fsStore: FSDatastore[KeyId, DataBuffer]
-    ds: ThreadDatastore[FSDatastore[KeyId, DataBuffer]]
+    ds: SQLiteDatastore
 
   setupAll:
     removeDir(basePathAbs)
