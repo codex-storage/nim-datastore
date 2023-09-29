@@ -15,7 +15,7 @@ export datastore
 push: {.upraises: [].}
 
 type
-  FSDatastore*[K, V] = object
+  FSBackend*[K, V] = object
     root*: DataBuffer
     ignoreProtected: bool
     depth: int
@@ -23,10 +23,10 @@ type
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)
 
-proc validDepth*(self: FSDatastore, key: Key): bool =
+proc validDepth*(self: FSBackend, key: Key): bool =
   key.len <= self.depth
 
-proc findPath*[K,V](self: FSDatastore[K,V], key: K): ?!string =
+proc findPath*[K,V](self: FSBackend[K,V], key: K): ?!string =
   ## Return filename corresponding to the key
   ## or failure if the key doesn't correspond to a valid filename
   ##
@@ -65,15 +65,15 @@ proc findPath*[K,V](self: FSDatastore[K,V], key: K): ?!string =
 
   return success fullname
 
-proc has*[K,V](self: FSDatastore[K,V], key: K): ?!bool =
+proc has*[K,V](self: FSBackend[K,V], key: K): ?!bool =
   without path =? self.findPath(key), error:
     return failure error
   success path.fileExists()
 
-proc contains*[K](self: FSDatastore, key: K): bool =
+proc contains*[K](self: FSBackend, key: K): bool =
   return self.has(key).get()
 
-proc delete*[K,V](self: FSDatastore[K,V], key: K): ?!void =
+proc delete*[K,V](self: FSBackend[K,V], key: K): ?!void =
   without path =? self.findPath(key), error:
     return failure error
 
@@ -87,14 +87,14 @@ proc delete*[K,V](self: FSDatastore[K,V], key: K): ?!void =
 
   return success()
 
-proc delete*[K,V](self: FSDatastore[K,V], keys: openArray[K]): ?!void =
+proc delete*[K,V](self: FSBackend[K,V], keys: openArray[K]): ?!void =
   for key in keys:
     if err =? self.delete(key).errorOption:
       return failure err
 
   return success()
 
-proc readFile[V](self: FSDatastore, path: string): ?!V =
+proc readFile[V](self: FSBackend, path: string): ?!V =
   var
     file: File
 
@@ -130,7 +130,7 @@ proc readFile[V](self: FSDatastore, path: string): ?!V =
   except CatchableError as e:
     return failure e
 
-proc get*[K,V](self: FSDatastore[K,V], key: K): ?!V =
+proc get*[K,V](self: FSBackend[K,V], key: K): ?!V =
   without path =? self.findPath(key), error:
     return failure error
 
@@ -140,7 +140,7 @@ proc get*[K,V](self: FSDatastore[K,V], key: K): ?!V =
 
   return readFile[V](self, path)
 
-proc put*[K,V](self: FSDatastore[K,V],
+proc put*[K,V](self: FSBackend[K,V],
                key: K,
                data: V
               ): ?!void =
@@ -158,7 +158,7 @@ proc put*[K,V](self: FSDatastore[K,V],
   return success()
 
 proc put*[K,V](
-  self: FSDatastore,
+  self: FSBackend,
   batch: seq[DbBatchEntry[K, V]]): ?!void =
 
   for entry in batch:
@@ -174,7 +174,7 @@ iterator dirIter(path: string): string {.gcsafe.} =
   except CatchableError as exc:
     raise newException(Defect, exc.msg)
 
-proc close*[K,V](self: FSDatastore[K,V]): ?!void =
+proc close*[K,V](self: FSBackend[K,V]): ?!void =
   return success()
 
 type
@@ -185,11 +185,11 @@ type
     env*: FsQueryEnv[K,V]
 
   FsQueryEnv*[K,V] = object
-    self: FSDatastore[K,V]
+    self: FSBackend[K,V]
     basePath: DataBuffer
 
 proc query*[K,V](
-  self: FSDatastore[K,V],
+  self: FSBackend[K,V],
   query: DbQuery[K],
 ): Result[FsQueryHandle[K, V], ref CatchableError] =
 
@@ -253,11 +253,11 @@ iterator queryIter*[K, V](
     yield success (key.some, data)
   handle.close()
 
-proc newFSDatastore*[K,V](root: string,
+proc newFSBackend*[K,V](root: string,
                           depth = 2,
                           caseSensitive = true,
                           ignoreProtected = false
-                         ): ?!FSDatastore[K,V] =
+                         ): ?!FSBackend[K,V] =
 
   let root = ? (
     block:
@@ -267,7 +267,7 @@ proc newFSDatastore*[K,V](root: string,
   if not dirExists(root):
     return failure "directory does not exist: " & root
 
-  success FSDatastore[K,V](
+  success FSBackend[K,V](
     root: DataBuffer.new root,
     ignoreProtected: ignoreProtected,
     depth: depth)

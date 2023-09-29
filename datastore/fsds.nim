@@ -9,7 +9,7 @@ import pkg/upraises
 import pkg/chronos
 import pkg/taskpools
 
-import ./threads/sqlbackend
+import ./threads/fsbackend
 import ./threads/threadproxyds
 import ./datastore
 
@@ -17,10 +17,9 @@ export datastore, Taskpool
 
 push: {.upraises: [].}
 
-
 type
   FSDatastore* = ref object of Datastore
-    db: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
+    db: ThreadDatastore[FSBackend[KeyId, DataBuffer]]
 
 proc path*(self: FSDatastore): string =
   self.db.backend.path()

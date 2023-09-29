@@ -13,7 +13,14 @@ import ../datastore
 import ./threads/backend
 import ./threads/sqlbackend
 
-export datastore, sqlbackend
+import pkg/chronos
+import pkg/taskpools
+
+import ./threads/sqlbackend
+import ./threads/threadproxyds
+import ./datastore
+
+export datastore, Taskpool
 
 push: {.upraises: [].}
 
@@ -64,25 +71,6 @@ method queryIter*(self: SQLiteDatastore,
                   query: Query
                  ): ?!(iterator(): ?!QueryResponse) =
 
-  let dbquery = dbQuery(
-    key= KeyId.new query.key.id(),
-    value= query.value,
-    limit= query.limit,
-    offset= query.offset,
-    sort= query.sort,
-  )
-  var qhandle = ? self.db.query(dbquery)
-
-  let iter = iterator(): ?!QueryResponse =
-    for resp in qhandle.queryIter():
-      without qres =? resp, err:
-        yield QueryResponse.failure err
-      let k = qres.key.map() do(k: KeyId) -> Key:
-        Key.init($k).expect("valid key")
-      let v: seq[byte] = qres.data.toSeq()
-      yield success (k, v)
-  
-  success iter
 
 proc new*(
   T: type SQLiteDatastore,
