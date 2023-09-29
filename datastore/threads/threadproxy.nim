@@ -33,7 +33,7 @@ import ./threadresult
 export threadresult, smartptrs, isolation, chronicles
 
 logScope:
-  topics = "datastore threadproxyds"
+  topics = "datastore threadproxy"
 
 type
 
