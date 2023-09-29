@@ -11,7 +11,7 @@ import pkg/chronos
 import pkg/taskpools
 
 import ./threads/sqlbackend
-import ./threads/threadproxyds
+import ./threads/threadproxy
 import ./datastore
 
 export datastore, keys, query, Taskpool, Memory

@@ -10,7 +10,7 @@ import pkg/chronos
 import pkg/taskpools
 
 import ./threads/fsbackend
-import ./threads/threadproxyds
+import ./threads/threadproxy
 import ./datastore
 
 export datastore, Taskpool
