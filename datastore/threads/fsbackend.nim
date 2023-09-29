@@ -16,12 +16,36 @@ push: {.upraises: [].}
 
 import std/sharedtables
 
-var keyTable: SharedTable[KeyId, int]
+type
+  KeyLock = tuple[locked: bool]
+
+var keyTable: SharedTable[KeyId, KeyLock]
+keyTable.init()
+
+template lockKeyImpl(key: KeyId, blk: untyped) =
+  var hasLock = false
+  try:
+    while not hasLock:
+      keyTable.withKey(key) do (k: KeyId, klock: var KeyLock, exists: var bool):
+        if not exists or not klock.locked:
+          klock.locked = true
+        exists = true
+        hasLock = klock.locked
+      os.sleep(1)
+
+    `blk`
+  finally:
+    if hasLock:
+      keyTable.withKey(key) do (k: KeyId, klock: var KeyLock, exists: var bool):
+        assert exists and klock.locked
+        klock.locked = false
+        exists = false
 
 template withReadLock(key: KeyId, blk: untyped) =
-  `blk`
+  lockKeyImpl(key, blk)
+
 template withWriteLock(key: KeyId, blk: untyped) =
-  `blk`
+  lockKeyImpl(key, blk)
 
 type
   FSBackend*[K, V] = object
