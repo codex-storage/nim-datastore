@@ -23,8 +23,8 @@ import pkg/threading/smartptrs
 import ../key
 import ../query
 import ./backend
-import ./fsbackend
-import ./sqlbackend
+# import ./fsbackend
+# import ./sqlbackend
 
 import ./asyncsemaphore
 import ./databuffer
@@ -137,6 +137,7 @@ template dispatchTask*[BT](self: ThreadDatastore[BT],
 
 proc hasTask[T, DB](ctx: TaskCtx[T], ds: DB, key: KeyId) {.gcsafe.} =
   ## run backend command
+  mixin has
   executeTask(ctx):
     has(ds, key)
 
@@ -156,6 +157,7 @@ proc has*[BT](self: ThreadDatastore[BT],
 proc deleteTask[T, DB](ctx: TaskCtx[T], ds: DB;
                        key: KeyId) {.gcsafe.} =
   ## run backend command
+  mixin delete
   executeTask(ctx):
     delete(ds, key)
 
@@ -187,6 +189,7 @@ proc delete*[BT](self: ThreadDatastore[BT],
 proc putTask[T, DB](ctx: TaskCtx[T], ds: DB;
                     key: KeyId,
                     data: DataBuffer) {.gcsafe, nimcall.} =
+  mixin put
   executeTask(ctx):
     put(ds, key, data)
 
@@ -221,6 +224,7 @@ proc put*[E, DB](
 proc getTask[DB](ctx: TaskCtx[DataBuffer], ds: DB;
                  key: KeyId) {.gcsafe, nimcall.} =
   ## run backend command
+  mixin get
   executeTask(ctx):
     let res = get(ds, key)
     res

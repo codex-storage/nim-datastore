@@ -20,13 +20,13 @@ push: {.upraises: [].}
 
 type
   SQLiteDatastore* = ref object of Datastore
-    db: SQLiteBackend[KeyId, DataBuffer]
+    db: ThreadDatastore[SQLiteBackend[KeyId, DataBuffer]]
 
 proc path*(self: SQLiteDatastore): string =
-  self.db.path()
+  self.db.backend.path()
 
 proc readOnly*(self: SQLiteDatastore): bool =
-  self.db.readOnly()
+  self.db.backend.readOnly()
 
 method has*(self: SQLiteDatastore,
             key: Key): Future[?!bool] {.async.} =
