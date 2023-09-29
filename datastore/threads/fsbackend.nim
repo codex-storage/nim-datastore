@@ -1,6 +1,7 @@
 import std/os
 import std/options
 import std/strutils
+import std/tempfiles
 
 import pkg/questionable
 import pkg/questionable/results
@@ -12,6 +13,15 @@ import ./backend
 export backend
 
 push: {.upraises: [].}
+
+import std/sharedtables
+
+var keyTable: SharedTable[KeyId, int]
+
+template withReadLock(key: KeyId, blk: untyped) =
+  `blk`
+template withWriteLock(key: KeyId, blk: untyped) =
+  `blk`
 
 type
   FSBackend*[K, V] = object
@@ -67,7 +77,8 @@ proc findPath*[K,V](self: FSBackend[K,V], key: K): ?!string =
 proc has*[K,V](self: FSBackend[K,V], key: K): ?!bool =
   without path =? self.findPath(key), error:
     return failure error
-  success path.fileExists()
+  withReadLock(key):
+    success path.fileExists()
 
 proc contains*[K](self: FSBackend, key: K): bool =
   return self.has(key).get()
@@ -80,7 +91,8 @@ proc delete*[K,V](self: FSBackend[K,V], key: K): ?!void =
     return success()
 
   try:
-    removeFile(path)
+    withWriteLock(key):
+      removeFile(path)
   except OSError as e:
     return failure e
 
@@ -100,34 +112,35 @@ proc readFile[V](self: FSBackend, path: string): ?!V =
   defer:
     file.close
 
-  if not file.open(path):
-    return failure "unable to open file! path: " & path
+  withReadLock(key):
+    if not file.open(path):
+      return failure "unable to open file! path: " & path
 
-  try:
-    let
-      size = file.getFileSize().int
+    try:
+      let
+        size = file.getFileSize().int
 
-    when V is seq[byte]:
-      var bytes = newSeq[byte](size)
-    elif V is V:
-      var bytes = V.new(size=size)
-    else:
-      {.error: "unhandled result type".}
-    var
-      read = 0
+      when V is seq[byte]:
+        var bytes = newSeq[byte](size)
+      elif V is V:
+        var bytes = V.new(size=size)
+      else:
+        {.error: "unhandled result type".}
+      var
+        read = 0
 
-    # echo "BYTES: ", bytes.repr
-    while read < size:
-      read += file.readBytes(bytes.toOpenArray(0, size-1), read, size)
+      # echo "BYTES: ", bytes.repr
+      while read < size:
+        read += file.readBytes(bytes.toOpenArray(0, size-1), read, size)
 
-    if read < size:
-      return failure $read & " bytes were read from " & path &
-        " but " & $size & " bytes were expected"
+      if read < size:
+        return failure $read & " bytes were read from " & path &
+          " but " & $size & " bytes were expected"
 
-    return success bytes
+      return success bytes
 
-  except CatchableError as e:
-    return failure e
+    except CatchableError as e:
+      return failure e
 
 proc get*[K,V](self: FSBackend[K,V], key: K): ?!V =
   without path =? self.findPath(key), error:
@@ -149,8 +162,14 @@ proc put*[K,V](self: FSBackend[K,V],
 
   try:
     var data = data
-    createDir(parentDir(path))
-    writeFile(path, data.toOpenArray(0, data.len()-1))
+    withWriteLock(KeyId.new path):
+      createDir(parentDir(path))
+
+    let tmpPath = genTempPath("temp", "", path.splitPath.tail)
+    writeFile(tmpPath, data.toOpenArray(0, data.len()-1))
+
+    withWriteLock(key):
+      moveFile(tmpPath, path)
   except CatchableError as e:
     return failure e
 
