@@ -10,7 +10,7 @@ import pkg/upraises
 import ./backend
 import ./datastore
 
-export datastore
+export datastore, backend
 
 push: {.upraises: [].}
 

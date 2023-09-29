@@ -1,18 +1,12 @@
-import std/times
-import std/options
 
-import pkg/chronos
+import std/os
+import std/options
+import std/strutils
+
 import pkg/questionable
 import pkg/questionable/results
-import pkg/sqlite3_abi
-from pkg/stew/results as stewResults import isErr
+from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
-
-import std/sequtils
-import ../datastore
-import ./threads/backend
-import ./threads/sqlbackend
-
 import pkg/chronos
 import pkg/taskpools
 
@@ -36,41 +30,35 @@ proc readOnly*(self: SQLiteDatastore): bool =
 
 method has*(self: SQLiteDatastore,
             key: Key): Future[?!bool] {.async.} =
-  return self.db.has(KeyId.new key.id())
+  await self.db.has(key)
 
 method delete*(self: SQLiteDatastore,
                key: Key): Future[?!void] {.async.} =
-  return self.db.delete(KeyId.new key.id())
+  await self.db.delete(key)
 
 method delete*(self: SQLiteDatastore,
                keys: seq[Key]): Future[?!void] {.async.} =
-  let dkeys = keys.mapIt(KeyId.new it.id())
-  return self.db.delete(dkeys)
+  await self.db.delete(keys)
 
 method get*(self: SQLiteDatastore,
             key: Key): Future[?!seq[byte]] {.async.} =
-  self.db.get(KeyId.new key.id()).map() do(d: DataBuffer) -> seq[byte]:
-    d.toSeq()
+  await self.db.get(key)
 
 method put*(self: SQLiteDatastore,
             key: Key,
             data: seq[byte]): Future[?!void] {.async.} =
-  self.db.put(KeyId.new key.id(), DataBuffer.new data)
+  await self.db.put(key, data)
 
 method put*(self: SQLiteDatastore,
             batch: seq[BatchEntry]): Future[?!void] {.async.} =
-  var dbatch: seq[tuple[key: KeyId, data: DataBuffer]]
-  for entry in batch:
-    dbatch.add((KeyId.new entry.key.id(), DataBuffer.new entry.data))
-  self.db.put(dbatch)
+  await self.db.put(batch)
 
 method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
-  self.db.close()
+  await self.db.close()
 
-method queryIter*(self: SQLiteDatastore,
-                  query: Query
-                 ): ?!(iterator(): ?!QueryResponse) =
-
+method query*(self: SQLiteDatastore,
+              q: Query): Future[?!QueryIter] {.async.} =
+  await self.db.query(q)
 
 proc new*(
   T: type SQLiteDatastore,

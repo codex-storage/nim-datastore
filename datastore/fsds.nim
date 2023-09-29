@@ -21,12 +21,6 @@ type
   FSDatastore* = ref object of Datastore
     db: ThreadDatastore[FSBackend[KeyId, DataBuffer]]
 
-proc path*(self: FSDatastore): string =
-  self.db.backend.path()
-
-proc readOnly*(self: FSDatastore): bool =
-  self.db.backend.readOnly()
-
 method has*(self: FSDatastore,
             key: Key): Future[?!bool] {.async.} =
   await self.db.has(key)
