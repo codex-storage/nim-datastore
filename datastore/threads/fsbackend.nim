@@ -8,9 +8,8 @@ from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
 import ./backend
-import ./datastore
 
-export datastore, backend
+export backend
 
 push: {.upraises: [].}
 
@@ -18,7 +17,7 @@ type
   FSBackend*[K, V] = object
     root*: DataBuffer
     ignoreProtected: bool
-    depth: int
+    depth*: int
 
 proc isRootSubdir*(root, path: string): bool =
   path.startsWith(root)

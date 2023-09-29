@@ -13,13 +13,16 @@ import ./threads/fsbackend
 import ./threads/threadproxy
 import ./datastore
 
-export datastore, Taskpool
+export datastore, threadproxy, fsbackend, Taskpool
 
 push: {.upraises: [].}
 
 type
   FSDatastore* = ref object of Datastore
     db: ThreadProxy[FSBackend[KeyId, DataBuffer]]
+
+proc validDepth*(self: FSDatastore, key: Key): bool =
+  key.len <= self.db.backend.depth
 
 method has*(self: FSDatastore,
             key: Key): Future[?!bool] {.async.} =
