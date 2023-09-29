@@ -56,7 +56,7 @@ method close*(self: FSDatastore): Future[?!void] {.async.} =
 proc new*(
   T: type FSDatastore,
   root: string,
-  tp: Taskpool,
+  tp: Taskpool = Taskpool.new(4),
   depth = 2,
   caseSensitive = true,
   ignoreProtected = false

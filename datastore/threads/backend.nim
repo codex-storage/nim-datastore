@@ -5,8 +5,9 @@ import pkg/questionable/results
 
 import ./databuffer
 import ../types
+import ../key
 
-export databuffer, types, SortOrder
+export databuffer, types, key, SortOrder
 
 ## Types for datastore backends.
 ## 

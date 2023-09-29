@@ -33,7 +33,6 @@ var
 
 for i in 1..N:
   suite "Test Basic ThreadDatastore with SQLite " & $i:
-
     var
       ds: SQLiteDatastore
       key = Key.init("/a/b").tryGet()

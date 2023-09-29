@@ -25,7 +25,6 @@ suite "Test Basic SQLiteDatastore":
 
   basicStoreTests(ds, key, bytes, otherBytes)
 
-
 suite "Test Read Only SQLiteDatastore":
   let
     path = currentSourcePath() # get this file's name
