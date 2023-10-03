@@ -14,7 +14,7 @@ requires "nim >= 1.6.14",
          "stew",
          "unittest2",
          "pretty",
-         "https://github.com/elcritch/threading#test-smartptrsleak",
+         "threading#7c033b9135b4baae84e6c89af7548848bba7dc02", # or more recent
          "taskpools",
          "upraises >= 0.1.0 & < 0.2.0",
          "chronicles"
