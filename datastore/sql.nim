@@ -274,6 +274,7 @@ else:
   proc new*(
     T: type SQLiteDatastore,
     path: string,
+    tp: Taskpool = nil,
     readOnly = false): ?!T =
 
     let
@@ -281,14 +282,14 @@ else:
         if readOnly: SQLITE_OPEN_READONLY
         else: SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE
 
-    success T(
-      db: ? SQLiteDsDb.open(path, flags),
+    success SQLiteDatastore(
+      db: ? SQLiteDsDb[string, seq[byte]].open(path, flags),
       readOnly: readOnly)
 
   proc new*(
     T: type SQLiteDatastore,
-    db: SQLiteDsDb): ?!T =
+    db: SQLiteDsDb): ?!SQLiteDatastore =
 
-    success T(
+    success SQLiteDatastore(
       db: db,
       readOnly: db.readOnly)

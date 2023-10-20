@@ -126,110 +126,111 @@ suite "Test Query ThreadDatastore with fsds":
 
   queryTests(ds, false)
 
-for i in 1..N:
-  suite "Test ThreadDatastore cancelations":
+when datastoreUseAsync:
+  for i in 1..N:
+    suite "Test ThreadDatastore cancelations":
 
-    privateAccess(SQLiteDatastore) # expose private fields
-    privateAccess(ThreadProxy) # expose private fields
-    privateAccess(TaskCtx) # expose private fields
+      privateAccess(SQLiteDatastore) # expose private fields
+      privateAccess(ThreadProxy) # expose private fields
+      privateAccess(TaskCtx) # expose private fields
 
-    var sds: SQLiteDatastore
+      var sds: SQLiteDatastore
 
-    setupAll:
-      sds = SQLiteDatastore.new(Memory, tp = taskPool).tryGet()
+      setupAll:
+        sds = SQLiteDatastore.new(Memory, tp = taskPool).tryGet()
 
-    teardown:
-      GC_fullCollect() # run full collect after each test
+      teardown:
+        GC_fullCollect() # run full collect after each test
 
-    test "Should monitor signal and cancel":
-      var
-        signal = ThreadSignalPtr.new().tryGet()
+      test "Should monitor signal and cancel":
+        var
+          signal = ThreadSignalPtr.new().tryGet()
 
-      proc cancelTestTask(ctx: TaskCtx[bool]) {.gcsafe.} =
-        executeTask(ctx):
-          (?!bool).ok(true)
+        proc cancelTestTask(ctx: TaskCtx[bool]) {.gcsafe.} =
+          executeTask(ctx):
+            (?!bool).ok(true)
 
-      let ctx = newTaskCtx(bool, signal=signal)
-      ctx[].cancelled = true
-      dispatchTask(sds.db, signal):
-        sds.db.tp.spawn cancelTestTask(ctx)
+        let ctx = newTaskCtx(bool, signal=signal)
+        ctx[].cancelled = true
+        dispatchTask(sds.db, signal):
+          sds.db.tp.spawn cancelTestTask(ctx)
 
-      check:
-        ctx[].res.isErr == true
-        ctx[].cancelled == true
-        ctx[].running == false
+        check:
+          ctx[].res.isErr == true
+          ctx[].cancelled == true
+          ctx[].running == false
 
-    test "Should cancel future":
+      test "Should cancel future":
 
-      var
-        signal = ThreadSignalPtr.new().tryGet()
-        ms {.global.}: MutexSignal
-        flag {.global.}: Atomic[bool]
-        futFreed {.global.}: Atomic[bool]
-        ready {.global.}: Atomic[bool]
+        var
+          signal = ThreadSignalPtr.new().tryGet()
+          ms {.global.}: MutexSignal
+          flag {.global.}: Atomic[bool]
+          futFreed {.global.}: Atomic[bool]
+          ready {.global.}: Atomic[bool]
 
-      ms.init()
+        ms.init()
 
-      type
-        FutTestObj = object
-          val: int
-        TestValue = object
-        ThreadTestInt = (TestValue, )
+        type
+          FutTestObj = object
+            val: int
+          TestValue = object
+          ThreadTestInt = (TestValue, )
 
-      proc `=destroy`(obj: var TestValue) =
-        # echo "destroy TestObj!"
-        flag.store(true)
+        proc `=destroy`(obj: var TestValue) =
+          # echo "destroy TestObj!"
+          flag.store(true)
 
-      proc `=destroy`(obj: var FutTestObj) =
-        # echo "destroy FutTestObj!"
-        futFreed.store(true)
+        proc `=destroy`(obj: var FutTestObj) =
+          # echo "destroy FutTestObj!"
+          futFreed.store(true)
 
-      proc wait(flag: var Atomic[bool], name = "task") =
-        # echo "wait for " & name & " to be ready..."
-        # defer: echo ""
-        for i in 1..100:
-          # stdout.write(".")
-          if flag.load() == true: 
-            return
-          os.sleep(10)
-        raise newException(Defect, "timeout")
+        proc wait(flag: var Atomic[bool], name = "task") =
+          # echo "wait for " & name & " to be ready..."
+          # defer: echo ""
+          for i in 1..100:
+            # stdout.write(".")
+            if flag.load() == true: 
+              return
+            os.sleep(10)
+          raise newException(Defect, "timeout")
 
-      proc errorTestTask(ctx: TaskCtx[ThreadTestInt]) {.gcsafe, nimcall.} =
-        executeTask(ctx):
-          # echo "task:exec"
-          discard ctx[].signal.fireSync()
-          ready.store(true)
-          ms.wait()
-          echo "task context memory: ", ctx[]
-          (?!ThreadTestInt).ok(default(ThreadTestInt))
+        proc errorTestTask(ctx: TaskCtx[ThreadTestInt]) {.gcsafe, nimcall.} =
+          executeTask(ctx):
+            # echo "task:exec"
+            discard ctx[].signal.fireSync()
+            ready.store(true)
+            ms.wait()
+            echo "task context memory: ", ctx[]
+            (?!ThreadTestInt).ok(default(ThreadTestInt))
 
-      proc runTestTask() {.async.} =
-        let obj = FutTestObj(val: 42)
-        await sleepAsync(1.milliseconds)
+        proc runTestTask() {.async.} =
+          let obj = FutTestObj(val: 42)
+          await sleepAsync(1.milliseconds)
+          try:
+            let ctx = newTaskCtx(ThreadTestInt, signal=signal)
+            dispatchTask(sds.db, signal):
+              sds.db.tp.spawn errorTestTask(ctx)
+              ready.wait()
+              # echo "raise error"
+              raise newException(ValueError, "fake error")
+          finally:
+            # echo "fut FutTestObj: ", obj
+            assert obj.val == 42 # need to force future to keep ref here
         try:
-          let ctx = newTaskCtx(ThreadTestInt, signal=signal)
-          dispatchTask(sds.db, signal):
-            sds.db.tp.spawn errorTestTask(ctx)
-            ready.wait()
-            # echo "raise error"
-            raise newException(ValueError, "fake error")
+          block:
+            await runTestTask()
+        except CatchableError as exc:
+          # echo "caught: ", $exc
+          discard
         finally:
-          # echo "fut FutTestObj: ", obj
-          assert obj.val == 42 # need to force future to keep ref here
-      try:
-        block:
-          await runTestTask()
-      except CatchableError as exc:
-        # echo "caught: ", $exc
-        discard
-      finally:
-        # echo "finish"
-        check ready.load() == true
-        GC_fullCollect()
-        futFreed.wait("futFreed")
-        echo "future freed it's mem!"
-        check futFreed.load() == true
+          # echo "finish"
+          check ready.load() == true
+          GC_fullCollect()
+          futFreed.wait("futFreed")
+          echo "future freed it's mem!"
+          check futFreed.load() == true
 
-        ms.fire()
-        flag.wait("flag")
-        check flag.load() == true
+          ms.fire()
+          flag.wait("flag")
+          check flag.load() == true

@@ -280,6 +280,7 @@ else:
   proc new*(
     T: type FSDatastore,
     root: string,
+    tp: Taskpool = nil,
     depth = 2,
     caseSensitive = true,
     ignoreProtected = false): ?!FSDatastore =
