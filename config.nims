@@ -3,7 +3,7 @@
 --styleCheck:usages
 --styleCheck:error
 
---d:"datastoreUseAsync=false"
+# --d:"datastoreUseAsync=false"
 
 when (NimMajor, NimMinor) == (1, 2):
   switch("hint", "Processing:off")
