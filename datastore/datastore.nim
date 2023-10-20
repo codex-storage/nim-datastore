@@ -8,6 +8,8 @@ import ./types
 
 export key, query, types
 
+const datastoreUseSync* {.booldefine.} = false
+
 push: {.upraises: [].}
 
 type

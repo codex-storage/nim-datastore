@@ -67,6 +67,7 @@ proc new*(
 
   let
     backend = ? newFSBackend[KeyId, DataBuffer](
-      root=root, depth=depth, caseSensitive=caseSensitive, ignoreProtected=ignoreProtected)
+      root = root, depth = depth, caseSensitive = caseSensitive,
+      ignoreProtected = ignoreProtected)
     db = ? ThreadProxy.new(backend, tp = tp)
   success FSDatastore(db: db)
