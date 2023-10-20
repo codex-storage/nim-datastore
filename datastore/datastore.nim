@@ -8,7 +8,7 @@ import ./types
 
 export key, query, types
 
-const datastoreUseSync* {.booldefine.} = false
+const datastoreUseAsync* {.booldefine.} = true
 
 push: {.upraises: [].}
 
