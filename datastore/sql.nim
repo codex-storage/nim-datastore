@@ -78,16 +78,13 @@ else:
   type
     SQLiteDatastore* = ref object of Datastore
       readOnly: bool
-      db: SQLiteDsDb
+      db: SQLiteDsDb[string, seq[byte]]
 
   proc path*(self: SQLiteDatastore): string =
-    self.db.dbPath
+    $self.db.dbPath
 
   proc `readOnly=`*(self: SQLiteDatastore): bool
     {.error: "readOnly should not be assigned".}
-
-  proc timestamp*(t = epochTime()): int64 =
-    (t * 1_000_000).int64
 
   method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
     var
@@ -129,7 +126,7 @@ else:
       bytes: seq[byte]
 
     proc onData(s: RawStmtPtr) =
-      bytes = self.db.getDataCol()
+      bytes = dataCol[seq[byte]](self.db.getDataCol)
 
     if err =? self.db.getStmt.query((key.id), onData).errorOption:
       return failure(err)
