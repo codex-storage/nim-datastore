@@ -134,3 +134,10 @@ jobs:
           nim --version
           echo
           nimble --verbose test
+
+      - name: Build and run tests
+        run: |
+          source "${HOME}/.bash_env"
+          nim --version
+          echo
+          nimble --verbose -d:datastoreUseAsync=false test
