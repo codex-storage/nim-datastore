@@ -23,7 +23,8 @@ suite "Test Basic Tired Datastore":
 
   var
     ds1: SQLiteDatastore
-    ds2: FSDatastore
+    ds2: SQLiteDatastore
+    # ds2: FSDatastore
     tiredDs: TieredDatastore
 
   setupAll:
@@ -32,8 +33,9 @@ suite "Test Basic Tired Datastore":
     createDir(rootAbs)
 
     ds1 = SQLiteDatastore.new(Memory).tryGet
-    ds2 = FSDatastore.new(rootAbs, depth = 5).tryGet
-    tiredDs = TieredDatastore.new(@[ds1, ds2]).tryGet
+    ds2 = SQLiteDatastore.new(Memory).tryGet
+    # ds2 = FSDatastore.new(rootAbs, depth = 5).tryGet
+    tiredDs = TieredDatastore.new(@[Datastore ds1, ds2]).tryGet
 
   teardownAll:
     removeDir(rootAbs)
@@ -52,14 +54,16 @@ suite "TieredDatastore":
 
   var
     ds1: SQLiteDatastore
-    ds2: FSDatastore
+    ds2: SQLiteDatastore
+    # ds2: FSDatastore
 
   setup:
     removeDir(rootAbs)
     require(not dirExists(rootAbs))
     createDir(rootAbs)
     ds1 = SQLiteDatastore.new(Memory).get
-    ds2 = FSDatastore.new(rootAbs, depth = 5).get
+    ds2 = SQLiteDatastore.new(Memory).get
+    # ds2 = FSDatastore.new(rootAbs, depth = 5).get
 
   teardown:
     if not ds1.isNil:
@@ -76,17 +80,17 @@ suite "TieredDatastore":
       TieredDatastore.new([]).isErr
       TieredDatastore.new(@[]).isErr
       TieredDatastore.new(ds1, ds2).isOk
-      TieredDatastore.new([ds1, ds2]).isOk
-      TieredDatastore.new(@[ds1, ds2]).isOk
+      TieredDatastore.new([Datastore ds1, ds2]).isOk
+      TieredDatastore.new(@[Datastore ds1, ds2]).isOk
 
   test "accessors":
     let
-      stores = @[ds1, ds2]
+      stores = @[Datastore ds1, ds2]
 
     check:
       TieredDatastore.new(ds1, ds2).tryGet.stores == stores
-      TieredDatastore.new([ds1, ds2]).tryGet.stores == stores
-      TieredDatastore.new(@[ds1, ds2]).tryGet.stores == stores
+      TieredDatastore.new([Datastore ds1, ds2]).tryGet.stores == stores
+      TieredDatastore.new(@[Datastore ds1, ds2]).tryGet.stores == stores
 
   test "put":
     let

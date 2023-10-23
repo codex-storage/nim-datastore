@@ -3,8 +3,9 @@ import std/options
 import pkg/asynctest
 import pkg/chronos
 import pkg/stew/results
+import pkg/questionable/results
 
-import pkg/datastore
+import pkg/datastore/datastore
 
 proc basicStoreTests*(
   ds: Datastore,
@@ -56,3 +57,9 @@ proc basicStoreTests*(
 
     for k in batch:
       check: not (await ds.has(k)).tryGet
+
+  test "handle missing key":
+    let key = Key.init("/missing/key").tryGet()
+
+    expect(DatastoreKeyNotFound):
+      discard (await ds.get(key)).tryGet() # non existing key

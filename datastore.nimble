@@ -6,14 +6,18 @@ author        = "Status Research & Development GmbH"
 description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
 
-requires "nim >= 1.2.0",
+requires "nim >= 1.6.14",
          "asynctest >= 0.3.1 & < 0.4.0",
-         "chronos",
-         "questionable >= 0.10.3 & < 0.11.0",
+         "chronos#0277b65be2c7a365ac13df002fba6e172be55537",
+         "questionable#head",
          "sqlite3_abi",
          "stew",
          "unittest2",
-         "upraises >= 0.1.0 & < 0.2.0"
+         "pretty",
+         "threading#7c033b9135b4baae84e6c89af7548848bba7dc02", # or more recent
+         "taskpools",
+         "upraises >= 0.1.0 & < 0.2.0",
+         "chronicles"
 
 task coverage, "generates code coverage report":
   var (output, exitCode) = gorgeEx("which lcov")

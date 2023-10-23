@@ -4,36 +4,37 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/upraises
 
+import ../threads/backend
 import ./sqliteutils
 
 export sqliteutils
 
 type
   BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
-  BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
+  BoundDataCol* = proc (): DataBuffer {.closure, gcsafe, upraises: [].}
   BoundTimestampCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
 
   # feels odd to use `void` for prepared statements corresponding to SELECT
   # queries but it fits with the rest of the SQLite wrapper adapted from
   # status-im/nwaku, at least in its current form in ./sqlite
-  ContainsStmt* = SQLiteStmt[(string), void]
-  DeleteStmt* = SQLiteStmt[(string), void]
-  GetStmt* = SQLiteStmt[(string), void]
-  PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
+  ContainsStmt*[K] = SQLiteStmt[(K), void]
+  DeleteStmt*[K] = SQLiteStmt[(K), void]
+  GetStmt*[K] = SQLiteStmt[(K), void]
+  PutStmt*[K, V] = SQLiteStmt[(K, V, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
   RollbackStmt* = NoParamsStmt
 
-  SQLiteDsDb* = object
+  SQLiteDsDb*[K: DbKey, V: DbVal] = object
     readOnly*: bool
-    dbPath*: string
-    containsStmt*: ContainsStmt
-    deleteStmt*: DeleteStmt
+    dbPath*: DataBuffer
+    containsStmt*: ContainsStmt[K]
+    deleteStmt*: DeleteStmt[K]
     env*: SQLite
-    getDataCol*: BoundDataCol
-    getStmt*: GetStmt
-    putStmt*: PutStmt
+    getDataCol*: (RawStmtPtr, int)
+    getStmt*: GetStmt[K]
+    putStmt*: PutStmt[K,V]
     beginStmt*: BeginStmt
     endStmt*: EndStmt
     rollbackStmt*: RollbackStmt
@@ -156,37 +157,38 @@ proc idCol*(
   return proc (): string =
     $sqlite3_column_text_not_null(s, index.cint)
 
-proc dataCol*(
-  s: RawStmtPtr,
-  index: int): BoundDataCol =
+proc dataCol*[V: DbVal](data: (RawStmtPtr, int)): V =
+
+  let s = data[0]
+  let index = data[1]
 
   checkColMetadata(s, index, DataColName)
 
-  return proc (): seq[byte] =
+  let
+    i = index.cint
+    blob = sqlite3_column_blob(s, i)
+
+  # detect out-of-memory error
+  # see the conversion table and final paragraph of:
+  # https://www.sqlite.org/c3ref/column_blob.html
+  # see also https://www.sqlite.org/rescode.html
+
+  # the "data" column can be NULL so in order to detect an out-of-memory error
+  # it is necessary to check that the result is a null pointer and that the
+  # result code is an error code
+  if blob.isNil:
     let
-      i = index.cint
-      blob = sqlite3_column_blob(s, i)
+      v = sqlite3_errcode(sqlite3_db_handle(s))
 
-    # detect out-of-memory error
-    # see the conversion table and final paragraph of:
-    # https://www.sqlite.org/c3ref/column_blob.html
-    # see also https://www.sqlite.org/rescode.html
+    if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
+      raise (ref Defect)(msg: $sqlite3_errstr(v))
 
-    # the "data" column can be NULL so in order to detect an out-of-memory error
-    # it is necessary to check that the result is a null pointer and that the
-    # result code is an error code
-    if blob.isNil:
-      let
-        v = sqlite3_errcode(sqlite3_db_handle(s))
+  let
+    dataLen = sqlite3_column_bytes(s, i)
+    dataBytes = cast[ptr UncheckedArray[byte]](blob)
 
-      if not (v in [SQLITE_OK, SQLITE_ROW, SQLITE_DONE]):
-        raise (ref Defect)(msg: $sqlite3_errstr(v))
-
-    let
-      dataLen = sqlite3_column_bytes(s, i)
-      dataBytes = cast[ptr UncheckedArray[byte]](blob)
-
-    @(toOpenArray(dataBytes, 0, dataLen - 1))
+  # copy data out, since sqlite will free it
+  V.toVal(toOpenArray(dataBytes, 0, dataLen - 1))
 
 proc timestampCol*(
   s: RawStmtPtr,
@@ -211,7 +213,7 @@ proc getDBFilePath*(path: string): ?!string =
   except CatchableError as exc:
     return failure(exc.msg)
 
-proc close*(self: SQLiteDsDb) =
+proc close*[K, V](self: SQLiteDsDb[K, V]) =
   self.containsStmt.dispose
   self.getStmt.dispose
   self.beginStmt.dispose
@@ -226,10 +228,10 @@ proc close*(self: SQLiteDsDb) =
 
   self.env.dispose
 
-proc open*(
-  T: type SQLiteDsDb,
+proc open*[K,V](
+  T: type SQLiteDsDb[K,V],
   path = Memory,
-  flags = SQLITE_OPEN_READONLY): ?!SQLiteDsDb =
+  flags = SQLITE_OPEN_READONLY): ?!SQLiteDsDb[K, V] =
 
   # make it optional to enable WAL with it enabled being the default?
 
@@ -262,10 +264,10 @@ proc open*(
   checkExec(pragmaStmt)
 
   var
-    containsStmt: ContainsStmt
-    deleteStmt: DeleteStmt
-    getStmt: GetStmt
-    putStmt: PutStmt
+    containsStmt: ContainsStmt[K]
+    deleteStmt: DeleteStmt[K]
+    getStmt: GetStmt[K]
+    putStmt: PutStmt[K,V]
     beginStmt: BeginStmt
     endStmt: EndStmt
     rollbackStmt: RollbackStmt
@@ -273,10 +275,10 @@ proc open*(
   if not readOnly:
     checkExec(env.val, CreateStmtStr)
 
-    deleteStmt = ? DeleteStmt.prepare(
+    deleteStmt = ? DeleteStmt[K].prepare(
       env.val, DeleteStmtStr, SQLITE_PREPARE_PERSISTENT)
 
-    putStmt = ? PutStmt.prepare(
+    putStmt = ? PutStmt[K,V].prepare(
       env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   beginStmt = ? BeginStmt.prepare(
@@ -288,10 +290,10 @@ proc open*(
   rollbackStmt = ? RollbackStmt.prepare(
     env.val, RollbackTransactionStr, SQLITE_PREPARE_PERSISTENT)
 
-  containsStmt = ? ContainsStmt.prepare(
+  containsStmt = ? ContainsStmt[K].prepare(
     env.val, ContainsStmtStr, SQLITE_PREPARE_PERSISTENT)
 
-  getStmt = ? GetStmt.prepare(
+  getStmt = ? GetStmt[K].prepare(
     env.val, GetStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   # if a readOnly/existing database does not satisfy the expected schema
@@ -299,11 +301,11 @@ proc open*(
   # "SQL logic error"
 
   let
-    getDataCol = dataCol(RawStmtPtr(getStmt), GetStmtDataCol)
+    getDataCol = (RawStmtPtr(getStmt), GetStmtDataCol)
 
-  success T(
+  success SQLiteDsDb[K,V](
     readOnly: readOnly,
-    dbPath: path,
+    dbPath: DataBuffer.new path,
     containsStmt: containsStmt,
     deleteStmt: deleteStmt,
     env: env.release,

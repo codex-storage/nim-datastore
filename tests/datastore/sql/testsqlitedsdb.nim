@@ -7,7 +7,7 @@ import pkg/stew/byteutils
 import pkg/sqlite3_abi
 import pkg/datastore/key
 import pkg/datastore/sql/sqlitedsdb
-import pkg/datastore/sql/sqliteds
+import pkg/datastore/threads/sqlbackend
 
 suite "Test Open SQLite Datastore DB":
   let
@@ -28,7 +28,7 @@ suite "Test Open SQLite Datastore DB":
 
   test "Should create and open datastore DB":
     let
-      dsDb = SQLiteDsDb.open(
+      dsDb = SQLiteDsDb[string, seq[byte]].open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
 
@@ -40,7 +40,7 @@ suite "Test Open SQLite Datastore DB":
 
   test "Should open existing DB":
     let
-      dsDb = SQLiteDsDb.open(
+      dsDb = SQLiteDsDb[string, seq[byte]].open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
 
@@ -55,7 +55,7 @@ suite "Test Open SQLite Datastore DB":
       fileExists(dbPathAbs)
 
     let
-      dsDb = SQLiteDsDb.open(
+      dsDb = SQLiteDsDb[string, seq[byte]].open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READONLY).tryGet()
 
@@ -66,7 +66,7 @@ suite "Test Open SQLite Datastore DB":
     removeDir(basePathAbs)
     check:
       not fileExists(dbPathAbs)
-      SQLiteDsDb.open(path = dbPathAbs).isErr
+      SQLiteDsDb[string, seq[byte]].open(path = dbPathAbs).isErr
 
 suite "Test SQLite Datastore DB operations":
   let
@@ -81,19 +81,19 @@ suite "Test SQLite Datastore DB operations":
     otherData = "some other data".toBytes
 
   var
-    dsDb: SQLiteDsDb
-    readOnlyDb: SQLiteDsDb
+    dsDb: SQLiteDsDb[string, seq[byte]]
+    readOnlyDb: SQLiteDsDb[string, seq[byte]]
 
   setupAll:
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
     createDir(basePathAbs)
 
-    dsDb = SQLiteDsDb.open(
+    dsDb = SQLiteDsDb[string, seq[byte]].open(
       path = dbPathAbs,
       flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
 
-    readOnlyDb = SQLiteDsDb.open(
+    readOnlyDb = SQLiteDsDb[string, seq[byte]].open(
       path = dbPathAbs,
       flags = SQLITE_OPEN_READONLY).tryGet()
 
@@ -111,12 +111,10 @@ suite "Test SQLite Datastore DB operations":
     dsDb.putStmt.exec((key.id, data, timestamp())).tryGet()
 
   test "Should select key":
-    let
-      dataCol = dsDb.getDataCol
 
     var bytes: seq[byte]
     proc onData(s: RawStmtPtr) =
-      bytes = dataCol()
+      bytes = dataCol[seq[byte]](dsDb.getDataCol)
 
     check:
       dsDb.getStmt.query((key.id), onData).tryGet()
@@ -129,12 +127,10 @@ suite "Test SQLite Datastore DB operations":
     dsDb.putStmt.exec((key.id, otherData, timestamp())).tryGet()
 
   test "Should select updated key":
-    let
-      dataCol = dsDb.getDataCol
 
     var bytes: seq[byte]
     proc onData(s: RawStmtPtr) =
-      bytes = dataCol()
+      bytes = dataCol[seq[byte]](dsDb.getDataCol)
 
     check:
       dsDb.getStmt.query((key.id), onData).tryGet()

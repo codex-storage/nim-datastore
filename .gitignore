@@ -9,3 +9,6 @@ coverage
 datastore.nims
 nimcache
 TODO
+nim.cfg
+nimble.develop
+nimble.paths

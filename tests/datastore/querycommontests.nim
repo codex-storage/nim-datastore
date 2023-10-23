@@ -1,11 +1,4 @@
-import std/options
-import std/sequtils
-from std/algorithm import sort, reversed
 
-import pkg/asynctest
-import pkg/chronos
-import pkg/stew/results
-import pkg/stew/byteutils
 
 import pkg/datastore
 
@@ -36,9 +29,14 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = block:
+        var res: seq[QueryResponse]
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
+          res.add((key, val))
+        res
 
     check:
       res.len == 3
@@ -63,9 +61,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+          cnt.inc
+
+        res
 
     check:
       res.len == 3
@@ -90,9 +99,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     let
       iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+          cnt.inc
+
+        res
 
     check:
       res.len == 2
@@ -117,9 +137,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       iter = (await ds.query(q)).tryGet
 
     var
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
+      res = block:
+        var
+          res: seq[QueryResponse]
+          cnt = 0
+
+        for pair in iter:
+          let (key, val) = (await pair).tryGet
+          if key.isNone:
+            break
+
+          res.add((key, val))
+          cnt.inc
+
+        res
 
     res.sort do (a, b: QueryResponse) -> int:
       cmp(a.key.get.id, b.key.get.id)
@@ -152,9 +183,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+            cnt.inc
+
+          res
 
       check:
         res.len == 10
@@ -175,9 +217,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+            cnt.inc
+
+          res
 
       check:
         res.len == 10
@@ -198,9 +251,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       let
         iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+            cnt.inc
+
+          res
 
       check:
         res.len == 5
@@ -237,9 +301,20 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
       kvs = kvs.reversed
       let
         iter = (await ds.query(q)).tryGet
-        res = (await allFinished(toSeq(iter)))
-          .mapIt( it.read.tryGet )
-          .filterIt( it.key.isSome )
+        res = block:
+          var
+            res: seq[QueryResponse]
+            cnt = 0
+
+          for pair in iter:
+            let (key, val) = (await pair).tryGet
+            if key.isNone:
+              break
+
+            res.add((key, val))
+            cnt.inc
+
+          res
 
       check:
         res.len == 100

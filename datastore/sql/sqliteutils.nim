@@ -3,6 +3,8 @@ import pkg/questionable/results
 import pkg/sqlite3_abi
 import pkg/upraises
 
+import ../threads/backend
+
 export sqlite3_abi
 
 # Adapted from:
@@ -20,7 +22,7 @@ type
   AutoDisposed*[T: ptr|ref] = object
     val*: T
 
-  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
+  DataProc* = proc(s: RawStmtPtr) {.gcsafe.}
 
   NoParams* = tuple # empty tuple
 
@@ -44,13 +46,14 @@ proc bindParam(
   n: int,
   val: auto): cint =
 
-  when val is openArray[byte]|seq[byte]:
+  when val is openArray[byte]|seq[byte]|DataBuffer:
     if val.len > 0:
       # `SQLITE_TRANSIENT` "indicate[s] that the object is to be copied prior
       # to the return from sqlite3_bind_*(). The object and pointer to it
       # must remain valid until then. SQLite will then manage the lifetime of
       # its private copy."
-      sqlite3_bind_blob(s, n.cint, unsafeAddr val[0], val.len.cint,
+      var val = val
+      sqlite3_bind_blob(s, n.cint, addr val[0], val.len.cint,
         SQLITE_TRANSIENT)
     else:
       sqlite3_bind_null(s, n.cint)
@@ -66,7 +69,10 @@ proc bindParam(
     # to the return from sqlite3_bind_*(). The object and pointer to it must
     # remain valid until then. SQLite will then manage the lifetime of its
     # private copy."
-    sqlite3_bind_text(s, n.cint, val.cstring, -1.cint, SQLITE_TRANSIENT)
+    sqlite3_bind_text(s, n.cint, val.cstring, val.len().cint, SQLITE_TRANSIENT)
+  elif val is KeyId:
+    # same as previous
+    sqlite3_bind_text(s, n.cint, cast[cstring](baseAddr val.data), val.data.len().cint, SQLITE_TRANSIENT)
   else:
     {.fatal: "Please add support for the '" & $typeof(val) & "' type".}
 
