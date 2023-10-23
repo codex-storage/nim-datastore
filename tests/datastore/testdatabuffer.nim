@@ -45,7 +45,7 @@ proc thread2(val: int) {.thread.} =
       echo "thread2: receiving "
       let msg: DataBuffer = shareVal
       echo "thread2: received: ", msg
-      check string.fromBytes(msg.toSeq()) == "hello world"
+      check string.fromBytes(msg.toSequence()) == "hello world"
       # os.sleep(100)
 
 proc runBasicTest() =
@@ -104,10 +104,10 @@ suite "Share buffer test":
     check Key.init($a).tryGet == k1
 
   test "seq conversion":
-    check string.fromBytes(a.toSeq()) == "/a/b"
+    check string.fromBytes(a.toSequence()) == "/a/b"
 
   test "seq conversion":
-    check a.toSeq() == "/a/b".toBytes
+    check a.toSequence() == "/a/b".toBytes
 
   test "basic null terminate test":
     let cstr = DataBuffer.new("test", {dbNullTerminate})

@@ -242,7 +242,7 @@ proc get*[BT](self: ThreadProxy[BT],
     let key = KeyId.new key.id()
     self.tp.spawn getTask(ctx, ds, key)
 
-  return ctx[].res.toRes(v => v.toSeq())
+  return ctx[].res.toRes(v => v.toSequence())
 
 proc close*[BT](self: ThreadProxy[BT]): Future[?!void] {.async.} =
   await self.semaphore.closeAll()
@@ -352,7 +352,7 @@ proc query*[BT](self: ThreadProxy[BT],
         else:
           let qres = ctx[].res.get()
           let key = qres.key.map(proc (k: KeyId): Key = k.toKey())
-          let data = qres.data.toSeq()
+          let data = qres.data.toSequence()
           return (?!QueryResponse).ok((key: key, data: data))
       except CancelledError as exc:
         trace "Cancelling thread future!", exc = exc.msg
