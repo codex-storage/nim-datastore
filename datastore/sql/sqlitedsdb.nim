@@ -1,4 +1,5 @@
 import std/os
+import std/strformat
 
 import pkg/questionable
 import pkg/questionable/results
@@ -10,6 +11,7 @@ export sqliteutils
 
 type
   BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
+  BoundVersionCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
   BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
   BoundTimestampCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
 
@@ -19,8 +21,13 @@ type
   ContainsStmt* = SQLiteStmt[(string), void]
   DeleteStmt* = SQLiteStmt[(string), void]
   GetStmt* = SQLiteStmt[(string), void]
-  PutStmt* = SQLiteStmt[(string, seq[byte], int64), void]
+  PutStmt* = SQLiteStmt[(string, seq[byte], int64, int64), void]
   QueryStmt* = SQLiteStmt[(string), void]
+  GetVersionedStmt* = SQLiteStmt[(string), void]
+  InsertVersionedStmt* = SQLiteStmt[(string, seq[byte], int64, int64), void]
+  UpdateVersionedStmt* = SQLiteStmt[(seq[byte], int64, int64, string, int64), void]
+  DeleteVersionedStmt* = SQLiteStmt[(string, int64), void]
+  GetChangesStmt* = NoParamsStmt
   BeginStmt* = NoParamsStmt
   EndStmt* = NoParamsStmt
   RollbackStmt* = NoParamsStmt
@@ -34,6 +41,11 @@ type
     getDataCol*: BoundDataCol
     getStmt*: GetStmt
     putStmt*: PutStmt
+    getVersionedStmt*: GetVersionedStmt
+    updateVersionedStmt*: UpdateVersionedStmt
+    insertVersionedStmt*: InsertVersionedStmt
+    deleteVersionedStmt*: DeleteVersionedStmt
+    getChangesStmt*: GetChangesStmt
     beginStmt*: BeginStmt
     endStmt*: EndStmt
     rollbackStmt*: RollbackStmt
@@ -44,10 +56,12 @@ const
 
   IdColName* = "id"
   DataColName* = "data"
+  VersionColName* = "version"
   TimestampColName* = "timestamp"
 
   IdColType = "TEXT"
   DataColType = "BLOB"
+  VersionColType = "INTEGER"
   TimestampColType = "INTEGER"
 
   Memory* = ":memory:"
@@ -69,6 +83,7 @@ const
     CREATE TABLE IF NOT EXISTS """ & TableName & """ (
       """ & IdColName & """ """ & IdColType & """ NOT NULL PRIMARY KEY,
       """ & DataColName & """ """ & DataColType & """,
+      """ & VersionColName & """ """ & VersionColType & """ NOT NULL,
       """ & TimestampColName & """ """ & TimestampColType & """ NOT NULL
     ) WITHOUT ROWID;
   """
@@ -89,8 +104,9 @@ const
     REPLACE INTO """ & TableName & """ (
       """ & IdColName & """,
       """ & DataColName & """,
+      """ & VersionColName & """,
       """ & TimestampColName & """
-    ) VALUES (?, ?, ?)
+    ) VALUES (?, ?, ?, ?)
   """
 
   QueryStmtIdStr* = """
@@ -117,6 +133,43 @@ const
 
   QueryStmtOrderDescending* = """
     ORDER BY """ & IdColName & """ DESC
+  """
+
+  GetVersionedStmtStr* = fmt"""
+    SELECT {DataColName}, {VersionColName} FROM {TableName}
+    WHERE {IdColName} = ?
+  """
+
+  GetVersionedStmtDataCol* = 0
+  GetVersionedStmtVersionCol* = 1
+
+  InsertVersionedStmtStr* = fmt"""
+    INSERT INTO {TableName}
+    (
+      {IdColName},
+      {DataColName},
+      {VersionColName},
+      {TimestampColName}
+    )
+    VALUES (?, ?, ?, ?)
+  """
+
+  UpdateVersionedStmtStr* = fmt"""
+    UPDATE {TableName}
+    SET
+      {DataColName} = ?,
+      {VersionColName} = ?,
+      {TimestampColName} = ?
+    WHERE {IdColName} = ? AND {VersionColName} = ?
+  """
+
+  DeleteVersionedStmtStr* = fmt"""
+    DELETE FROM {TableName}
+    WHERE {IdColName} = ? AND {VersionColName} = ?
+  """
+
+  GetChangesStmtStr* = fmt"""
+    SELECT changes()
   """
 
   BeginTransactionStr* = """
@@ -197,6 +250,21 @@ proc timestampCol*(
   return proc (): int64 =
     sqlite3_column_int64(s, index.cint)
 
+proc versionCol*(
+  s: RawStmtPtr,
+  index: int): BoundVersionCol =
+
+  checkColMetadata(s, index, VersionColName)
+
+  return proc (): int64 =
+    sqlite3_column_int64(s, index.cint)
+
+proc changesCol*(
+  s: RawStmtPtr,
+  index: int): BoundVersionCol =
+  return proc (): int64 =
+    sqlite3_column_int64(s, index.cint)
+
 proc getDBFilePath*(path: string): ?!string =
   try:
     let
@@ -217,6 +285,11 @@ proc close*(self: SQLiteDsDb) =
   self.beginStmt.dispose
   self.endStmt.dispose
   self.rollbackStmt.dispose
+  self.getVersionedStmt.dispose
+  self.updateVersionedStmt.dispose
+  self.insertVersionedStmt.dispose
+  self.deleteVersionedStmt.dispose
+  self.getChangesStmt.dispose
 
   if not RawStmtPtr(self.deleteStmt).isNil:
     self.deleteStmt.dispose
@@ -266,6 +339,11 @@ proc open*(
     deleteStmt: DeleteStmt
     getStmt: GetStmt
     putStmt: PutStmt
+    getVersionedStmt: GetVersionedStmt
+    updateVersionedStmt: UpdateVersionedStmt
+    insertVersionedStmt: InsertVersionedStmt
+    deleteVersionedStmt: DeleteVersionedStmt
+    getChangesStmt: GetChangesStmt
     beginStmt: BeginStmt
     endStmt: EndStmt
     rollbackStmt: RollbackStmt
@@ -278,6 +356,18 @@ proc open*(
 
     putStmt = ? PutStmt.prepare(
       env.val, PutStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+    insertVersionedStmt = ? InsertVersionedStmt.prepare(
+      env.val, InsertVersionedStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+    updateVersionedStmt = ? UpdateVersionedStmt.prepare(
+      env.val, UpdateVersionedStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+    deleteVersionedStmt = ? DeleteVersionedStmt.prepare(
+      env.val, DeleteVersionedStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+    getChangesStmt = ? GetChangesStmt.prepare(
+      env.val, GetChangesStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   beginStmt = ? BeginStmt.prepare(
     env.val, BeginTransactionStr, SQLITE_PREPARE_PERSISTENT)
@@ -293,6 +383,9 @@ proc open*(
 
   getStmt = ? GetStmt.prepare(
     env.val, GetStmtStr, SQLITE_PREPARE_PERSISTENT)
+
+  getVersionedStmt = ? GetVersionedStmt.prepare(
+    env.val, GetVersionedStmtStr, SQLITE_PREPARE_PERSISTENT)
 
   # if a readOnly/existing database does not satisfy the expected schema
   # `pepare()` will fail and `new` will return an error with message
@@ -310,6 +403,11 @@ proc open*(
     getStmt: getStmt,
     getDataCol: getDataCol,
     putStmt: putStmt,
+    getVersionedStmt: getVersionedStmt,
+    updateVersionedStmt: updateVersionedStmt,
+    insertVersionedStmt: insertVersionedStmt,
+    deleteVersionedStmt: deleteVersionedStmt,
+    getChangesStmt: getChangesStmt,
     beginStmt: beginStmt,
     endStmt: endStmt,
     rollbackStmt: rollbackStmt)
