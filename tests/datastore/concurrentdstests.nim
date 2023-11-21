@@ -2,6 +2,7 @@ import std/options
 import std/sugar
 import std/random
 import std/sequtils
+import std/strutils
 
 import pkg/asynctest
 import pkg/chronos
@@ -79,18 +80,45 @@ proc concurrentStoreTests*(
   test "should put value":
     (await ds.delete(key)).tryGet()
 
-    (await ds.modify(key, (_: ?seq[byte]) => @(123.uint64.toBytes).some)).tryGet
+    proc returningSomeValue(_: ?seq[byte]): ?seq[byte] =
+      return @(123.uint64.toBytes).some
+
+    (await ds.modify(key, returningSomeValue)).tryGet
 
     let finalValue = uint64.fromBytes((await ds.get(key)).tryGet)
 
     check finalValue.int == 123
 
   test "should delete value":
-    let key = Key.init(Key.random).tryGet
     (await ds.put(key, @(0.uint64.toBytes))).tryGet
 
-    (await ds.modify(key, (_: ?seq[byte]) => seq[byte].none)).tryGet
+    proc returningNone(_: ?seq[byte]): ?seq[byte] =
+      return seq[byte].none
+
+    (await ds.modify(key, returningNone)).tryGet
 
     let hasKey = (await ds.has(key)).tryGet
 
     check not hasKey
+
+  test "should return correct auxillary value":
+    proc returningAux(_: ?seq[byte]): (?seq[byte], seq[byte]) =
+      return (seq[byte].none, @[byte 123])
+
+    let result = await ds.modifyGet(key, returningAux)
+
+    check:
+      result == success(@[byte 123])
+
+  test "should propagate exception as failure":
+    proc throwing(a: ?seq[byte]): ?seq[byte] =
+      raise newException(CatchableError, "some error msg")
+
+    let result = await ds.modify(key, throwing)
+
+    if err =? result.errorOption:
+      check:
+        err.msg.contains("some error msg")
+    else:
+      # result was not an error
+      fail()
