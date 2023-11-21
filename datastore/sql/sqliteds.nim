@@ -56,8 +56,8 @@ method modify*(self: SQLiteDatastore, key: Key, fn: ModifyAsync): Future[?!void]
       return failure("Error running modify function: " & err.msg)
 
     if maybeCurrentData == maybeNewData:
-      # no need to change any stored value
-      break;
+      # no need to change currently stored value
+      break
 
     if err =? self.db.beginStmt.exec().errorOption:
       return failure(err)
