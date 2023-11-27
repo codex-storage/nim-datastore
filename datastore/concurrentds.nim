@@ -53,13 +53,18 @@ method modifyGet*(self: ConcurrentDatastore, key: Key, fn: ModifyGetAsync): Futu
   ## This method first reads a value stored under the `key`, if such value exists it's wrapped into `some`
   ## and passed as the only arg to the `fn`, otherwise `none` is passed.
   ##
-  ## When `fn` returns `some`, returned value is put into the store, but only if it's different than
-  ## the existing value, otherwise nothing happens.
-  ## When `fn` returns `none` existing value is deleted from the store, if no value existed before
-  ## nothing happens.
+  ## Table below presents four possibilities of execution. `curr` represents a value passed to `fn`,
+  ## while `fn(curr)` represents a value returned by calling `fn` (auxillary value is omitted for clarity).
   ##
-  ## Note that `fn` can be called multiple times (when concurrent modify of the value was detected). Only the
-  ## last auxillary value is returned.
+  ## | curr    | fn(curr) | action                       |
+  ## |---------|----------|------------------------------|
+  ## | none    | none     | no action                    |
+  ## | none    | some(v)  | insert v                     |
+  ## | some(u) | none     | delete u                     |
+  ## | some(u) | some(v)  | replace u with v (if u != v) |
+  ##
+  ## Note that `fn` can be called multiple times (when concurrent modification was detected). In such case
+  ## only the last auxillary value is returned.
   ##
 
   raiseAssert("Not implemented!")
