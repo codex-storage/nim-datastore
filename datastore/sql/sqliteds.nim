@@ -31,7 +31,7 @@ proc timestamp*(t = epochTime()): int64 =
 
 const initVersion* = 0.int64
 
-method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGetAsync): Future[?!seq[byte]] {.async.} =
+method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async.} =
   var
     retriesLeft = 100 # allows reasonable concurrency, avoids infinite loop
     aux: seq[byte]
@@ -117,28 +117,12 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGetAsync): Future[?
 
   return success(aux)
 
-method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async.} =
-  proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
-    return fn(maybeValue)
 
-  return await self.modifyGet(key, wrappedFn)
-
-method modify*(self: SQLiteDatastore, key: Key, fn: ModifyAsync): Future[?!void] {.async.} =
+method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async.} =
   proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
     let res = await fn(maybeValue)
     let ignoredAux = newSeq[byte]()
     return (res, ignoredAux)
-
-  if err =? (await self.modifyGet(key, wrappedFn)).errorOption:
-    return failure(err)
-  else:
-    return success()
-
-method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async.} =
-  proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
-    let maybeNewValue = fn(maybeValue)
-    let ignoredAux = newSeq[byte]()
-    return (maybeNewValue, ignoredAux)
 
   if err =? (await self.modifyGet(key, wrappedFn)).errorOption:
     return failure(err)

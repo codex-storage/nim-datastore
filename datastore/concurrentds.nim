@@ -14,39 +14,18 @@ push: {.upraises: [].}
 
 type
   Function*[T, U] = proc(value: T): U {.upraises: [CatchableError], gcsafe, closure.}
-  Modify* = Function[?seq[byte], ?seq[byte]]
-  ModifyGet* = Function[?seq[byte], (?seq[byte], seq[byte])]
-  ModifyAsync* = Function[?seq[byte], Future[?seq[byte]]]
-  ModifyGetAsync* = Function[?seq[byte], Future[(?seq[byte], seq[byte])]]
+  Modify* = Function[?seq[byte], Future[?seq[byte]]]
+  ModifyGet* = Function[?seq[byte], Future[(?seq[byte], seq[byte])]]
 
 method modify*(self: ConcurrentDatastore, key: Key, fn: Modify): Future[?!void] {.base, locks: "unknown".} =
   ## Concurrently safe way of modifying the value associated with the `key`.
   ##
-  ## Same as `modifyGet` with `fn: ModifyGetAsync` argument, but this takes non-async `fn` that doesn't
-  ## produce any auxillary value.
-  ##
-
-  raiseAssert("Not implemented!")
-
-method modify*(self: ConcurrentDatastore, key: Key, fn: ModifyAsync): Future[?!void] {.base, locks: "unknown".} =
-  ## Concurrently safe way of modifying the value associated with the `key`.
-  ##
-  ## Same as `modifyGet` with `fn: ModifyGetAsync` argument, but this takes `fn` that doesn't produce
-  ## any auxillary value.
+  ## Same as `modifyGet`, but this takes `fn` that doesn't produce any auxillary value.
   ##
 
   raiseAssert("Not implemented!")
 
 method modifyGet*(self: ConcurrentDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.base, locks: "unknown".} =
-  ## Concurrently safe way of updating value associated with the `key`. Returns auxillary value on
-  ## successful update.
-  ##
-  ## Same as `modifyGet` with `fn: ModifyGetAsync` argument, but this takes non-async `fn`.
-  ##
-
-  raiseAssert("Not implemented!")
-
-method modifyGet*(self: ConcurrentDatastore, key: Key, fn: ModifyGetAsync): Future[?!seq[byte]] {.base, locks: "unknown".} =
   ## Concurrently safe way of updating value associated with the `key`. Returns auxillary value on
   ## successful update.
   ##

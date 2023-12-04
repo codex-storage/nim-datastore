@@ -80,7 +80,7 @@ proc concurrentStoreTests*(
   test "should put value":
     (await ds.delete(key)).tryGet()
 
-    proc returningSomeValue(_: ?seq[byte]): ?seq[byte] =
+    proc returningSomeValue(_: ?seq[byte]): Future[?seq[byte]] {.async.} =
       return @(123.uint64.toBytes).some
 
     (await ds.modify(key, returningSomeValue)).tryGet
@@ -92,7 +92,7 @@ proc concurrentStoreTests*(
   test "should delete value":
     (await ds.put(key, @(0.uint64.toBytes))).tryGet
 
-    proc returningNone(_: ?seq[byte]): ?seq[byte] =
+    proc returningNone(_: ?seq[byte]): Future[?seq[byte]] {.async.} =
       return seq[byte].none
 
     (await ds.modify(key, returningNone)).tryGet
@@ -102,7 +102,7 @@ proc concurrentStoreTests*(
     check not hasKey
 
   test "should return correct auxillary value":
-    proc returningAux(_: ?seq[byte]): (?seq[byte], seq[byte]) =
+    proc returningAux(_: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
       return (seq[byte].none, @[byte 123])
 
     let result = await ds.modifyGet(key, returningAux)
@@ -111,7 +111,7 @@ proc concurrentStoreTests*(
       result == success(@[byte 123])
 
   test "should propagate exception as failure":
-    proc throwing(a: ?seq[byte]): ?seq[byte] =
+    proc throwing(a: ?seq[byte]): Future[?seq[byte]] {.async.} =
       raise newException(CatchableError, "some error msg")
 
     let result = await ds.modify(key, throwing)
