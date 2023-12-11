@@ -54,7 +54,7 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
     try:
       (maybeNewData, aux) = await fn(maybeCurrentData)
     except CatchableError as err:
-      return failure("Error running modify function: " & err.msg)
+      return failure(err)
 
     if maybeCurrentData == maybeNewData:
       # no need to change currently stored value
