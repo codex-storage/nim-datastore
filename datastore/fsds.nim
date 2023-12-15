@@ -154,7 +154,7 @@ method put*(
 
   return success()
 
-proc dirWalker(path: string): iterator: string {.gcsafe.} =
+proc dirWalker(path: string): (iterator: string {.raises: [Defect], gcsafe.}) =
   return iterator(): string =
     try:
       for p in path.walkDirRec(yieldFilter = {pcFile}, relative = true):
