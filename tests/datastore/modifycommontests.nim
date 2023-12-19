@@ -10,11 +10,12 @@ import pkg/stew/endians2
 import pkg/questionable
 import pkg/questionable/results
 
-import pkg/datastore/concurrentds
+import pkg/datastore
 
-proc concurrentStoreTests*(
-  ds: ConcurrentDatastore,
-  key: Key) =
+proc modifyTests*(
+  ds: Datastore,
+  key: Key,
+  multiAux: bool = false) =
 
   randomize()
 
@@ -105,18 +106,25 @@ proc concurrentStoreTests*(
     proc returningAux(_: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
       return (seq[byte].none, @[byte 123])
 
-    let result = await ds.modifyGet(key, returningAux)
+    let res = await ds.modifyGet(key, returningAux)
 
-    check:
-      result == success(@[byte 123])
+    if multiAux:
+      check:
+        res.errorOption.map((err) => err.msg) == none(string)
+      for b in res |? @[]:
+        check:
+          b == 123.byte
+    else:
+      check:
+        res == success(@[byte 123])
 
   test "should propagate exception as failure":
     proc throwing(a: ?seq[byte]): Future[?seq[byte]] {.async.} =
       raise newException(CatchableError, "some error msg")
 
-    let result = await ds.modify(key, throwing)
+    let res = await ds.modify(key, throwing)
 
-    if err =? result.errorOption:
+    if err =? res.errorOption:
       check:
         err.msg.contains("some error msg")
     else:

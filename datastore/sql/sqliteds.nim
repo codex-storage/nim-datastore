@@ -8,15 +8,15 @@ import pkg/sqlite3_abi
 from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
-import ../concurrentds
+import ../datastore
 import ./sqlitedsdb
 
-export concurrentds, sqlitedsdb
+export datastore, sqlitedsdb
 
 push: {.upraises: [].}
 
 type
-  SQLiteDatastore* = ref object of ConcurrentDatastore
+  SQLiteDatastore* = ref object of Datastore
     readOnly: bool
     db: SQLiteDsDb
 

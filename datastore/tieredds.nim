@@ -116,6 +116,37 @@ method put*(
 
   return success()
 
+method modifyGet*(
+  self: TieredDatastore,
+  key: Key,
+  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+
+  let
+    pending = await allFinished(self.stores.mapIt(it.modifyGet(key, fn)))
+
+  var aux = newSeq[byte]()
+
+  for fut in pending:
+    if fut.read().isErr:
+      return fut.read()
+    else:
+      aux.add(fut.read().get)
+
+  return success(aux)
+
+method modify*(
+  self: TieredDatastore,
+  key: Key,
+  fn: Modify): Future[?!void] {.async.} =
+
+  let
+    pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))
+
+  for fut in pending:
+    if fut.read().isErr: return fut.read()
+
+  return success()
+
 # method query*(
 #   self: TieredDatastore,
 #   query: ...): Future[?!(?...)] {.async.} =

@@ -10,6 +10,7 @@ import pkg/datastore/fsds
 import pkg/datastore/sql
 import pkg/datastore/tieredds
 
+import ./modifycommontests
 import ./dscommontests
 
 suite "Test Basic Tired Datastore":
@@ -40,6 +41,7 @@ suite "Test Basic Tired Datastore":
     require(not dirExists(rootAbs))
 
   basicStoreTests(tiredDs, key, bytes, otherBytes)
+  modifyTests(tiredDs, key, multiAux = true)
 
 suite "TieredDatastore":
   # assumes tests/test_all is run from project root, e.g. with `nimble test`

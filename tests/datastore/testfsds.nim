@@ -11,6 +11,7 @@ import pkg/stew/byteutils
 import pkg/datastore/fsds
 
 import ./dscommontests
+import ./modifycommontests
 import ./querycommontests
 
 suite "Test Basic FSDatastore":
@@ -37,6 +38,7 @@ suite "Test Basic FSDatastore":
     require(not dirExists(basePathAbs))
 
   basicStoreTests(fsStore, key, bytes, otherBytes)
+  modifyTests(fsStore, key)
 
 suite "Test Misc FSDatastore":
   let

@@ -8,6 +8,7 @@ import pkg/questionable/results
 from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
+import ./defaultimpl
 import ./datastore
 
 export datastore
@@ -19,6 +20,7 @@ type
     root*: string
     ignoreProtected: bool
     depth: int
+    lock: AsyncLock
 
 proc validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
@@ -217,6 +219,18 @@ method query*(
   iter.next = next
   return success iter
 
+method modifyGet*(
+  self: FSDatastore,
+  key: Key,
+  fn: ModifyGet): Future[?!seq[byte]] =
+  defaultModifyGetImpl(self, self.lock, key, fn)
+
+method modify*(
+  self: FSDatastore,
+  key: Key,
+  fn: Modify): Future[?!void] =
+  defaultModifyImpl(self, self.lock, key, fn)
+
 proc new*(
   T: type FSDatastore,
   root: string,
@@ -235,4 +249,5 @@ proc new*(
   success T(
     root: root,
     ignoreProtected: ignoreProtected,
-    depth: depth)
+    depth: depth,
+    lock: newAsyncLock())
