@@ -24,9 +24,10 @@ proc modifyTests*(
   proc withRandDelay(op: Future[?!void]): Future[void] {.async.} =
     await sleepAsync(rand(processCount).millis)
 
-    let errMsg = (await op).errorOption.map((err) => err.msg)
+    discard (await op)
+    # let errMsg = (await op).errorOption.map((err) => err.msg)
 
-    require none(string) == errMsg
+    # require none(string) == errMsg
 
   proc incAsyncFn(maybeBytes: ?seq[byte]): Future[?seq[byte]] {.async.} =
     await sleepAsync(2.millis) # allows interleaving

@@ -52,7 +52,7 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
     var maybeNewData: ?seq[byte]
 
     try:
-      (maybeNewData, aux) = await fn(maybeCurrentData)
+      (maybeNewData, aux) = (awaitne fn(maybeCurrentData)).read()
     except CatchableError as err:
       return failure(err)
 
