@@ -31,7 +31,7 @@ proc defaultModifyGetImpl*(
       aux: seq[byte]
 
     try:
-      (maybeNewData, aux) = (awaitne fn(maybeCurrentData)).read()
+      (maybeNewData, aux) = await fn(maybeCurrentData)
     except CatchableError as err:
       return failure(err)
 

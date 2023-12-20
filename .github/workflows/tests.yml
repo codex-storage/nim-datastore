@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         cache_nonce: [ 1 ]
-        nim_version: [ 1.6.14 ]
+        nim_version: [ 1.6.16 ]
         platform:
           - {
             icon: 🐧,
