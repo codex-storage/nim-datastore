@@ -8,4 +8,3 @@ type
   DatastoreKeyNotFound* = object of DatastoreError
 
   Datastore* = ref object of RootObj
-  ConcurrentDatastore* = ref object of Datastore
