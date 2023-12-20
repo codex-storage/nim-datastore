@@ -26,7 +26,7 @@ proc modifyTests*(
 
     let errMsg = (await op).errorOption.map((err) => err.msg)
 
-    check none(string) == errMsg
+    require none(string) == errMsg
 
   proc incAsyncFn(maybeBytes: ?seq[byte]): Future[?seq[byte]] {.async.} =
     await sleepAsync(2.millis) # allows interleaving
@@ -124,9 +124,5 @@ proc modifyTests*(
 
     let res = await ds.modify(key, throwing)
 
-    if err =? res.errorOption:
-      check:
-        err.msg.contains("some error msg")
-    else:
-      # result was not an error
-      fail()
+    check:
+      res.errorOption.map((err) => err.msg) == some("some error msg")
