@@ -26,7 +26,7 @@ proc modifyTests*(
 
     let errMsg = (await op).errorOption.map((err) => err.msg)
 
-    require none(string) == errMsg
+    check none(string) == errMsg
 
   proc incAsyncFn(maybeBytes: ?seq[byte]): Future[?seq[byte]] {.async.} =
     await sleepAsync(2.millis) # allows interleaving
