@@ -46,7 +46,7 @@ proc defaultModifyGetImpl*(
   finally:
     lock.release()
 
-method defaultModifyImpl*(
+proc defaultModifyImpl*(
   self: Datastore,
   lock: AsyncLock,
   key: Key,

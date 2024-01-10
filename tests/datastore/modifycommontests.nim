@@ -19,7 +19,9 @@ proc modifyTests*(
 
   randomize()
 
-  let processCount = 100
+  let
+    processCount = 100
+    timeout = (1 + processCount div 10).seconds
 
   proc withRandDelay(op: Future[?!void]): Future[void] {.async: (raises: [Exception]).} =
     await sleepAsync(rand(processCount).millis)
@@ -53,7 +55,7 @@ proc modifyTests*(
         return success()
 
     let futs = newSeqWith(processCount, withRandDelay(getIncAndPut()))
-    await allFutures(futs).wait(10.seconds)
+    await allFutures(futs).wait(timeout)
 
     let finalValue = uint64.fromBytes((await ds.get(key)).tryGet)
 
@@ -63,7 +65,7 @@ proc modifyTests*(
     (await ds.put(key, @(0.uint64.toBytes))).tryGet
 
     let futs = newSeqWith(processCount, withRandDelay(ds.modify(key, incAsyncFn)))
-    await allFutures(futs).wait(10.seconds)
+    await allFutures(futs).wait(timeout)
 
     let finalValue = uint64.fromBytes((await ds.get(key)).tryGet)
 

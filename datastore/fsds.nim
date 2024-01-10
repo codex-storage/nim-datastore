@@ -1,5 +1,6 @@
 import std/os
 import std/options
+import std/tables
 import std/strutils
 
 import pkg/chronos
@@ -20,7 +21,7 @@ type
     root*: string
     ignoreProtected: bool
     depth: int
-    lock: AsyncLock
+    locks: TableRef[Key, AsyncLock]
 
 proc validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
@@ -222,14 +223,26 @@ method query*(
 method modifyGet*(
   self: FSDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] =
-  defaultModifyGetImpl(self, self.lock, key, fn)
+  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  var lock: AsyncLock
+  try:
+    lock = self.locks.mgetOrPut(key, newAsyncLock())
+    return await defaultModifyGetImpl(self, lock, key, fn)
+  finally:
+    if not lock.locked:
+      self.locks.del(key)
 
 method modify*(
   self: FSDatastore,
   key: Key,
-  fn: Modify): Future[?!void] =
-  defaultModifyImpl(self, self.lock, key, fn)
+  fn: Modify): Future[?!void] {.async.} =
+  var lock: AsyncLock
+  try:
+    lock = self.locks.mgetOrPut(key, newAsyncLock())
+    return await defaultModifyImpl(self, lock, key, fn)
+  finally:
+    if not lock.locked:
+      self.locks.del(key)
 
 proc new*(
   T: type FSDatastore,
@@ -250,4 +263,5 @@ proc new*(
     root: root,
     ignoreProtected: ignoreProtected,
     depth: depth,
-    lock: newAsyncLock())
+    locks: newTable[Key, AsyncLock]()
+    )

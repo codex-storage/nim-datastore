@@ -13,7 +13,7 @@ push: {.upraises: [].}
 
 type
   BatchEntry* = tuple[key: Key, data: seq[byte]]
-  Function*[T, U] = proc(value: T): U {.upraises: [CatchableError], gcsafe, closure.}
+  Function*[T, U] = proc(value: T): U {.raises: [CatchableError], gcsafe, closure.}
   Modify* = Function[?seq[byte], Future[?seq[byte]]]
   ModifyGet* = Function[?seq[byte], Future[(?seq[byte], seq[byte])]]
 
