@@ -1,6 +1,5 @@
 
 import std/hashes
-import std/strformat
 
 import pkg/questionable
 import pkg/questionable/results
@@ -19,32 +18,26 @@ type
 
 func init*(T: type Namespace, field, value: string): ?!T =
   if value.contains(Delimiter):
-      return failure (&"value string must not contain Delimiter '{Delimiter}'")
-        .catch.expect("should not fail")
+      return failure ("value string must not contain Delimiter " & Delimiter)
 
   if value.contains(Separator):
-    return failure (&"value string must not contain Separator {Separator}")
-      .catch.expect("should not fail")
+    return failure ("value string must not contain Separator " & Separator)
 
   if field.contains(Delimiter):
-    return failure (&"field string must not contain Delimiter {Delimiter}")
-      .catch.expect("should not fail")
+    return failure ("field string must not contain Delimiter " & Delimiter)
 
   if field.contains(Separator):
-    return failure (&"field string must not contain Separator {Separator}")
-      .catch.expect("should not fail")
+    return failure ("field string must not contain Separator " & Separator)
 
   success T(field: field, value: value)
 
 func init*(T: type Namespace, id: string): ?!T =
   if id.len > 0:
     if id.contains(Separator):
-      return failure (&"id string must not contain Separator {Separator}")
-        .catch.expect("should not fail")
+      return failure (&"id string must not contain Separator " & Separator)
 
     if id.count(Delimiter) > 1:
-      return failure (&"id string must not contain more than one {Delimiter}")
-        .catch.expect("should not fail")
+      return failure (&"id string must not contain more than one " & Delimiter)
 
   let
     (field, value) = block:
