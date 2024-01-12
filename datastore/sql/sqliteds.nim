@@ -228,8 +228,7 @@ method query*(
 
   let
     queryStmt = QueryStmt.prepare(
-      self.db.env, queryStr).expect("should not fail")
-
+      self.db.env, queryStr).expect("Query prepare should not fail")
     s = RawStmtPtr(queryStmt)
 
   var
@@ -263,7 +262,7 @@ method query*(
       let
         key = Key.init(
           $sqlite3_column_text_not_null(s, QueryStmtIdCol))
-          .expect("should not fail")
+          .expect("Key should should not fail")
 
         blob: ?pointer =
           if query.value:
@@ -308,7 +307,7 @@ method query*(
   iter.dispose = proc(): Future[?!void] {.async.} =
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
-    s.dispose
+    iter.next = nil
     return success()
 
   iter.next = next

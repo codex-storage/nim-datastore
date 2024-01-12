@@ -279,17 +279,21 @@ proc getDBFilePath*(path: string): ?!string =
   except CatchableError as exc:
     return failure(exc.msg)
 
-proc close*(self: SQLiteDsDb) =
-  self.containsStmt.dispose
-  self.getStmt.dispose
-  self.beginStmt.dispose
-  self.endStmt.dispose
-  self.rollbackStmt.dispose
-  self.getVersionedStmt.dispose
-  self.updateVersionedStmt.dispose
-  self.insertVersionedStmt.dispose
-  self.deleteVersionedStmt.dispose
-  self.getChangesStmt.dispose
+proc close*(self: var SQLiteDsDb) =
+  if not RawStmtPtr(self.containsStmt).isNil:
+    self.containsStmt.dispose
+
+  if not RawStmtPtr(self.getStmt).isNil:
+    self.getStmt.dispose
+
+  if not RawStmtPtr(self.beginStmt).isNil:
+    self.beginStmt.dispose
+
+  if not RawStmtPtr(self.endStmt).isNil:
+    self.endStmt.dispose
+
+  if not RawStmtPtr(self.rollbackStmt).isNil:
+    self.rollbackStmt.dispose
 
   if not RawStmtPtr(self.deleteStmt).isNil:
     self.deleteStmt.dispose
@@ -297,7 +301,24 @@ proc close*(self: SQLiteDsDb) =
   if not RawStmtPtr(self.putStmt).isNil:
     self.putStmt.dispose
 
-  self.env.dispose
+  if not RawStmtPtr(self.getVersionedStmt).isNil:
+    self.getVersionedStmt.dispose
+
+  if not RawStmtPtr(self.updateVersionedStmt).isNil:
+    self.updateVersionedStmt.dispose
+
+  if not RawStmtPtr(self.insertVersionedStmt).isNil:
+    self.insertVersionedStmt.dispose
+
+  if not RawStmtPtr(self.deleteVersionedStmt).isNil:
+    self.deleteVersionedStmt.dispose
+
+  if not RawStmtPtr(self.getChangesStmt).isNil:
+    self.getChangesStmt.dispose
+
+  if not self.env.isNil:
+    self.env.dispose
+    self.env = nil
 
 proc open*(
   T: type SQLiteDsDb,
@@ -329,7 +350,7 @@ proc open*(
 
   open(absPath, env.val, flags)
 
-  let
+  var
     pragmaStmt = journalModePragmaStmt(env.val)
 
   checkExec(pragmaStmt)
