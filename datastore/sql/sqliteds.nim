@@ -29,6 +29,106 @@ proc `readOnly=`*(self: SQLiteDatastore): bool
 proc timestamp*(t = epochTime()): int64 =
   (t * 1_000_000).int64
 
+const initVersion* = 0.int64
+
+method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  var
+    retriesLeft = 100 # allows reasonable concurrency, avoids infinite loop
+    aux: seq[byte]
+
+  while retriesLeft > 0:
+    var
+      currentData: seq[byte]
+      currentVersion: int64
+
+    proc onData(s: RawStmtPtr) =
+      currentData = dataCol(s, GetVersionedStmtDataCol)()
+      currentVersion = versionCol(s, GetVersionedStmtVersionCol)()
+
+    if err =? self.db.getVersionedStmt.query((key.id), onData).errorOption:
+      return failure(err)
+
+    let maybeCurrentData = if currentData.len > 0: some(currentData) else: seq[byte].none
+    var maybeNewData: ?seq[byte]
+
+    try:
+      (maybeNewData, aux) = await fn(maybeCurrentData)
+    except CatchableError as err:
+      return failure(err)
+
+    if maybeCurrentData == maybeNewData:
+      # no need to change currently stored value
+      break
+
+    if err =? self.db.beginStmt.exec().errorOption:
+      return failure(err)
+    if currentData =? maybeCurrentData and newData =? maybeNewData:
+      let updateParams = (
+        newData,
+        currentVersion + 1,
+        timestamp(),
+        key.id,
+        currentVersion
+      )
+      if err =? (self.db.updateVersionedStmt.exec(updateParams)).errorOption:
+        return failure(err)
+    elif currentData =? maybeCurrentData:
+      let deleteParams = (
+        key.id,
+        currentVersion
+      )
+      if err =? (self.db.deleteVersionedStmt.exec(deleteParams)).errorOption:
+        return failure(err)
+    elif newData =? maybeNewData:
+      let insertParams = (
+        key.id,
+        newData,
+        initVersion,
+        timestamp()
+      )
+      if err =? (self.db.insertVersionedStmt.exec(insertParams)).errorOption:
+        return failure(err)
+
+    var changes = 0.int64
+    proc onChangesResult(s: RawStmtPtr) =
+      changes = changesCol(s, 0)()
+
+    if err =? self.db.getChangesStmt.query((), onChangesResult).errorOption:
+      if err =? self.db.rollbackStmt.exec().errorOption:
+        return failure(err)
+      return failure(err)
+
+    if changes == 1:
+      if err =? self.db.endStmt.exec().errorOption:
+        return failure(err)
+      break
+    elif changes == 0:
+      # race condition detected
+      if err =? self.db.rollbackStmt.exec().errorOption:
+        return failure(err)
+      retriesLeft.dec
+    else:
+      if err =? self.db.rollbackStmt.exec().errorOption:
+        return failure(err)
+      return failure("Unexpected number of changes, expected either 0 or 1, was " & $changes)
+
+  if retriesLeft == 0:
+    return failure("Retry limit exceeded")
+
+  return success(aux)
+
+
+method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async.} =
+  proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
+    let res = await fn(maybeValue)
+    let ignoredAux = newSeq[byte]()
+    return (res, ignoredAux)
+
+  if err =? (await self.modifyGet(key, wrappedFn)).errorOption:
+    return failure(err)
+  else:
+    return success()
+
 method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
   var
     exists = false
@@ -81,14 +181,14 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   return success bytes
 
 method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
-  return self.db.putStmt.exec((key.id, data, timestamp()))
+  return self.db.putStmt.exec((key.id, data, initVersion, timestamp()))
 
 method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
   for entry in batch:
-    if err =? self.db.putStmt.exec((entry.key.id, entry.data, timestamp())).errorOption:
+    if err =? self.db.putStmt.exec((entry.key.id, entry.data, initVersion, timestamp())).errorOption:
       if err =? self.db.rollbackStmt.exec().errorOption:
         return failure err
 

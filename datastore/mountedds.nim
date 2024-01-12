@@ -119,6 +119,26 @@ method put*(
 
   return success()
 
+method modifyGet*(
+  self: MountedDatastore,
+  key: Key,
+  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+
+  without mounted =? self.dispatch(key), error:
+    return failure(error)
+
+  return await mounted.store.store.modifyGet(mounted.relative, fn)
+
+method modify*(
+  self: MountedDatastore,
+  key: Key,
+  fn: Modify): Future[?!void] {.async.} =
+
+  without mounted =? self.dispatch(key), error:
+    return failure(error)
+
+  return await mounted.store.store.modify(mounted.relative, fn)
+
 method close*(self: MountedDatastore): Future[?!void] {.async.} =
   for s in self.stores.values:
     discard await s.store.close()

@@ -1,5 +1,6 @@
 import std/os
 import std/options
+import std/tables
 import std/strutils
 
 import pkg/chronos
@@ -8,6 +9,7 @@ import pkg/questionable/results
 from pkg/stew/results as stewResults import get, isErr
 import pkg/upraises
 
+import ./defaultimpl
 import ./datastore
 
 export datastore
@@ -19,6 +21,7 @@ type
     root*: string
     ignoreProtected: bool
     depth: int
+    locks: TableRef[Key, AsyncLock]
 
 proc validDepth*(self: FSDatastore, key: Key): bool =
   key.len <= self.depth
@@ -217,6 +220,30 @@ method query*(
   iter.next = next
   return success iter
 
+method modifyGet*(
+  self: FSDatastore,
+  key: Key,
+  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  var lock: AsyncLock
+  try:
+    lock = self.locks.mgetOrPut(key, newAsyncLock())
+    return await defaultModifyGetImpl(self, lock, key, fn)
+  finally:
+    if not lock.locked:
+      self.locks.del(key)
+
+method modify*(
+  self: FSDatastore,
+  key: Key,
+  fn: Modify): Future[?!void] {.async.} =
+  var lock: AsyncLock
+  try:
+    lock = self.locks.mgetOrPut(key, newAsyncLock())
+    return await defaultModifyImpl(self, lock, key, fn)
+  finally:
+    if not lock.locked:
+      self.locks.del(key)
+
 proc new*(
   T: type FSDatastore,
   root: string,
@@ -235,4 +262,6 @@ proc new*(
   success T(
     root: root,
     ignoreProtected: ignoreProtected,
-    depth: depth)
+    depth: depth,
+    locks: newTable[Key, AsyncLock]()
+    )

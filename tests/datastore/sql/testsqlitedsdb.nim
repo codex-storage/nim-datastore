@@ -106,9 +106,9 @@ suite "Test SQLite Datastore DB operations":
 
   test "Should insert key":
     check:
-      readOnlyDb.putStmt.exec((key.id, data, timestamp())).isErr()
+      readOnlyDb.putStmt.exec((key.id, data, initVersion, timestamp())).isErr()
 
-    dsDb.putStmt.exec((key.id, data, timestamp())).tryGet()
+    dsDb.putStmt.exec((key.id, data, initVersion, timestamp())).tryGet()
 
   test "Should select key":
     let
@@ -124,9 +124,9 @@ suite "Test SQLite Datastore DB operations":
 
   test "Should update key":
     check:
-      readOnlyDb.putStmt.exec((key.id, otherData, timestamp())).isErr()
+      readOnlyDb.putStmt.exec((key.id, otherData, initVersion, timestamp())).isErr()
 
-    dsDb.putStmt.exec((key.id, otherData, timestamp())).tryGet()
+    dsDb.putStmt.exec((key.id, otherData, initVersion, timestamp())).tryGet()
 
   test "Should select updated key":
     let

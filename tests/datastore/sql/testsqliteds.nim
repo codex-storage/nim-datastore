@@ -11,6 +11,7 @@ import pkg/stew/byteutils
 import pkg/datastore/sql/sqliteds
 
 import ../dscommontests
+import ../modifycommontests
 import ../querycommontests
 
 suite "Test Basic SQLiteDatastore":
@@ -24,6 +25,7 @@ suite "Test Basic SQLiteDatastore":
     (await ds.close()).tryGet()
 
   basicStoreTests(ds, key, bytes, otherBytes)
+  modifyTests(ds, key)
 
 suite "Test Read Only SQLiteDatastore":
   let
