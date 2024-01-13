@@ -280,6 +280,15 @@ proc getDBFilePath*(path: string): ?!string =
     return failure(exc.msg)
 
 proc close*(self: var SQLiteDsDb) =
+
+  var
+    env: AutoDisposed[SQLite]
+
+  defer:
+    disposeIfUnreleased(env)
+
+  env.val = self.env
+
   if not RawStmtPtr(self.containsStmt).isNil:
     self.containsStmt.dispose
 
@@ -315,10 +324,6 @@ proc close*(self: var SQLiteDsDb) =
 
   if not RawStmtPtr(self.getChangesStmt).isNil:
     self.getChangesStmt.dispose
-
-  if not self.env.isNil:
-    self.env.dispose
-    self.env = nil
 
 proc open*(
   T: type SQLiteDsDb,
