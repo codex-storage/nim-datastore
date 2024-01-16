@@ -27,7 +27,7 @@ suite "Test Open SQLite Datastore DB":
     require(not dirExists(basePathAbs))
 
   test "Should create and open datastore DB":
-    let
+    var
       dsDb = SQLiteDsDb.open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
@@ -39,7 +39,7 @@ suite "Test Open SQLite Datastore DB":
         fileExists(dbPathAbs)
 
   test "Should open existing DB":
-    let
+    var
       dsDb = SQLiteDsDb.open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE).tryGet()
@@ -54,7 +54,7 @@ suite "Test Open SQLite Datastore DB":
     check:
       fileExists(dbPathAbs)
 
-    let
+    var
       dsDb = SQLiteDsDb.open(
         path = dbPathAbs,
         flags = SQLITE_OPEN_READONLY).tryGet()

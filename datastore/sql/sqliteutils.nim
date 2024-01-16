@@ -89,7 +89,8 @@ template checkErr*(op: untyped) =
     return failure $sqlite3_errstr(v)
 
 template dispose*(rawStmt: RawStmtPtr) =
-  discard sqlite3_finalize(rawStmt)
+  doAssert SQLITE_OK == sqlite3_finalize(rawStmt)
+  rawStmt = nil
 
 template checkExec*(s: RawStmtPtr) =
   if (let x = sqlite3_step(s); x != SQLITE_DONE):
@@ -113,16 +114,22 @@ template prepare*(
   s
 
 template checkExec*(env: SQLite, q: string) =
-  let
+  var
     s = prepare(env, q)
 
   checkExec(s)
 
 template dispose*(db: SQLite) =
+  # TODO: the assert bellow fails because we're
+  # not releasing all the statements at the time of
+  # releasing the connection. I suspect these are the
+  # query iterators that aren't being released on close
+  # doAssert SQLITE_OK == sqlite3_close(db)
   discard sqlite3_close(db)
 
 template dispose*(sqliteStmt: SQLiteStmt) =
-  discard sqlite3_finalize(RawStmtPtr(sqliteStmt))
+  doAssert SQLITE_OK == sqlite3_finalize(RawStmtPtr(sqliteStmt))
+  sqliteStmt = nil
 
 proc release*[T](x: var AutoDisposed[T]): T =
   result = x.val
@@ -171,7 +178,7 @@ proc sqlite3_column_text_not_null*(
   text
 
 template journalModePragmaStmt*(env: SQLite): RawStmtPtr =
-  let
+  var
     s = prepare(env, "PRAGMA journal_mode = WAL;")
 
   if (let x = sqlite3_step(s); x != SQLITE_ROW):
@@ -250,7 +257,7 @@ proc query*(
   query: string,
   onData: DataProc): ?!bool =
 
-  let
+  var
     s = ? NoParamsStmt.prepare(env, query)
     res = s.query((), onData)
 
