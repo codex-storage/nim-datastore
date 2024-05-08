@@ -13,6 +13,7 @@ import pkg/datastore/fsds
 import ./dscommontests
 import ./modifycommontests
 import ./querycommontests
+import ./typeddscommontests
 
 suite "Test Basic FSDatastore":
   let
@@ -39,6 +40,7 @@ suite "Test Basic FSDatastore":
 
   basicStoreTests(fsStore, key, bytes, otherBytes)
   modifyTests(fsStore, key)
+  typedDsTests(fsStore, key)
 
 suite "Test Misc FSDatastore":
   let
@@ -137,4 +139,9 @@ suite "Test Query":
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 
+  teardownAll:
+    removeDir(basePathAbs)
+    require(not dirExists(basePathAbs))
+
   queryTests(ds, false)
+  typedDsQueryTests(ds)

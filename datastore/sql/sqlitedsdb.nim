@@ -7,8 +7,6 @@ import pkg/upraises
 
 import ./sqliteutils
 
-export sqliteutils
-
 type
   BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
   BoundVersionCol* = proc (): int64 {.closure, gcsafe, upraises: [].}

@@ -13,6 +13,7 @@ import pkg/datastore/fsds
 
 import ./dscommontests
 import ./modifycommontests
+import ./typeddscommontests
 
 suite "Test Basic Mounted Datastore":
   let
@@ -52,11 +53,13 @@ suite "Test Basic Mounted Datastore":
     let namespace = Key.init(sqlKey, key).tryGet
     basicStoreTests(mountedDs, namespace, bytes, otherBytes)
     modifyTests(mountedDs, namespace)
+    typedDsTests(mountedDs, namespace)
 
   suite "Mounted fs":
     let namespace = Key.init(fsKey, key).tryGet
     basicStoreTests(mountedDs, namespace, bytes, otherBytes)
     modifyTests(mountedDs, namespace)
+    typedDsTests(mountedDs, namespace)
 
 suite "Test Mounted Datastore":
 

@@ -10,6 +10,7 @@ import pkg/upraises
 
 import ../datastore
 import ./sqlitedsdb
+import ./sqliteutils
 
 export datastore, sqlitedsdb
 

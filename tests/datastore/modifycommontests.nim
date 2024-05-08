@@ -15,7 +15,7 @@ import pkg/datastore
 proc modifyTests*(
   ds: Datastore,
   key: Key,
-  multiAux: bool = false) =
+  dsCount = 1) =
 
   randomize()
 
@@ -108,17 +108,10 @@ proc modifyTests*(
     proc returningAux(_: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
       return (seq[byte].none, @[byte 123])
 
-    let res = await ds.modifyGet(key, returningAux)
+    let aux = (await ds.modifyGet(key, returningAux)).tryGet()
 
-    if multiAux:
-      check:
-        res.errorOption.map((err) => err.msg) == none(string)
-      for b in res |? @[]:
-        check:
-          b == 123.byte
-    else:
-      check:
-        res == success(@[byte 123])
+    check:
+      aux == (123.byte).repeat(dsCount)
 
   test "should propagate exception as failure":
     proc throwing(a: ?seq[byte]): Future[?seq[byte]] {.async.} =
