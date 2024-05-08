@@ -33,7 +33,7 @@ proc typedDsTests*(
   key: Key,
   dsCount = 1) =
 
-  let tds: TypedDatastore = ds.asTypedDs()
+  let tds = TypedDatastore.init(ds)
 
   test "should put a value":
     (await tds.put(key, 11)).tryGet()
@@ -102,7 +102,7 @@ proc typedDsTests*(
 
 proc typedDsQueryTests*(ds: Datastore) =
 
-  let tds = ds.asTypedDs()
+  let tds = TypedDatastore.init(ds)
 
   test "should query values":
     let

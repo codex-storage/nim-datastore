@@ -20,7 +20,7 @@ import ./datastore
 ##   import pkg/questionable
 ##
 ##   let
-##     tds = ds.asTypedDs()
+##     tds = TypeDatastore.init(ds)
 ##     key = Key.init("p").tryGet()
 ##
 ##   type Person = object
@@ -54,17 +54,13 @@ type
 
 # Helpers
 template requireDecoder*(T: typedesc): untyped =
-  when (compiles do:
+  when not (compiles do:
     let _: ?!T = T.decode(newSeq[byte]())):
-    discard
-  else:
     {.error: "provide a decoder: `proc decode(T: type " & $T & ", bytes: seq[byte]): ?!T`".}
 
 template requireEncoder*(T: typedesc): untyped =
-  when (compiles do:
+  when not (compiles do:
     let _: seq[byte] = encode(default(T))):
-    discard
-  else:
     {.error: "provide an encoder: `proc encode(a: " & $T & "): seq[byte]`".}
 
 # Original Datastore API
@@ -83,11 +79,10 @@ proc delete*(self: TypedDatastore, keys: seq[Key]): Future[?!void] {.async.} =
 proc close*(self: TypedDatastore): Future[?!void] {.async.} =
   await self.ds.close()
 
-# Conversion Datastore -> TypeDatastore
-proc asTypedDs*(ds: Datastore): TypedDatastore =
+# TypedDatastore API
+proc init*(T: type TypedDatastore, ds: Datastore): T =
   TypedDatastore(ds: ds)
 
-# TypedDatastore API
 proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async.} =
   requireEncoder(T)
 
