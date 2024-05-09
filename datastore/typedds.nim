@@ -17,26 +17,27 @@ import ./datastore
 ## ==================
 ## .. code-block:: Nim
 ##   import pkg/stew/byteutils
-##   import pkg/questionable
+##   import pkg/questionable/results
 ##
 ##   let
 ##     tds = TypeDatastore.init(ds)
 ##     key = Key.init("p").tryGet()
 ##
 ##   type Person = object
+##     age: int
 ##     name: string
-##   proc encode(t: Person): seq[byte] =
-##     t.name.toBytes()
+##
+##   proc encode(p: Person): seq[byte] =
+##     ($p.age & ":" & p.name).toBytes()
 ##   proc decode(T: type Person, bytes: seq[byte]): ?!T =
-##     success(Person(name: string.fromBytes(bytes)))
+##     let values = string.fromBytes(bytes).split(':', maxsplit = 1)
+##     success(Person(age: parseInt(values[0]), name: values[1]))
 ##
-##   discard await tds.put(key, Person(name: "John"))
+##   let p1 = Person(name: "john", age: 21)
+##   (await tds.put(key, p1)).tryGet()
+##   let p2 = (await get[Person](tds, key)).tryGet()
 ##
-##   let result = (await get[Person](tds, key)).tryGet()
-##
-##   assert:
-##     result == Person(name: "John")
-
+##   assert p1 == p2
 
 type
   TypedDatastore* = ref object of RootObj
