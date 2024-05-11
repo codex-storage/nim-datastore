@@ -11,6 +11,7 @@ requires "nim >= 1.2.0",
          "chronos#c41599a", # FIXME change to Chronos >= 4.0.0 once it's out
          "questionable >= 0.10.3 & < 0.11.0",
          "sqlite3_abi",
+         "https://github.com/codex-storage/nim-leveldb#f825f0d",
          "stew",
          "unittest2",
          "upraises >= 0.1.0 & < 0.2.0"
