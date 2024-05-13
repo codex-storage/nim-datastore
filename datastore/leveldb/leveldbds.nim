@@ -3,8 +3,7 @@ import std/tables
 import std/os
 import std/strformat
 
-import pkg/leveldb
-import pkg/chronicles
+import pkg/leveldbstatic
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
@@ -15,9 +14,6 @@ import ../datastore
 import ../datastore/defaultimpl
 
 push: {.upraises: [].}
-
-logScope:
-  topics = "LevelDB"
 
 type
   LevelDbDatastore* = ref object of Datastore
@@ -47,14 +43,13 @@ method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async, locks:
   except LevelDbException as e:
     return failure("LevelDbDatastore.delete exception: " & e.msg)
 
-method delete*(self: Datastore, keys: seq[Key]): Future[?!void] {.async, locks: "unknown".} =
+method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async, locks: "unknown".} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure(err.msg)
   return success()
 
 method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async, locks: "unknown".} =
-  trace "Get", key
   try:
     let str = self.db.get($key)
     if not str.isSome:
@@ -65,7 +60,6 @@ method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async, lock
     return failure("LevelDbDatastore.get exception: " & $e.msg)
 
 method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
-  trace "Put", key
   try:
     let str = toString(data)
     self.db.put($key, str)
@@ -166,9 +160,7 @@ method modify*(
 proc new*(
   T: type LevelDbDatastore, dbName: string): ?!T =
   try:
-    trace "Opening LevelDB", dbName
-
-    let db = leveldb.open(dbName)
+    let db = leveldbstatic.open(dbName)
 
     success T(
       db: db,

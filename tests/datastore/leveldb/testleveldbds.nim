@@ -8,16 +8,18 @@ import pkg/chronos
 import pkg/stew/results
 import pkg/stew/byteutils
 
-import pkg/datastore/sql/sqliteds
+import pkg/datastore
+import pkg/datastore/key
+import pkg/datastore/leveldb/leveldbds
 
 import ../dscommontests
 import ../modifycommontests
 import ../querycommontests
 
-suite "Test Basic LevelDBDatastore":
+suite "Test Basic LevelDbDatastore":
   let
     tempDir = getTempDir() / "testleveldbds"
-    ds = LevelDBDatastore.new(tempDir).tryGet()
+    ds = LevelDbDatastore.new(tempDir).tryGet()
     key = Key.init("a:b/c/d:e").tryGet()
     bytes = "some bytes".toBytes
     otherBytes = "some other bytes".toBytes
@@ -34,7 +36,7 @@ suite "Test Basic LevelDBDatastore":
 
 suite "Test LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
-  var ds: LevelDBDatastore
+  var ds: LevelDbDatastore
 
   setupAll:
     createdir(tempDir)
@@ -43,7 +45,7 @@ suite "Test LevelDB Query":
     removeDir(tempDir)
 
   setup:
-    ds = LevelDBDatastore.new(tempDir).tryGet()
+    ds = LevelDbDatastore.new(tempDir).tryGet()
 
   teardown:
     (await ds.close()).tryGet
