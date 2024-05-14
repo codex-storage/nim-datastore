@@ -3,6 +3,7 @@ import
   ./datastore/testdatastore,
   ./datastore/testfsds,
   ./datastore/testsql,
+  ./datastore/testleveldb,
   ./datastore/testtieredds,
   ./datastore/testmountedds
 

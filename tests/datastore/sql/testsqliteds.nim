@@ -90,7 +90,10 @@ suite "Test Query":
   teardown:
     (await ds.close()).tryGet
 
-  queryTests(ds)
+  queryTests(ds,
+    testLimitsAndOffsets = true,
+    testSortOrder = true
+  )
 
 suite "Test Typed Query":
   let

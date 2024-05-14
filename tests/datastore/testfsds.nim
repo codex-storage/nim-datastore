@@ -143,5 +143,8 @@ suite "Test Query":
     removeDir(basePathAbs)
     require(not dirExists(basePathAbs))
 
-  queryTests(ds, false)
+  queryTests(ds,
+    testLimitsAndOffsets = false,
+    testSortOrder = false
+  )
   typedDsQueryTests(ds)
