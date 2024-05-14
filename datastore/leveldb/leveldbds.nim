@@ -80,24 +80,6 @@ method close*(self: LevelDbDatastore): Future[?!void] {.async, locks: "unknown".
   except LevelDbException as e:
     return failure("LevelDbDatastore.close exception: " & $e.msg)
 
-proc iterateKeyPrefixToQueue(self: LevelDbDatastore, query: Query, queue: AsyncQueue[(string, string)]): Future[void] {.async.} =
-  var
-    itemsLeft = query.limit
-    skip = query.offset
-
-  for keyStr, valueStr in self.db.iterPrefix(prefix = $(query.key)):
-    if skip > 0:
-      dec skip
-    else:
-      await queue.put((keyStr, valueStr))
-      if query.offset > 0:
-        dec itemsLeft
-        if itemsLeft < 1:
-          break
-
-  # Signal to the iterator loop that we're finished.
-  await queue.put(("", ""))
-
 method query*(
   self: LevelDbDatastore,
   query: Query): Future[?!QueryIter] {.async, gcsafe.} =
@@ -105,31 +87,36 @@ method query*(
   if not (query.sort == SortOrder.Assending):
     return failure("LevelDbDatastore.query: query.sort is not SortOrder.Ascending. Unsupported.")
 
-  if not query.value:
-    return failure("LevelDbDatastore.query: query.value is not true. Unsupported.")
-
   var
     iter = QueryIter()
-    queue = newAsyncQueue[(string, string)](1)
+    dbIter = self.db.queryIter(
+      prefix = $(query.key),
+      keysOnly = not query.value,
+      skip = query.offset,
+      limit = query.limit
+    )
 
   proc next(): Future[?!QueryResponse] {.async.} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
-    let (keyStr, valueStr) = await queue.get()
+    try:
+      let (keyStr, valueStr) = dbIter.next()
 
-    if keyStr == "":
-      iter.finished = true
-      return success (Key.none, EmptyBytes)
-    else:
-      let key = Key.init(keyStr).expect("LevelDbDatastore.query (next) Failed to create key.")
-      return success (key.some, valueStr.toByteSeq())
+      if dbIter.finished:
+        iter.finished = true
+        return success (Key.none, EmptyBytes)
+      else:
+        let key = Key.init(keyStr).expect("LevelDbDatastore.query (next) Failed to create key.")
+        return success (key.some, valueStr.toByteSeq())
+    except LevelDbException as e:
+      return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
+    except Exception as e:
+      return failure("Unknown exception in LevelDbDatastore.query -> next: " & $e.msg)
 
   iter.next = next
   iter.dispose = proc(): Future[?!void] {.async.} =
     return success()
-
-  asyncSpawn self.iterateKeyPrefixToQueue(query, queue)
 
   return success iter
 

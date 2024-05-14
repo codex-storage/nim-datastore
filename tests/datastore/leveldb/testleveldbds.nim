@@ -38,16 +38,15 @@ suite "Test LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
   var ds: LevelDbDatastore
 
-  setupAll:
-    createdir(tempDir)
-
-  teardownAll:
-    removeDir(tempDir)
-
   setup:
+    createdir(tempDir)
     ds = LevelDbDatastore.new(tempDir).tryGet()
 
   teardown:
     (await ds.close()).tryGet
+    removeDir(tempDir)
 
-  queryTests(ds)
+  queryTests(ds,
+    testLimitsAndOffsets = true,
+    testSortOrder = false
+  )

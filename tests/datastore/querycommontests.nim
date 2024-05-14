@@ -9,7 +9,7 @@ import pkg/stew/byteutils
 
 import pkg/datastore
 
-template queryTests*(ds: Datastore, extended = true) {.dirty.} =
+template queryTests*(ds: Datastore, testLimitsAndOffsets = true, testSortOrder = true) {.dirty.} =
   var
     key1: Key
     key2: Key
@@ -137,7 +137,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
     (await iter.dispose()).tryGet
 
-  if extended:
+  if testLimitsAndOffsets:
     test "Should apply limit":
       let
         key = Key.init("/a").tryGet
@@ -216,6 +216,7 @@ template queryTests*(ds: Datastore, extended = true) {.dirty.} =
 
       (await iter.dispose()).tryGet
 
+  if testSortOrder:
     test "Should apply sort order - descending":
       let
         key = Key.init("/a").tryGet
