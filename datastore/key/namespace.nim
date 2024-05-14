@@ -1,11 +1,9 @@
+{.push raises: [].}
 
 import std/hashes
 
 import pkg/questionable
 import pkg/questionable/results
-import pkg/upraises
-
-push: {.upraises: [].}
 
 const
   Delimiter* = ":"
