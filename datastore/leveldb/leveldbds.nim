@@ -7,6 +7,7 @@ import pkg/leveldbstatic
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
+import pkg/stew/byteutils
 from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
@@ -20,60 +21,51 @@ type
     db: LevelDb
     locks: TableRef[Key, AsyncLock]
 
-func toByteSeq(str: string): seq[byte] {.inline.} =
-  @(str.toOpenArrayByte(0, str.high))
-
-func toString(bytes: openArray[byte]): string {.inline.} =
-  let length = bytes.len
-  if length > 0:
-    result = newString(length)
-    copyMem(result.cstring, bytes[0].unsafeAddr, length)
-
-method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async, locks: "unknown".} =
+method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async.} =
   try:
     let str = self.db.get($key)
     return success(str.isSome)
   except LevelDbException as e:
     return failure("LevelDbDatastore.has exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async, locks: "unknown".} =
+method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async.} =
   try:
     self.db.delete($key, sync = true)
     return success()
   except LevelDbException as e:
     return failure("LevelDbDatastore.delete exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async, locks: "unknown".} =
+method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async.} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure(err.msg)
   return success()
 
-method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async, locks: "unknown".} =
+method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   try:
     let str = self.db.get($key)
     if not str.isSome:
       return failure(newException(DatastoreKeyNotFound, "LevelDbDatastore.get: key not found " & $key))
-    let bytes = toByteSeq(str.get())
+    let bytes = str.get().toBytes()
     return success(bytes)
   except LevelDbException as e:
     return failure("LevelDbDatastore.get exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async, locks: "unknown".} =
+method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
   try:
-    let str = toString(data)
+    let str = string.fromBytes(data)
     self.db.put($key, str)
     return success()
   except LevelDbException as e:
     return failure("LevelDbDatastore.put exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async, locks: "unknown".} =
+method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
       return failure(err.msg)
   return success()
 
-method close*(self: LevelDbDatastore): Future[?!void] {.async, locks: "unknown".} =
+method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
   try:
     self.db.close()
     return success()
@@ -108,7 +100,7 @@ method query*(
         return success (Key.none, EmptyBytes)
       else:
         let key = Key.init(keyStr).expect("LevelDbDatastore.query (next) Failed to create key.")
-        return success (key.some, valueStr.toByteSeq())
+        return success (key.some, valueStr.toBytes())
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
     except Exception as e:

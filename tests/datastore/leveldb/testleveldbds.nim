@@ -15,6 +15,7 @@ import pkg/datastore/leveldb/leveldbds
 import ../dscommontests
 import ../modifycommontests
 import ../querycommontests
+import ../typeddscommontests
 
 suite "Test Basic LevelDbDatastore":
   let
@@ -33,6 +34,7 @@ suite "Test Basic LevelDbDatastore":
 
   basicStoreTests(ds, key, bytes, otherBytes)
   modifyTests(ds, key)
+  typedDsTests(ds, key)
 
 suite "Test LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
@@ -50,3 +52,12 @@ suite "Test LevelDB Query":
     testLimitsAndOffsets = true,
     testSortOrder = false
   )
+
+suite "Test LevelDB Typed Query":
+  let
+    ds = SQLiteDatastore.new(Memory).tryGet()
+
+  teardownAll:
+    (await ds.close()).tryGet
+
+  typedDsQueryTests(ds)
