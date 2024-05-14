@@ -11,7 +11,7 @@ from pkg/stew/results as stewResults import isErr
 import pkg/upraises
 
 import ../datastore
-import ../datastore/defaultimpl
+import ../defaultimpl
 
 push: {.upraises: [].}
 
