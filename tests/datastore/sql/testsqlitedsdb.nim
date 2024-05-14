@@ -7,6 +7,7 @@ import pkg/stew/byteutils
 import pkg/sqlite3_abi
 import pkg/datastore/key
 import pkg/datastore/sql/sqlitedsdb
+import pkg/datastore/sql/sqliteutils
 import pkg/datastore/sql/sqliteds
 
 suite "Test Open SQLite Datastore DB":

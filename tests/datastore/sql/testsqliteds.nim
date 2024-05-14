@@ -13,6 +13,7 @@ import pkg/datastore/sql/sqliteds
 import ../dscommontests
 import ../modifycommontests
 import ../querycommontests
+import ../typeddscommontests
 
 suite "Test Basic SQLiteDatastore":
   let
@@ -26,6 +27,7 @@ suite "Test Basic SQLiteDatastore":
 
   basicStoreTests(ds, key, bytes, otherBytes)
   modifyTests(ds, key)
+  typedDsTests(ds, key)
 
 suite "Test Read Only SQLiteDatastore":
   let
@@ -92,3 +94,12 @@ suite "Test Query":
     testLimitsAndOffsets = true,
     testSortOrder = true
   )
+
+suite "Test Typed Query":
+  let
+    ds = SQLiteDatastore.new(Memory).tryGet()
+
+  teardownAll:
+    (await ds.close()).tryGet
+
+  typedDsQueryTests(ds)
