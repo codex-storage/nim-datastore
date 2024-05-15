@@ -60,10 +60,14 @@ method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {
     return failure("LevelDbDatastore.put exception: " & $e.msg)
 
 method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
-  for entry in batch:
-    if err =? (await self.put(entry.key, entry.data)).errorOption:
-      return failure(err.msg)
-  return success()
+  try:
+    let b = newBatch()
+    for entry in batch:
+      b.put($(entry.key), string.fromBytes(entry.data))
+    self.db.write(b)
+    return success()
+  except LevelDbException as e:
+    return failure("LevelDbDatastore.put (batch) exception: " & $e.msg)
 
 method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
   try:
