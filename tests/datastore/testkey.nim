@@ -226,9 +226,6 @@ suite "Key":
       key.reverse.field == "a"
 
   test "key root":
-    let
-      key = Key.init("/a:b/c/d:e").tryGet()
-
     check:
       Key.init(":b").tryGet().root
       not Key.init(":b/c").tryGet().root

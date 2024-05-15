@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import std/algorithm
 import std/hashes
 import std/oids
@@ -7,14 +9,10 @@ import std/strformat
 
 import pkg/questionable
 import pkg/questionable/results
-from pkg/stew/results as stewResults import get, isErr
-import pkg/upraises
 
 import ./namespace
 
 export hashes, namespace
-
-push: {.upraises: [].}
 
 type
   Key* = object

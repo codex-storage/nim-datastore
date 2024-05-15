@@ -2,7 +2,6 @@ import std/options
 
 import pkg/asynctest/unittest2
 import pkg/chronos
-import pkg/stew/results
 
 import pkg/datastore
 
