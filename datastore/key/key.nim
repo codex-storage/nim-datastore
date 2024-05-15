@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import std/algorithm
 import std/hashes
 import std/oids
