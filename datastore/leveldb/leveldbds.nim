@@ -8,7 +8,7 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/stew/byteutils
-from pkg/stew/results as stewResults import isErr
+import pkg/results
 import pkg/upraises
 
 import ../datastore

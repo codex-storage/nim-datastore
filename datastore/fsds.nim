@@ -6,7 +6,7 @@ import std/strutils
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-from pkg/stew/results as stewResults import get, isErr
+import pkg/results
 import pkg/upraises
 
 import ./defaultimpl
