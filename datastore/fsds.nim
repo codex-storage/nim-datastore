@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import std/os
 import std/options
 import std/tables
@@ -6,15 +8,11 @@ import std/strutils
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-import pkg/results
-import pkg/upraises
 
 import ./defaultimpl
 import ./datastore
 
 export datastore
-
-push: {.upraises: [].}
 
 type
   FSDatastore* = ref object of Datastore

@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results

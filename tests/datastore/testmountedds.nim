@@ -4,7 +4,6 @@ import std/tables
 
 import pkg/asynctest
 import pkg/chronos
-import pkg/stew/results
 import pkg/stew/byteutils
 
 import pkg/datastore/mountedds

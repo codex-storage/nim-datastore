@@ -1,17 +1,18 @@
+{.push raises: [].}
+
 import std/os
 import std/strformat
 
 import pkg/questionable
 import pkg/questionable/results
-import pkg/upraises
 
 import ./sqliteutils
 
 type
-  BoundIdCol* = proc (): string {.closure, gcsafe, upraises: [].}
-  BoundVersionCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
-  BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, upraises: [].}
-  BoundTimestampCol* = proc (): int64 {.closure, gcsafe, upraises: [].}
+  BoundIdCol* = proc (): string {.closure, gcsafe, raises: [].}
+  BoundVersionCol* = proc (): int64 {.closure, gcsafe, raises: [].}
+  BoundDataCol* = proc (): seq[byte] {.closure, gcsafe, raises: [].}
+  BoundTimestampCol* = proc (): int64 {.closure, gcsafe, raises: [].}
 
   # feels odd to use `void` for prepared statements corresponding to SELECT
   # queries but it fits with the rest of the SQLite wrapper adapted from

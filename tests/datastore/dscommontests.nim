@@ -1,8 +1,5 @@
-import std/options
-
 import pkg/asynctest
 import pkg/chronos
-import pkg/stew/results
 
 import pkg/datastore
 

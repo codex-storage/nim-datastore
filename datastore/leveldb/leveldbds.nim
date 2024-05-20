@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import std/options
 import std/tables
 import std/os
@@ -8,13 +10,9 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/stew/byteutils
-import pkg/results
-import pkg/upraises
 
 import ../datastore
 import ../defaultimpl
-
-push: {.upraises: [].}
 
 type
   LevelDbDatastore* = ref object of Datastore

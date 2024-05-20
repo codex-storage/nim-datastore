@@ -1,15 +1,14 @@
+{.push raises: [].}
+
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-import pkg/upraises
 
 import ./key
 import ./query
 import ./types
 
 export key, query, types
-
-push: {.upraises: [].}
 
 type
   BatchEntry* = tuple[key: Key, data: seq[byte]]

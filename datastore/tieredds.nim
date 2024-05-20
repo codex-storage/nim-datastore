@@ -1,16 +1,14 @@
+{.push raises: [].}
+
 import std/sequtils
 
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-from pkg/stew/results as stewResults import get, isErr
-import pkg/upraises
 
 import ./datastore
 
 export datastore
-
-push: {.upraises: [].}
 
 type
   TieredDatastore* = ref object of Datastore
