@@ -1,7 +1,8 @@
+{.push raises: [].}
+
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
-import pkg/upraises
 
 export sqlite3_abi
 
@@ -13,8 +14,6 @@ export sqlite3_abi
 # `-DSQLITE_ENABLE_COLUMN_METADATA` option is stuck in the build cache,
 # e.g. `nimble test --forceBuild:on`
 {.passc: "-DSQLITE_ENABLE_COLUMN_METADATA".}
-
-push: {.upraises: [].}
 
 type
   AutoDisposed*[T: ptr|ref] = object
@@ -34,7 +33,7 @@ type
 
   # see https://github.com/arnetheduck/nim-sqlite3-abi/issues/4
   sqlite3_destructor_type_gcsafe =
-    proc (a1: pointer) {.cdecl, gcsafe, upraises: [].}
+    proc (a1: pointer) {.cdecl, gcsafe, raises: [].}
 
 const
   SQLITE_TRANSIENT_GCSAFE* = cast[sqlite3_destructor_type_gcsafe](-1)

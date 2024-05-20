@@ -13,8 +13,7 @@ requires "nim >= 1.2.0",
          "sqlite3_abi",
          "leveldbstatic >= 0.1.2",
          "stew",
-         "unittest2",
-         "upraises >= 0.1.0 & < 0.2.0"
+         "unittest2"
 
 task coverage, "generates code coverage report":
   var (output, exitCode) = gorgeEx("which lcov")

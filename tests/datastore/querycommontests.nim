@@ -1,12 +1,3 @@
-import std/options
-import std/sequtils
-from std/algorithm import sort, reversed
-
-import pkg/asynctest
-import pkg/chronos
-import pkg/stew/results
-import pkg/stew/byteutils
-
 import pkg/datastore
 
 template queryTests*(ds: Datastore, testLimitsAndOffsets = true, testSortOrder = true) {.dirty.} =

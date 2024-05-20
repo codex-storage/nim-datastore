@@ -1,3 +1,5 @@
+{.push raises: [].}
+
 import std/times
 import std/options
 
@@ -5,16 +7,12 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 import pkg/sqlite3_abi
-from pkg/stew/results as stewResults import isErr
-import pkg/upraises
 
 import ../datastore
 import ./sqlitedsdb
 import ./sqliteutils
 
 export datastore, sqlitedsdb
-
-push: {.upraises: [].}
 
 type
   SQLiteDatastore* = ref object of Datastore

@@ -2,7 +2,6 @@ import std/options
 import std/sugar
 import std/random
 import std/sequtils
-import std/strutils
 
 import pkg/asynctest
 import pkg/chronos

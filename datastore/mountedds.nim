@@ -1,17 +1,16 @@
+{.push raises: [].}
+
 import std/tables
 
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-import pkg/upraises
 
 import ./key
 import ./query
 import ./datastore
 
 export key, query
-
-push: {.upraises: [].}
 
 type
   MountedStore* = object
@@ -28,7 +27,7 @@ method mount*(self: MountedDatastore, key: Key, store: Datastore): ?!void {.base
   if key in self.stores:
     return failure("Key already has store mounted!")
 
-  self.stores.add(key, MountedStore(store: store, key: key))
+  self.stores[key] = MountedStore(store: store, key: key)
 
   return success()
 

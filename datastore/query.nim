@@ -1,4 +1,6 @@
-import pkg/upraises
+
+{.push raises: [].}
+
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
@@ -21,8 +23,8 @@ type
   QueryResponse* = tuple[key: ?Key, data: seq[byte]]
   QueryEndedError* = object of DatastoreError
 
-  GetNext* = proc(): Future[?!QueryResponse] {.upraises: [], gcsafe, closure.}
-  IterDispose* = proc(): Future[?!void] {.upraises: [], gcsafe.}
+  GetNext* = proc(): Future[?!QueryResponse] {.raises: [], gcsafe, closure.}
+  IterDispose* = proc(): Future[?!void] {.raises: [], gcsafe.}
   QueryIter* = ref object
     finished*: bool
     next*: GetNext
@@ -32,7 +34,7 @@ iterator items*(q: QueryIter): Future[?!QueryResponse] =
   while not q.finished:
     yield q.next()
 
-proc defaultDispose(): Future[?!void] {.upraises: [], gcsafe, async.} =
+proc defaultDispose(): Future[?!void] {.gcsafe, async.} =
   return success()
 
 proc new*(T: type QueryIter, dispose = defaultDispose): T =
