@@ -108,10 +108,18 @@ method query*(
     except Exception as e:
       return failure("Unknown exception in LevelDbDatastore.query -> next: " & $e.msg)
 
-  iter.next = next
-  iter.dispose = proc(): Future[?!void] {.async.} =
+  proc dispose(): Future[?!void] {.async.} =
+    try:
+      dbIter.dispose()
+      return success()
+    except LevelDbException as e:
+      return failure("LevelDbDatastore.query -> dispose exception: " & $e.msg)
+    except Exception as e:
+      return failure("Unknown exception in LevelDbDatastore.query -> dispose: " & $e.msg)
     return success()
 
+  iter.next = next
+  iter.dispose = dispose
   return success iter
 
 method modifyGet*(
