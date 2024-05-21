@@ -4,6 +4,7 @@ import std/options
 import std/tables
 import std/os
 import std/strformat
+import std/strutils
 
 import pkg/leveldbstatic
 import pkg/chronos
@@ -74,6 +75,13 @@ method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
   except LevelDbException as e:
     return failure("LevelDbDatastore.close exception: " & $e.msg)
 
+proc getQueryString(query: Query): string =
+  result = $(query.key)
+  let toTrim = ["/*", "\\*"]
+  for trim in toTrim:
+    if result.endswith(trim):
+      result = result.replace(trim, "")
+
 method query*(
   self: LevelDbDatastore,
   query: Query): Future[?!QueryIter] {.async, gcsafe.} =
@@ -84,7 +92,7 @@ method query*(
   var
     iter = QueryIter()
     dbIter = self.db.queryIter(
-      prefix = $(query.key),
+      prefix = getQueryString(query),
       keysOnly = not query.value,
       skip = query.offset,
       limit = query.limit
