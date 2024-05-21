@@ -53,13 +53,19 @@ suite "Test LevelDB Query":
   )
 
 suite "Test LevelDB Typed Query":
-  let
-    ds = SQLiteDatastore.new(Memory).tryGet()
+  let tempDir = getTempDir() / "testleveldbds"
+  var ds: LevelDbDatastore
 
-  teardownAll:
+  setup:
+    createdir(tempDir)
+    ds = LevelDbDatastore.new(tempDir).tryGet()
+
+  teardown:
     (await ds.close()).tryGet
+    removeDir(tempDir)
 
-  typedDsQueryTests(ds)
+  test "Typed Queries":
+    typedDsQueryTests(ds)
 
 suite "LevelDB Query: keys should disregard trailing wildcards":
   let tempDir = getTempDir() / "testleveldbds"
