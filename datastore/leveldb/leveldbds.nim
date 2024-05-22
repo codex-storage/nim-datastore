@@ -113,17 +113,9 @@ method query*(
         return success (key.some, valueStr.toBytes())
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
-    except Exception as e:
-      return failure("Unknown exception in LevelDbDatastore.query -> next: " & $e.msg)
 
   proc dispose(): Future[?!void] {.async.} =
-    try:
-      dbIter.dispose()
-      return success()
-    except LevelDbException as e:
-      return failure("LevelDbDatastore.query -> dispose exception: " & $e.msg)
-    except Exception as e:
-      return failure("Unknown exception in LevelDbDatastore.query -> dispose: " & $e.msg)
+    dbIter.dispose()
     return success()
 
   iter.next = next
