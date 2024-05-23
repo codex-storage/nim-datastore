@@ -9,6 +9,8 @@ import pkg/chronos
 import pkg/chronos/futures
 
 import ./datastore
+import ./types
+import ./key
 
 ## Wrapper for Datastore with basic functionality of automatically converting
 ## stored values from some user defined type `T` to `seq[byte]` and vice-versa.
@@ -54,6 +56,8 @@ type
     finished*: bool
     next*: GetNext[T]
     dispose*: IterDispose
+
+export types, key, IterDispose, Key, Query, SortOrder, QueryEndedError
 
 # Helpers
 template requireDecoder*(T: typedesc): untyped =
