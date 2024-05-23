@@ -80,7 +80,7 @@ proc getQueryString(query: Query): string =
   let toTrim = ["/*", "\\*"]
   for trim in toTrim:
     if result.endswith(trim):
-      result = result.replace(trim, "")
+      result = result[0 ..< ^(trim.len)]
 
 method query*(
   self: LevelDbDatastore,
