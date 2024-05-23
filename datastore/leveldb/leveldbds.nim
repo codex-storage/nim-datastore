@@ -4,6 +4,7 @@ import std/options
 import std/tables
 import std/os
 import std/strformat
+import std/strutils
 
 import pkg/leveldbstatic
 import pkg/chronos
@@ -58,10 +59,14 @@ method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {
     return failure("LevelDbDatastore.put exception: " & $e.msg)
 
 method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
-  for entry in batch:
-    if err =? (await self.put(entry.key, entry.data)).errorOption:
-      return failure(err.msg)
-  return success()
+  try:
+    let b = newBatch()
+    for entry in batch:
+      b.put($(entry.key), string.fromBytes(entry.data))
+    self.db.write(b)
+    return success()
+  except LevelDbException as e:
+    return failure("LevelDbDatastore.put (batch) exception: " & $e.msg)
 
 method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
   try:
@@ -69,6 +74,13 @@ method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
     return success()
   except LevelDbException as e:
     return failure("LevelDbDatastore.close exception: " & $e.msg)
+
+proc getQueryString(query: Query): string =
+  result = $(query.key)
+  let toTrim = ["/*", "\\*"]
+  for trim in toTrim:
+    if result.endswith(trim):
+      result = result[0 ..< ^(trim.len)]
 
 method query*(
   self: LevelDbDatastore,
@@ -80,7 +92,7 @@ method query*(
   var
     iter = QueryIter()
     dbIter = self.db.queryIter(
-      prefix = $(query.key),
+      prefix = getQueryString(query),
       keysOnly = not query.value,
       skip = query.offset,
       limit = query.limit
@@ -101,13 +113,13 @@ method query*(
         return success (key.some, valueStr.toBytes())
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
-    except Exception as e:
-      return failure("Unknown exception in LevelDbDatastore.query -> next: " & $e.msg)
 
-  iter.next = next
-  iter.dispose = proc(): Future[?!void] {.async.} =
+  proc dispose(): Future[?!void] {.async.} =
+    dbIter.dispose()
     return success()
 
+  iter.next = next
+  iter.dispose = dispose
   return success iter
 
 method modifyGet*(
