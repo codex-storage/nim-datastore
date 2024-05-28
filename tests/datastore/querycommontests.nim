@@ -44,6 +44,106 @@ template queryTests*(ds: Datastore, testLimitsAndOffsets = true, testSortOrder =
 
     (await iter.dispose()).tryGet
 
+  test "Concurrent queries":
+    let
+      q1 = Query.init(key1)
+      q2 = Query.init(key1)
+
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
+
+    let
+      iter1 = (await ds.query(q1)).tryGet
+      iter2 = (await ds.query(q1)).tryGet
+
+    let one1 = (await iter1.next()).tryGet
+    check not iter1.finished
+
+    let one2 = (await iter2.next()).tryGet
+    check not iter2.finished
+
+    let two1 = (await iter1.next()).tryGet
+    check not iter1.finished
+    let three1 = (await iter1.next()).tryGet
+    check not iter1.finished
+
+    let two2 = (await iter2.next()).tryGet
+    check not iter2.finished
+    let three2 = (await iter2.next()).tryGet
+    check not iter2.finished
+
+    let four1 = (await iter1.next()).tryGet
+    check iter1.finished
+    let four2 = (await iter2.next()).tryGet
+    check iter2.finished
+
+    check:
+      one1[0].get == key1
+      one1[1] == val1
+      two1[0].get == key2
+      two1[1] == val2
+      three1[0].get == key3
+      three1[1] == val3
+      four1[0] == Key.none
+
+      one2[0].get == key1
+      one2[1] == val1
+      two2[0].get == key2
+      two2[1] == val2
+      three2[0].get == key3
+      three2[1] == val3
+      four2[0] == Key.none
+
+    (await iter1.dispose()).tryGet
+    (await iter2.dispose()).tryGet
+
+  test "Concurrent queries - dispose":
+    let
+      q1 = Query.init(key1)
+      q2 = Query.init(key1)
+
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
+
+    let
+      iter1 = (await ds.query(q1)).tryGet
+      iter2 = (await ds.query(q1)).tryGet
+
+    let one1 = (await iter1.next()).tryGet
+    check not iter1.finished
+
+    let one2 = (await iter2.next()).tryGet
+    check not iter2.finished
+
+    (await iter1.dispose()).tryGet
+    check iter1.finished
+
+    let two2 = (await iter2.next()).tryGet
+    check not iter2.finished
+    let three2 = (await iter2.next()).tryGet
+    check not iter2.finished
+
+    let four2 = (await iter2.next()).tryGet
+    check iter2.finished
+
+    check:
+      one1[0].get == key1
+      one1[1] == val1
+
+      one2[0].get == key1
+      one2[1] == val1
+      two2[0].get == key2
+      two2[1] == val2
+      three2[0].get == key3
+      three2[1] == val3
+      four2[0] == Key.none
+
+    (await iter1.dispose()).tryGet
+    (await iter2.dispose()).tryGet
+
+
   test "Key should query all keys without values":
     let
       q = Query.init(key1, value = false)
