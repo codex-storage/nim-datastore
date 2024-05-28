@@ -116,6 +116,7 @@ method query*(
 
   proc dispose(): Future[?!void] {.async.} =
     dbIter.dispose()
+    iter.finished = true
     return success()
 
   iter.next = next

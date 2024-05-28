@@ -325,6 +325,7 @@ method query*(
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
     iter.next = nil
+    iter.finished = true
     return success()
 
   iter.next = next

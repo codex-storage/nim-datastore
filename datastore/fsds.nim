@@ -216,6 +216,10 @@ method query*(
     return success (key.some, data)
 
   iter.next = next
+  iter.dispose = proc(): Future[?!void] {.async.} =
+    iter.finished = true
+    return success()
+  
   return success iter
 
 method modifyGet*(
