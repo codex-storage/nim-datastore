@@ -98,8 +98,8 @@ proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async.} =
 proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async.} =
   requireDecoder(T)
 
-  without bytes =? await self.ds.get(key), err:
-    return failure(err)
+  without bytes =? await self.ds.get(key), error:
+    return failure(error)
   return T.decode(bytes)
 
 proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {.async.} =
@@ -110,8 +110,8 @@ proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {
     var
       maybeNextT: ?T
     if bytes =? maybeBytes:
-      without t =? T.decode(bytes), err:
-        raise err
+      without t =? T.decode(bytes), error:
+        raise error
       maybeNextT = await fn(t.some)
     else:
       maybeNextT = await fn(T.none)
@@ -134,8 +134,8 @@ proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Futu
       maybeNextT: ?T
       aux: U
     if bytes =? maybeBytes:
-      without t =? T.decode(bytes), err:
-        raise err
+      without t =? T.decode(bytes), error:
+        raise error
 
       (maybeNextT, aux) = await fn(t.some)
     else:
@@ -147,8 +147,8 @@ proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Futu
     else:
       return (seq[byte].none, aux.encode())
 
-  without auxBytes =? await self.ds.modifyGet(key, wrappedFn), err:
-    return failure(err)
+  without auxBytes =? await self.ds.modifyGet(key, wrappedFn), error:
+    return failure(error)
 
 
   return U.decode(auxBytes)
@@ -156,8 +156,8 @@ proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Futu
 proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async.} =
   requireDecoder(T)
 
-  without dsIter =? await self.ds.query(q), err:
-    let childErr = newException(CatchableError, "Error executing query with key " & $q.key, parentException = err)
+  without dsIter =? await self.ds.query(q), error:
+    let childErr = newException(CatchableError, "Error executing query with key " & $q.key, parentException = error)
     return failure(childErr)
 
   var iter = QueryIter[T]()
@@ -169,8 +169,8 @@ proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async.}
     return success(iter)
 
   proc getNext: Future[?!QueryResponse[T]] {.async.} =
-    without pair =? await dsIter.next(), err:
-      return failure(err)
+    without pair =? await dsIter.next(), error:
+      return failure(error)
 
     if dsIter.finished:
       iter.finished = true
