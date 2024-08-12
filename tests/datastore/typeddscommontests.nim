@@ -3,7 +3,7 @@ import std/sugar
 import std/tables
 import std/strutils
 
-import pkg/asynctest
+import pkg/asynctest/chronos/unittest2
 import pkg/chronos
 import pkg/stew/byteutils
 import pkg/stew/endians2

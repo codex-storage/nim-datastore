@@ -1,6 +1,6 @@
 import std/options
 
-import pkg/asynctest/unittest2
+import pkg/asynctest/chronos/unittest2
 import pkg/chronos
 
 import pkg/datastore

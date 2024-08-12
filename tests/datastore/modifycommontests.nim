@@ -3,7 +3,7 @@ import std/sugar
 import std/random
 import std/sequtils
 
-import pkg/asynctest
+import pkg/asynctest/chronos/unittest2
 import pkg/chronos
 import pkg/stew/endians2
 import pkg/questionable
