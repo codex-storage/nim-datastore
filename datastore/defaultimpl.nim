@@ -37,6 +37,10 @@ proc defaultModifyGetImpl*(
     except CatchableError as err:
       return failure(err)
 
+    if maybeCurrentData == maybeNewData:
+      # no need to change currently stored value (if any)
+      return aux.success
+
     if newData =? maybeNewData:
       if err =? (await self.put(key, newData)).errorOption:
         return failure(err)
