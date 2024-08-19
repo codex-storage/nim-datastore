@@ -27,7 +27,7 @@ jobs:
     name: ${{ matrix.platform.icon }} ${{ matrix.platform.label }} - Nim v${{ matrix.nim }}
     runs-on: ${{ matrix.platform.os }}-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - uses: iffy/install-nim@v4
