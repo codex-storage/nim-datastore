@@ -1,7 +1,7 @@
 import std/os
 
 import pkg/chronos
-import pkg/asynctest
+import pkg/asynctest/chronos/unittest2
 import pkg/stew/byteutils
 
 import pkg/sqlite3_abi
