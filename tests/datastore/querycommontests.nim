@@ -143,6 +143,39 @@ template queryTests*(ds: Datastore, testLimitsAndOffsets = true, testSortOrder =
     (await iter1.dispose()).tryGet
     (await iter2.dispose()).tryGet
 
+  test "Dispose should discontinue iteration":
+    let
+      q1 = Query.init(key1)
+
+    (await ds.put(key1, val1)).tryGet
+    (await ds.put(key2, val2)).tryGet
+    (await ds.put(key3, val3)).tryGet
+
+    let
+      iter = (await ds.query(q1)).tryGet
+
+    let one = (await iter.next()).tryGet
+    check not iter.finished
+
+    let two = (await iter.next()).tryGet
+    check not iter.finished
+
+    (await iter.dispose()).tryGet
+    check iter.finished
+
+    let three = (await iter.next()).tryGet
+    check iter.finished
+
+    let four = (await iter.next()).tryGet
+    check iter.finished
+
+    check:
+      one[0].get == key1
+      one[1] == val1
+      two[0].get == key2
+      two[1] == val2
+      three[0] == Key.none
+      four[0] == Key.none
 
   test "Key should query all keys without values":
     let

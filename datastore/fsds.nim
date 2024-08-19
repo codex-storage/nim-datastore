@@ -190,6 +190,9 @@ method query*(
     iter = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
+    if iter.finished:
+      return success (Key.none, EmptyBytes)
+
     let
       path = walker()
 
