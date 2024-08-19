@@ -1,7 +1,7 @@
 import std/options
 import std/os
 
-import pkg/asynctest
+import pkg/asynctest/chronos/unittest2
 import pkg/chronos
 import pkg/stew/byteutils
 
