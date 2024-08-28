@@ -5,6 +5,7 @@ import
   ./datastore/testsql,
   ./datastore/testleveldb,
   ./datastore/testtieredds,
-  ./datastore/testmountedds
+  ./datastore/testmountedds,
+  ./datastore/testdefaultimpl
 
 {.warning[UnusedImport]: off.}
