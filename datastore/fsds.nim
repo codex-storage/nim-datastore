@@ -190,6 +190,9 @@ method query*(
     iter = QueryIter.new()
 
   proc next(): Future[?!QueryResponse] {.async.} =
+    if iter.finished:
+      return success (Key.none, EmptyBytes)
+
     let
       path = walker()
 
@@ -216,6 +219,10 @@ method query*(
     return success (key.some, data)
 
   iter.next = next
+  iter.dispose = proc(): Future[?!void] {.async.} =
+    iter.finished = true
+    return success()
+  
   return success iter
 
 method modifyGet*(

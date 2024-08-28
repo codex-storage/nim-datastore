@@ -100,7 +100,7 @@ method query*(
 
   proc next(): Future[?!QueryResponse] {.async.} =
     if iter.finished:
-      return failure(newException(QueryEndedError, "Calling next on a finished query!"))
+      return success (Key.none, EmptyBytes)
 
     try:
       let (keyStr, valueStr) = dbIter.next()
@@ -116,6 +116,7 @@ method query*(
 
   proc dispose(): Future[?!void] {.async.} =
     dbIter.dispose()
+    iter.finished = true
     return success()
 
   iter.next = next
