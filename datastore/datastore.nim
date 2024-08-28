@@ -71,6 +71,9 @@ method modifyGet*(self: Datastore, key: Key, fn: ModifyGet): Future[?!seq[byte]]
   ## | some(u) | none     | delete u                     |
   ## | some(u) | some(v)  | replace u with v (if u != v) |
   ##
+  ## If `fn` raises an error, the value associated with `key` remains unchanged and raised error is wrapped
+  ## into a failure and returned as a result.
+  ##
   ## Note that `fn` can be called multiple times (when concurrent modification was detected). In such case
   ## only the last auxillary value is returned.
   ##
