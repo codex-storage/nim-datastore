@@ -1,14 +1,14 @@
 mode = ScriptMode.Verbose
 
 packageName   = "datastore"
-version       = "0.1.0"
+version       = "0.1.1"
 author        = "Status Research & Development GmbH"
 description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
 
 requires "nim >= 1.2.0",
          "asynctest >= 0.5.2 & < 0.6.0",
-         "chronos#dc3847e4d6733dfc3811454c2a9c384b87343e26", # Is v4.0.2 with GCC-14 support
+         "chronos >= 4.0.3 & < 5.0.0",
          "questionable >= 0.10.15 & < 0.11.0",
          "sqlite3_abi",
          "leveldbstatic >= 0.1.6",
