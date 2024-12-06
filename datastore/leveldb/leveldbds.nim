@@ -79,7 +79,7 @@ proc getQueryString(query: Query): string =
   result = $(query.key)
   let toTrim = ["/*", "\\*"]
   for trim in toTrim:
-    if result.endswith(trim):
+    if result.endsWith(trim):
       result = result[0 ..< ^(trim.len)]
 
 method query*(
