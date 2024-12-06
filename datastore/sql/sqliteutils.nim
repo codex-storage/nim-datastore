@@ -237,7 +237,10 @@ proc query*[P](
 
     case v
     of SQLITE_ROW:
-      onData(s)
+      try:
+        onData(s)
+      except Exception as err:
+        return failure("sqliteutils.query (stmt) exception: " & $err.msg)
       res = success true
     of SQLITE_DONE:
       break
@@ -256,11 +259,14 @@ proc query*(
   query: string,
   onData: DataProc): ?!bool =
 
-  var
-    s = ? NoParamsStmt.prepare(env, query)
-    res = s.query((), onData)
+  var s = ? NoParamsStmt.prepare(env, query)
 
-  # NB: dispose of the prepared query statement and free associated memory
-  s.dispose
+  try:
+    var res = s.query((), onData)
+    return res
+  except Exception as err:
+    return failure("sqliteutils.query (env) exception: " & $err.msg)
+  finally:
+    # NB: dispose of the prepared query statement and free associated memory
+    s.dispose
 
-  res
