@@ -1,7 +1,7 @@
 mode = ScriptMode.Verbose
 
 packageName   = "datastore"
-version       = "0.1.1"
+version       = "0.2.0"
 author        = "Status Research & Development GmbH"
 description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
