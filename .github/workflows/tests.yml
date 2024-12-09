@@ -23,7 +23,7 @@ jobs:
             os: windows,
             shell: msys2
           }
-        nim: [1.6.18]
+        nim: [1.6.18, 2.0.12]
     name: ${{ matrix.platform.icon }} ${{ matrix.platform.label }} - Nim v${{ matrix.nim }}
     runs-on: ${{ matrix.platform.os }}-latest
     steps:
