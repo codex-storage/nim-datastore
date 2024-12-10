@@ -13,7 +13,6 @@ requires "nim >= 1.2.0",
          "sqlite3_abi == 3.47.0.0",
          "leveldbstatic#0bd875d2b76c5b02c771fc1de136826dae6802c6",
          "stew >= 0.2.0",
-         "results >= 0.5.1",
          "unittest2 >= 0.2.3"
 
 task coverage, "generates code coverage report":
