@@ -11,7 +11,7 @@ requires "nim >= 1.2.0",
          "chronos >= 4.0.3 & < 5.0.0",
          "questionable >= 0.10.15 & < 0.11.0",
          "sqlite3_abi == 3.47.0.0",
-         "leveldbstatic#0bd875d2b76c5b02c771fc1de136826dae6802c6",
+         "leveldbstatic#2a9db82659af51933b30a90b520452b6cee628d5",
          "stew >= 0.2.0",
          "unittest2 >= 0.2.3"
 
