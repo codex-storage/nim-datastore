@@ -269,7 +269,7 @@ method query*(
 
   proc next(): Future[?!QueryResponse] {.async.} =
     if iter.finished:
-      return failure(newException(QueryEndedError, "Calling next on a finished query!"))
+      return success (Key.none, EmptyBytes)
 
     let
       v = sqlite3_step(s)
@@ -324,7 +324,7 @@ method query*(
   iter.dispose = proc(): Future[?!void] {.async.} =
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
-    iter.next = nil
+    iter.finished = true
     return success()
 
   iter.next = next
