@@ -262,12 +262,8 @@ proc query*(
 
   var s = ? NoParamsStmt.prepare(env, query)
 
-  try:
-    var res = s.query((), onData)
-    return res
-  except Exception as err:
-    return failure("sqliteutils.query (env) exception: " & $err.msg)
-  finally:
-    # NB: dispose of the prepared query statement and free associated memory
-    s.dispose
+  var res = s.query((), onData)
+  # NB: dispose of the prepared query statement and free associated memory
+  s.dispose
+  return res
 
