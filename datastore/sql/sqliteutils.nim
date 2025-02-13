@@ -19,7 +19,7 @@ type
   AutoDisposed*[T: ptr|ref] = object
     val*: T
 
-  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
+  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe, raises: [].}
 
   NoParams* = tuple # empty tuple
 
@@ -128,7 +128,11 @@ template dispose*(db: SQLite) =
 
 template dispose*(sqliteStmt: SQLiteStmt) =
   doAssert SQLITE_OK == sqlite3_finalize(RawStmtPtr(sqliteStmt))
-  sqliteStmt = nil
+  # nil literals can no longer be directly assigned to variables or fields of distinct pointer types.
+  # They must be converted instead.
+  # See https://nim-lang.org/blog/2022/12/21/version-20-rc.html#:~:text=nil%20literals%20can%20no%20longer%20be%20directly%20assigned%20to%20variables%20or%20fields%20of%20distinct%20pointer%20types.%20They%20must%20be%20converted%20instead.
+  # SQLiteStmt(nil) is generating a SIGSEGV, so we need to cast it
+  sqliteStmt = cast[typeof sqliteStmt](nil)
 
 proc release*[T](x: var AutoDisposed[T]): T =
   result = x.val
@@ -256,11 +260,10 @@ proc query*(
   query: string,
   onData: DataProc): ?!bool =
 
-  var
-    s = ? NoParamsStmt.prepare(env, query)
-    res = s.query((), onData)
+  var s = ? NoParamsStmt.prepare(env, query)
 
+  var res = s.query((), onData)
   # NB: dispose of the prepared query statement and free associated memory
   s.dispose
+  return res
 
-  res

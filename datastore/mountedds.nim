@@ -20,7 +20,7 @@ type
   MountedDatastore* = ref object of Datastore
     stores*: Table[Key, MountedStore]
 
-method mount*(self: MountedDatastore, key: Key, store: Datastore): ?!void {.base.} =
+method mount*(self: MountedDatastore, key: Key, store: Datastore): ?!void {.base, gcsafe.} =
   ## Mount a store on a namespace - namespaces are only `/`
   ##
 

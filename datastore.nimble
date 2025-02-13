@@ -1,19 +1,19 @@
 mode = ScriptMode.Verbose
 
 packageName   = "datastore"
-version       = "0.1.1"
+version       = "0.2.0"
 author        = "Status Research & Development GmbH"
 description   = "Simple, unified API for multiple data stores"
 license       = "Apache License 2.0 or MIT"
 
-requires "nim >= 1.2.0",
+requires "nim >= 2.0.14",
          "asynctest >= 0.5.2 & < 0.6.0",
-         "chronos >= 4.0.3 & < 5.0.0",
+         "chronos >= 4.0.4 & < 5.0.0",
          "questionable >= 0.10.15 & < 0.11.0",
-         "sqlite3_abi",
-         "leveldbstatic >= 0.1.6",
-         "stew",
-         "unittest2"
+         "sqlite3_abi >= 3.47.0.0 & < 4.0.0.0",
+         "leveldbstatic >= 0.2.0 & < 0.3.0",
+         "stew >= 0.2.0 & < 0.3.0",
+         "unittest2 >= 0.2.3 & < 0.3.0"
 
 task coverage, "generates code coverage report":
   var (output, exitCode) = gorgeEx("which lcov")

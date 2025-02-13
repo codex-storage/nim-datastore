@@ -25,7 +25,7 @@ suite "Test Basic LevelDbDatastore":
     otherBytes = "some other bytes".toBytes
 
   setupAll:
-    createdir(tempDir)
+    createDir(tempDir)
 
   teardownAll:
     (await ds.close()).tryGet()
@@ -40,7 +40,7 @@ suite "Test LevelDB Query":
   var ds: LevelDbDatastore
 
   setup:
-    createdir(tempDir)
+    createDir(tempDir)
     ds = LevelDbDatastore.new(tempDir).tryGet()
 
   teardown:
@@ -57,7 +57,7 @@ suite "Test LevelDB Typed Query":
   var ds: LevelDbDatastore
 
   setup:
-    createdir(tempDir)
+    createDir(tempDir)
     ds = LevelDbDatastore.new(tempDir).tryGet()
 
   teardown:
@@ -87,7 +87,7 @@ suite "LevelDB Query: keys should disregard trailing wildcards":
     val3 = "value for 3".toBytes
 
   setup:
-    createdir(tempDir)
+    createDir(tempDir)
     ds = LevelDbDatastore.new(tempDir).tryGet()
     (await ds.put(key1, val1)).tryGet
     (await ds.put(key2, val2)).tryGet
