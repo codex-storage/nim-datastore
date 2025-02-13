@@ -66,7 +66,7 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
       return failure(err)
 
     if maybeCurrentData == maybeNewData:
-      # no need to change currently stored value
+      # no need to change currently stored value (if any)
       break
 
     if err =? self.db.beginStmt.exec().errorOption:
