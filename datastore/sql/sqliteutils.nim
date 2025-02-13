@@ -19,7 +19,7 @@ type
   AutoDisposed*[T: ptr|ref] = object
     val*: T
 
-  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe.}
+  DataProc* = proc(s: RawStmtPtr) {.closure, gcsafe, raises: [].}
 
   NoParams* = tuple # empty tuple
 
@@ -241,10 +241,7 @@ proc query*[P](
 
     case v
     of SQLITE_ROW:
-      try:
-        onData(s)
-      except Exception as err:
-        return failure("sqliteutils.query (stmt) exception: " & $err.msg)
+      onData(s)
       res = success true
     of SQLITE_DONE:
       break
