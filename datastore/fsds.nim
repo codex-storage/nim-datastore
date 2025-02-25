@@ -189,7 +189,7 @@ method query*(
   var
     iter = QueryIter.new()
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     let
       path = walker()
 
@@ -208,8 +208,13 @@ method query*(
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          self.readFile((basePath / path).absolutePath)
-            .expect("Should read file")
+          try:
+            self.readFile((basePath / path).absolutePath)
+              .expect("Should read file")
+          except ValueError as err:
+            return failure err
+          except OSError as err:
+            return failure err
         else:
           @[]
 

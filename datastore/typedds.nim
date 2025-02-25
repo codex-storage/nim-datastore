@@ -47,11 +47,11 @@ type
   TypedDatastore* = ref object of RootObj
     ds*: Datastore
 
-  Modify*[T] = proc(v: ?T): Future[?T] {.raises: [CatchableError], gcsafe, closure.}
-  ModifyGet*[T, U] = proc(v: ?T): Future[(?T, U)] {.raises: [CatchableError], gcsafe, closure.}
+  Modify*[T] = proc(v: ?T): Future[?T] {.raises: [CancelledError], gcsafe, closure.}
+  ModifyGet*[T, U] = proc(v: ?T): Future[(?T, U)] {.raises: [CancelledError], gcsafe, closure.}
 
   QueryResponse*[T] = tuple[key: ?Key, value: ?!T]
-  GetNext*[T] = proc(): Future[?!QueryResponse[T]] {.raises: [], gcsafe, closure.}
+  GetNext*[T] = proc(): Future[?!QueryResponse[T]] {.async: (raises: [CancelledError]), gcsafe, closure.}
   QueryIter*[T] = ref object
     finished*: bool
     next*: GetNext[T]
@@ -161,14 +161,14 @@ proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async: 
     return failure(childErr)
 
   var iter = QueryIter[T]()
-  iter.dispose = proc (): Future[?!void] {.async.} =
+  iter.dispose = proc (): Future[?!void] {.async: (raises: [CancelledError]).} =
     await dsIter.dispose()
 
   if dsIter.finished:
     iter.finished = true
     return success(iter)
 
-  proc getNext: Future[?!QueryResponse[T]] {.async.} =
+  proc getNext: Future[?!QueryResponse[T]] {.async: (raises: [CancelledError]).} =
     without pair =? await dsIter.next(), error:
       return failure(error)
 

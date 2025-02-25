@@ -98,7 +98,7 @@ method query*(
       limit = query.limit
     )
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
@@ -114,7 +114,7 @@ method query*(
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
 
-  proc dispose(): Future[?!void] {.async.} =
+  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
     dbIter.dispose()
     return success()
 

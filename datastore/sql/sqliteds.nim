@@ -267,7 +267,7 @@ method query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
@@ -321,7 +321,7 @@ method query*(
       iter.finished = true
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  iter.dispose = proc(): Future[?!void] {.async.} =
+  iter.dispose = proc(): Future[?!void] {.async: (raises: [CancelledError]).} =
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
     iter.next = nil

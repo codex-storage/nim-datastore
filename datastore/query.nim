@@ -23,8 +23,8 @@ type
   QueryResponse* = tuple[key: ?Key, data: seq[byte]]
   QueryEndedError* = object of DatastoreError
 
-  GetNext* = proc(): Future[?!QueryResponse] {.raises: [], gcsafe, closure.}
-  IterDispose* = proc(): Future[?!void] {.raises: [], gcsafe.}
+  GetNext* = proc(): Future[?!QueryResponse] {.async: (raises: [CancelledError]), gcsafe, closure.}
+  IterDispose* = proc(): Future[?!void] {.async: (raises: [CancelledError]), gcsafe.}
   QueryIter* = ref object
     finished*: bool
     next*: GetNext
@@ -34,7 +34,7 @@ iterator items*(q: QueryIter): Future[?!QueryResponse] =
   while not q.finished:
     yield q.next()
 
-proc defaultDispose(): Future[?!void] {.gcsafe, async.} =
+proc defaultDispose(): Future[?!void] {.gcsafe, async: (raises: [CancelledError]).} =
   return success()
 
 proc new*(T: type QueryIter, dispose = defaultDispose): T =
