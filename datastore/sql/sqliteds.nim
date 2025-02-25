@@ -62,6 +62,8 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
 
     try:
       (maybeNewData, aux) = await fn(maybeCurrentData)
+    except CancelledError as err:
+      raise err
     except CatchableError as err:
       return failure(err)
 

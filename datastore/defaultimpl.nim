@@ -33,6 +33,8 @@ proc defaultModifyGetImpl*(
 
     try:
       (maybeNewData, aux) = await fn(maybeCurrentData)
+    except CancelledError as err:
+      raise err
     except CatchableError as err:
       return failure(err)
 
