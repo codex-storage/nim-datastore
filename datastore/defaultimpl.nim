@@ -11,10 +11,9 @@ proc defaultModifyGetImpl*(
   lock: AsyncLock,
   key: Key,
   fn: ModifyGet
-  ): Future[?!seq[byte]] {.async.} =
+  ): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
   # Default implementation, serializes all modify operations using provided lock
   #
-
   await lock.acquire()
 
   try:
@@ -53,7 +52,7 @@ proc defaultModifyImpl*(
   lock: AsyncLock,
   key: Key,
   fn: Modify
-  ): Future[?!void] {.async.} =
+  ): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
   proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
     let res = await fn(maybeValue)
     let ignoredAux = newSeq[byte]()

@@ -163,12 +163,12 @@ proc dirWalker(path: string): (iterator: string {.raises: [Defect], gcsafe.}) =
     except CatchableError as exc:
       raise newException(Defect, exc.msg)
 
-method close*(self: FSDatastore): Future[?!void] {.async.} =
+method close*(self: FSDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   return success()
 
 method query*(
   self: FSDatastore,
-  query: Query): Future[?!QueryIter] {.async.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]).} =
 
   without path =? self.path(query.key), error:
     return failure error
@@ -221,7 +221,7 @@ method query*(
 method modifyGet*(
   self: FSDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
@@ -233,8 +233,9 @@ method modifyGet*(
 method modify*(
   self: FSDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
   var lock: AsyncLock
+
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
     return await defaultModifyImpl(self, lock, key, fn)

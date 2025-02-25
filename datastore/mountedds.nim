@@ -121,7 +121,7 @@ method put*(
 method modifyGet*(
   self: MountedDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
@@ -131,14 +131,14 @@ method modifyGet*(
 method modify*(
   self: MountedDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
 
   return await mounted.store.store.modify(mounted.relative, fn)
 
-method close*(self: MountedDatastore): Future[?!void] {.async.} =
+method close*(self: MountedDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   for s in self.stores.values:
     discard await s.store.close()
 

@@ -47,8 +47,11 @@ method delete*(
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-      without res =? fut.read().catch, error:
-        return failure error
+    try:
+      if fut.read().isErr:
+        return fut.read()
+    except FuturePendingError as err:
+      return failure err
 
   return success()
 
@@ -61,8 +64,11 @@ method delete*(
       pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
     for fut in pending:
-      without res =? fut.read().catch, error:
-        return failure error
+      try:
+        if fut.read().isErr:
+          return fut.read()
+      except FuturePendingError as err:
+        return failure err
 
   return success()
 
@@ -99,8 +105,11 @@ method put*(
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    without res =? fut.read().catch, error:
-      return failure error
+    try:
+      if fut.read().isErr:
+        return fut.read()
+    except FuturePendingError as err:
+      return failure err
 
   return success()
 
@@ -113,15 +122,18 @@ method put*(
       pending = await allFinished(self.stores.mapIt(it.put(entry.key, entry.data)))
 
     for fut in pending:
-      without res =? fut.read().catch, error:
-        return failure error
+      try:
+        if fut.read().isErr:
+          return fut.read()
+      except FuturePendingError as err:
+        return failure err
 
   return success()
 
 method modifyGet*(
   self: TieredDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modifyGet(key, fn)))
@@ -129,23 +141,30 @@ method modifyGet*(
   var aux = newSeq[byte]()
 
   for fut in pending:
-    if fut.read().isErr:
-      return fut.read()
-    else:
-      aux.add(fut.read().get)
+    try:
+      if fut.read().isErr:
+        return fut.read()
+      else:
+        aux.add(fut.read().get)
+    except FuturePendingError as err:
+      return failure err
 
   return success(aux)
 
 method modify*(
   self: TieredDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    try:
+      if fut.read().isErr:
+        return fut.read()
+    except FuturePendingError as err:
+      return failure err
 
   return success()
 

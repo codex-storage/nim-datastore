@@ -68,7 +68,7 @@ method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.as
   except LevelDbException as e:
     return failure("LevelDbDatastore.put (batch) exception: " & $e.msg)
 
-method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
+method close*(self: LevelDbDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     self.db.close()
     return success()
@@ -84,7 +84,7 @@ proc getQueryString(query: Query): string =
 
 method query*(
   self: LevelDbDatastore,
-  query: Query): Future[?!QueryIter] {.async, gcsafe.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]), gcsafe.} =
 
   if not (query.sort == SortOrder.Assending):
     return failure("LevelDbDatastore.query: query.sort is not SortOrder.Ascending. Unsupported.")
@@ -125,7 +125,7 @@ method query*(
 method modifyGet*(
   self: LevelDbDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
@@ -137,7 +137,7 @@ method modifyGet*(
 method modify*(
   self: LevelDbDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())

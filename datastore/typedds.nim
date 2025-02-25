@@ -102,7 +102,7 @@ proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async: (raises: [Can
     return failure(error)
   return T.decode(bytes)
 
-proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {.async.} =
+proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
   requireDecoder(T)
   requireEncoder(T)
 
@@ -123,7 +123,7 @@ proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {
 
   await self.ds.modify(key, wrappedFn)
 
-proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Future[?!U] {.async.} =
+proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Future[?!U] {.async: (raises: [CancelledError, AsyncLockError]).} =
   requireDecoder(T)
   requireEncoder(T)
   requireEncoder(U)
@@ -153,7 +153,7 @@ proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Futu
 
   return U.decode(auxBytes)
 
-proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async.} =
+proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
 
   without dsIter =? await self.ds.query(q), error:

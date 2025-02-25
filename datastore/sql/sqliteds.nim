@@ -40,7 +40,7 @@ proc newRollbackError(rbErr: ref CatchableError, opErrMsg: string): ref Rollback
 proc newRollbackError(rbErr: ref CatchableError, opErr: ref CatchableError): ref RollbackError =
   return newRollbackError(rbErr, opErr)
 
-method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
   var
     retriesLeft = 100 # allows reasonable concurrency, avoids infinite loop
     aux: seq[byte]
@@ -135,7 +135,7 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
   return success(aux)
 
 
-method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async.} =
+method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
   proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
     let res = await fn(maybeValue)
     let ignoredAux = newSeq[byte]()
@@ -216,14 +216,14 @@ method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.asy
 
   return success()
 
-method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
+method close*(self: SQLiteDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   self.db.close()
 
   return success()
 
 method query*(
   self: SQLiteDatastore,
-  query: Query): Future[?!QueryIter] {.async.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]).} =
 
   var
     iter = QueryIter()
