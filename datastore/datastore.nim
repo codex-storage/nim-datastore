@@ -46,7 +46,7 @@ method query*(
 proc contains*(self: Datastore, key: Key): Future[bool] {.async: (raises: [CancelledError]).} =
   return (await self.has(key)) |? false
 
-method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError, AsyncLockError]), locks: "unknown".} =
+method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   ## Concurrently safe way of modifying the value associated with the `key`.
   ##
   ## Same as `modifyGet`, but this takes `fn` that doesn't produce any auxillary value.
@@ -54,7 +54,7 @@ method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gc
 
   raiseAssert("Not implemented!")
 
-method modifyGet*(self: Datastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.base, gcsafe, async: (raises: [CancelledError, AsyncLockError]), locks: "unknown".} =
+method modifyGet*(self: Datastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   ## Concurrently safe way of updating value associated with the `key`. Returns auxillary value on
   ## successful update.
   ##

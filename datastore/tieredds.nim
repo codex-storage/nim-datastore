@@ -133,7 +133,7 @@ method put*(
 method modifyGet*(
   self: TieredDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modifyGet(key, fn)))
@@ -154,7 +154,7 @@ method modifyGet*(
 method modify*(
   self: TieredDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))

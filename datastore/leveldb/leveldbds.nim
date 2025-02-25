@@ -125,7 +125,7 @@ method query*(
 method modifyGet*(
   self: LevelDbDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
@@ -137,7 +137,7 @@ method modifyGet*(
 method modify*(
   self: LevelDbDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())

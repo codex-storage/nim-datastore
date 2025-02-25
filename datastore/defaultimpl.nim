@@ -11,7 +11,7 @@ proc defaultModifyGetImpl*(
   lock: AsyncLock,
   key: Key,
   fn: ModifyGet
-  ): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  ): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   # Default implementation, serializes all modify operations using provided lock
   #
   await lock.acquire()
@@ -45,14 +45,17 @@ proc defaultModifyGetImpl*(
 
     return aux.success
   finally:
-    lock.release()
+    try: 
+      lock.release()
+    except AsyncLockError as err:
+      return failure(err)
 
 proc defaultModifyImpl*(
   self: Datastore,
   lock: AsyncLock,
   key: Key,
   fn: Modify
-  ): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
   proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
     let res = await fn(maybeValue)
     let ignoredAux = newSeq[byte]()

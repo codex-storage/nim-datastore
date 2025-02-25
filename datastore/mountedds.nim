@@ -121,7 +121,7 @@ method put*(
 method modifyGet*(
   self: MountedDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
@@ -131,7 +131,7 @@ method modifyGet*(
 method modify*(
   self: MountedDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async: (raises: [CancelledError, AsyncLockError]).} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
