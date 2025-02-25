@@ -146,7 +146,7 @@ method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.as
   else:
     return success()
 
-method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   var
     exists = false
 
@@ -158,10 +158,10 @@ method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
 
   return success exists
 
-method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   return self.db.deleteStmt.exec((key.id))
 
-method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -177,7 +177,7 @@ method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} 
 
   return success()
 
-method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `method get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -197,10 +197,10 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   return success bytes
 
-method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
   return self.db.putStmt.exec((key.id, data, initVersion, timestamp()))
 
-method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 

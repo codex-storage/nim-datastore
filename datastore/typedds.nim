@@ -71,16 +71,16 @@ template requireEncoder*(T: typedesc): untyped =
     {.error: "provide an encoder: `proc encode(a: " & $T & "): seq[byte]`".}
 
 # Original Datastore API
-proc has*(self: TypedDatastore, key: Key): Future[?!bool] {.async.} =
+proc has*(self: TypedDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   await self.ds.has(key)
 
-proc contains*(self: TypedDatastore, key: Key): Future[bool] {.async.} =
+proc contains*(self: TypedDatastore, key: Key): Future[bool] {.async: (raises: [CancelledError]).} =
   return (await self.ds.has(key)) |? false
 
-proc delete*(self: TypedDatastore, key: Key): Future[?!void] {.async.} =
+proc delete*(self: TypedDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   await self.ds.delete(key)
 
-proc delete*(self: TypedDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+proc delete*(self: TypedDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   await self.ds.delete(keys)
 
 proc close*(self: TypedDatastore): Future[?!void] {.async.} =
@@ -90,12 +90,12 @@ proc close*(self: TypedDatastore): Future[?!void] {.async.} =
 proc init*(T: type TypedDatastore, ds: Datastore): T =
   TypedDatastore(ds: ds)
 
-proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async.} =
+proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async: (raises: [CancelledError]).} =
   requireEncoder(T)
 
   await self.ds.put(key, t.encode)
 
-proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async.} =
+proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
 
   without bytes =? await self.ds.get(key), error:

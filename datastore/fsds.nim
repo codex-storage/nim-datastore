@@ -65,10 +65,10 @@ proc path*(self: FSDatastore, key: Key): ?!string =
 
   return success fullname
 
-method has*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: FSDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   return self.path(key).?fileExists()
 
-method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: FSDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   without path =? self.path(key), error:
     return failure error
 
@@ -82,7 +82,7 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   return success()
 
-method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure err
@@ -119,7 +119,7 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   except CatchableError as e:
     return failure e
 
-method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   without path =? self.path(key), error:
     return failure error
 
@@ -132,7 +132,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 method put*(
   self: FSDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async.} =
+  data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   without path =? self.path(key), error:
     return failure error
@@ -147,7 +147,7 @@ method put*(
 
 method put*(
   self: FSDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:

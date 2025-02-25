@@ -20,27 +20,27 @@ type
     db: LevelDb
     locks: TableRef[Key, AsyncLock]
 
-method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
     let str = self.db.get($key)
     return success(str.isSome)
   except LevelDbException as e:
     return failure("LevelDbDatastore.has exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     self.db.delete($key, sync = true)
     return success()
   except LevelDbException as e:
     return failure("LevelDbDatastore.delete exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure(err.msg)
   return success()
 
-method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   try:
     let str = self.db.get($key)
     if not str.isSome:
@@ -50,7 +50,7 @@ method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   except LevelDbException as e:
     return failure("LevelDbDatastore.get exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     let str = string.fromBytes(data)
     self.db.put($key, str)
@@ -58,7 +58,7 @@ method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {
   except LevelDbException as e:
     return failure("LevelDbDatastore.put exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     let b = newBatch()
     for entry in batch:

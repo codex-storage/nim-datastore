@@ -63,7 +63,7 @@ proc dispatch(
 
 method has*(
   self: MountedDatastore,
-  key: Key): Future[?!bool] {.async.} =
+  key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key):
     return failure "No mounted datastore found"
@@ -72,7 +72,7 @@ method has*(
 
 method delete*(
   self: MountedDatastore,
-  key: Key): Future[?!void] {.async.} =
+  key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
@@ -81,7 +81,7 @@ method delete*(
 
 method delete*(
   self: MountedDatastore,
-  keys: seq[Key]): Future[?!void] {.async.} =
+  keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
@@ -91,7 +91,7 @@ method delete*(
 
 method get*(
   self: MountedDatastore,
-  key: Key): Future[?!seq[byte]] {.async.} =
+  key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
@@ -101,7 +101,7 @@ method get*(
 method put*(
   self: MountedDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async.} =
+  data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   without mounted =? self.dispatch(key), error:
     return failure(error)
@@ -110,7 +110,7 @@ method put*(
 
 method put*(
   self: MountedDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
