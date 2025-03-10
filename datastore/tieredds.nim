@@ -47,11 +47,8 @@ method delete*(
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-    try:
-      if fut.read().isErr:
-        return fut.read()
-    except FuturePendingError as err:
-      return failure err
+    let res = await fut
+    if res.isErr: return res
 
   return success()
 
@@ -64,11 +61,8 @@ method delete*(
       pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
     for fut in pending:
-      try:
-        if fut.read().isErr:
-          return fut.read()
-      except FuturePendingError as err:
-        return failure err
+      let res = await fut
+      if res.isErr: return res
 
   return success()
 
@@ -105,11 +99,8 @@ method put*(
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    try:
-      if fut.read().isErr:
-        return fut.read()
-    except FuturePendingError as err:
-      return failure err
+    let res = await fut
+    if res.isErr: return res
 
   return success()
 
@@ -122,11 +113,8 @@ method put*(
       pending = await allFinished(self.stores.mapIt(it.put(entry.key, entry.data)))
 
     for fut in pending:
-      try:
-        if fut.read().isErr:
-          return fut.read()
-      except FuturePendingError as err:
-        return failure err
+      let res = await fut
+      if res.isErr: return res
 
   return success()
 
@@ -141,13 +129,9 @@ method modifyGet*(
   var aux = newSeq[byte]()
 
   for fut in pending:
-    try:
-      if fut.read().isErr:
-        return fut.read()
-      else:
-        aux.add(fut.read().get)
-    except FuturePendingError as err:
-      return failure err
+    let res = await fut
+    if res.isErr: return res
+    aux.add(res.get)
 
   return success(aux)
 
@@ -160,11 +144,8 @@ method modify*(
     pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))
 
   for fut in pending:
-    try:
-      if fut.read().isErr:
-        return fut.read()
-    except FuturePendingError as err:
-      return failure err
+    let res = await fut
+    if res.isErr: return res
 
   return success()
 
