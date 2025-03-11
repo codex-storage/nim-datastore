@@ -47,8 +47,7 @@ method delete*(
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-    let res = await fut
-    if res.isErr: return res
+    ? await fut
 
   return success()
 
@@ -61,8 +60,7 @@ method delete*(
       pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
     for fut in pending:
-      let res = await fut
-      if res.isErr: return res
+      ? await fut
 
   return success()
 
@@ -99,8 +97,7 @@ method put*(
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    let res = await fut
-    if res.isErr: return res
+    ? await fut
 
   return success()
 
@@ -113,8 +110,7 @@ method put*(
       pending = await allFinished(self.stores.mapIt(it.put(entry.key, entry.data)))
 
     for fut in pending:
-      let res = await fut
-      if res.isErr: return res
+      ? await fut
 
   return success()
 
@@ -129,9 +125,8 @@ method modifyGet*(
   var aux = newSeq[byte]()
 
   for fut in pending:
-    let res = await fut
-    if res.isErr: return res
-    aux.add(res.get)
+    let res = ? await fut
+    aux.add(res)
 
   return success(aux)
 
@@ -144,8 +139,7 @@ method modify*(
     pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))
 
   for fut in pending:
-    let res = await fut
-    if res.isErr: return res
+    ? await fut
 
   return success()
 
