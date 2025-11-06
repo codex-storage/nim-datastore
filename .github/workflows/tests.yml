@@ -23,16 +23,22 @@ jobs:
             os: windows,
             shell: msys2
           }
-        nim: [2.0.14]
+        nim: [binary:2.2.4]
     name: ${{ matrix.platform.icon }} ${{ matrix.platform.label }} - Nim v${{ matrix.nim }}
     runs-on: ${{ matrix.platform.os }}-latest
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
-    - uses: iffy/install-nim@v4
+    - uses: iffy/install-nim@v5
       with:
         version: ${{ matrix.nim }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.x'
     - name: Build
       run: nimble install -y
     - name: Test
