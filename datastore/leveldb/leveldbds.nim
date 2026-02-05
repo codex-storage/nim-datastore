@@ -98,6 +98,11 @@ method query*(
       limit = query.limit
     )
 
+  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
+    dbIter.dispose()
+    iter.disposed = true
+    return success()
+
   proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
@@ -107,16 +112,15 @@ method query*(
 
       if dbIter.finished:
         iter.finished = true
+        if err =? (await dispose()).errorOption:
+          return failure(err)
+
         return success (Key.none, EmptyBytes)
       else:
         let key = Key.init(keyStr).expect("LevelDbDatastore.query (next) Failed to create key.")
         return success (key.some, valueStr.toBytes())
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
-
-  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
-    dbIter.dispose()
-    return success()
 
   iter.next = next
   iter.dispose = dispose

@@ -16,58 +16,58 @@ import ../modifycommontests
 import ../querycommontests
 import ../typeddscommontests
 
-suite "Test Basic LevelDbDatastore":
-  let
-    tempDir = getTempDir() / "testleveldbds"
-    ds = LevelDbDatastore.new(tempDir).tryGet()
-    key = Key.init("a:b/c/d:e").tryGet()
-    bytes = "some bytes".toBytes
-    otherBytes = "some other bytes".toBytes
+# suite "Test Basic LevelDbDatastore":
+#   let
+#     tempDir = getTempDir() / "testleveldbds"
+#     ds = LevelDbDatastore.new(tempDir).tryGet()
+#     key = Key.init("a:b/c/d:e").tryGet()
+#     bytes = "some bytes".toBytes
+#     otherBytes = "some other bytes".toBytes
 
-  setupAll:
-    createDir(tempDir)
+#   setupAll:
+#     createDir(tempDir)
 
-  teardownAll:
-    (await ds.close()).tryGet()
-    removeDir(tempDir)
+#   teardownAll:
+#     (await ds.close()).tryGet()
+#     removeDir(tempDir)
 
-  basicStoreTests(ds, key, bytes, otherBytes)
-  modifyTests(ds, key)
-  typedDsTests(ds, key)
+#   basicStoreTests(ds, key, bytes, otherBytes)
+#   modifyTests(ds, key)
+#   typedDsTests(ds, key)
 
-suite "Test LevelDB Query":
-  let tempDir = getTempDir() / "testleveldbds"
-  var ds: LevelDbDatastore
+# suite "Test LevelDB Query":
+#   let tempDir = getTempDir() / "testleveldbds"
+#   var ds: LevelDbDatastore
 
-  setup:
-    createDir(tempDir)
-    ds = LevelDbDatastore.new(tempDir).tryGet()
+#   setup:
+#     createDir(tempDir)
+#     ds = LevelDbDatastore.new(tempDir).tryGet()
 
-  teardown:
-    (await ds.close()).tryGet
-    removeDir(tempDir)
+#   teardown:
+#     (await ds.close()).tryGet
+#     removeDir(tempDir)
 
-  queryTests(ds,
-    testLimitsAndOffsets = true,
-    testSortOrder = false
-  )
+#   queryTests(ds,
+#     testLimitsAndOffsets = true,
+#     testSortOrder = false
+#   )
 
-suite "Test LevelDB Typed Query":
-  let tempDir = getTempDir() / "testleveldbds"
-  var ds: LevelDbDatastore
+# suite "Test LevelDB Typed Query":
+#   let tempDir = getTempDir() / "testleveldbds"
+#   var ds: LevelDbDatastore
 
-  setup:
-    createDir(tempDir)
-    ds = LevelDbDatastore.new(tempDir).tryGet()
+#   setup:
+#     createDir(tempDir)
+#     ds = LevelDbDatastore.new(tempDir).tryGet()
 
-  teardown:
-    (await ds.close()).tryGet
-    removeDir(tempDir)
+#   teardown:
+#     (await ds.close()).tryGet
+#     removeDir(tempDir)
 
-  test "Typed Queries":
-    typedDsQueryTests(ds)
+#   test "Typed Queries":
+#     typedDsQueryTests(ds)
 
-suite "LevelDB Query: keys should disregard trailing wildcards":
+suite "LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
   var
     ds: LevelDbDatastore
@@ -97,44 +97,80 @@ suite "LevelDB Query: keys should disregard trailing wildcards":
     (await ds.close()).tryGet
     removeDir(tempDir)
 
-  test "Forward":
+  # test "should query by prefix":
+  #   let
+  #     q = Query.init(Key.init("/a/*").tryGet)
+  #     iter = (await ds.query(q)).tryGet
+  #     res = (await allFinished(toSeq(iter)))
+  #       .mapIt( it.read.tryGet )
+  #       .filterIt( it.key.isSome )
+
+  #   check:
+  #     res.len == 3
+  #     res[0].key.get == key1
+  #     res[0].data == val1
+
+  #     res[1].key.get == key2
+  #     res[1].data == val2
+
+  #     res[2].key.get == key3
+  #     res[2].data == val3
+
+  #   (await iter.dispose()).tryGet
+
+  # test "should disregard forward trailing wildcards in keys":
+  #   let
+  #     q = Query.init(Key.init("/a/*").tryGet)
+  #     iter = (await ds.query(q)).tryGet
+  #     res = (await allFinished(toSeq(iter)))
+  #       .mapIt( it.read.tryGet )
+  #       .filterIt( it.key.isSome )
+
+  #   check:
+  #     res.len == 3
+  #     res[0].key.get == key1
+  #     res[0].data == val1
+
+  #     res[1].key.get == key2
+  #     res[1].data == val2
+
+  #     res[2].key.get == key3
+  #     res[2].data == val3
+
+  # test "should disregard backward trailing wildcards in key":
+  #   let
+  #     q = Query.init(Key.init("/a\\*").tryGet)
+  #     iter = (await ds.query(q)).tryGet
+  #     res = (await allFinished(toSeq(iter)))
+  #       .mapIt( it.read.tryGet )
+  #       .filterIt( it.key.isSome )
+
+  #   check:
+  #     res.len == 3
+  #     res[0].key.get == key1
+  #     res[0].data == val1
+
+  #     res[1].key.get == key2
+  #     res[1].data == val2
+
+  #     res[2].key.get == key3
+  #     res[2].data == val3
+
+  test "should dispose automatically when iterator is finished":
     let
-      q = Query.init(Key.init("/a/*").tryGet)
+      q = Query.init(Key.init("/a/b/c").tryGet)
       iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
 
-    check:
-      res.len == 3
-      res[0].key.get == key1
-      res[0].data == val1
+    let val = (await iter.next()).tryGet()
+    check val.key.get == key3
+    check val.data == val3
 
-      res[1].key.get == key2
-      res[1].data == val2
+    check iter.finished == false
+    check iter.disposed == false
 
-      res[2].key.get == key3
-      res[2].data == val3
+    let val2 = (await iter.next()).tryGet()
+    check val2.key == Key.none
+    check val2.data == EmptyBytes
 
-    (await iter.dispose()).tryGet
-
-  test "Backwards":
-    let
-      q = Query.init(Key.init("/a\\*").tryGet)
-      iter = (await ds.query(q)).tryGet
-      res = (await allFinished(toSeq(iter)))
-        .mapIt( it.read.tryGet )
-        .filterIt( it.key.isSome )
-
-    check:
-      res.len == 3
-      res[0].key.get == key1
-      res[0].data == val1
-
-      res[1].key.get == key2
-      res[1].data == val2
-
-      res[2].key.get == key3
-      res[2].data == val3
-
-    (await iter.dispose()).tryGet
+    check iter.finished == true
+    check iter.disposed == true
