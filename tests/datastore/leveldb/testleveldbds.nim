@@ -156,7 +156,7 @@ suite "LevelDB Query":
       res[2].key.get == key3
       res[2].data == val3
 
-  test "should dispose automatically when iterator is finished":
+  test "should dispose automatically of iterators when finished":
     let
       q = Query.init(Key.init("/a/b/c").tryGet)
       iter = (await ds.query(q)).tryGet
