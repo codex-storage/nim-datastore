@@ -97,64 +97,64 @@ suite "LevelDB Query":
     (await ds.close()).tryGet
     removeDir(tempDir)
 
-  # test "should query by prefix":
-  #   let
-  #     q = Query.init(Key.init("/a/*").tryGet)
-  #     iter = (await ds.query(q)).tryGet
-  #     res = (await allFinished(toSeq(iter)))
-  #       .mapIt( it.read.tryGet )
-  #       .filterIt( it.key.isSome )
+  test "should query by prefix":
+    let
+      q = Query.init(Key.init("/a/*").tryGet)
+      iter = (await ds.query(q)).tryGet
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data == val1
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-  #     res[1].key.get == key2
-  #     res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-  #     res[2].key.get == key3
-  #     res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
-  #   (await iter.dispose()).tryGet
+    (await iter.dispose()).tryGet
 
-  # test "should disregard forward trailing wildcards in keys":
-  #   let
-  #     q = Query.init(Key.init("/a/*").tryGet)
-  #     iter = (await ds.query(q)).tryGet
-  #     res = (await allFinished(toSeq(iter)))
-  #       .mapIt( it.read.tryGet )
-  #       .filterIt( it.key.isSome )
+  test "should disregard forward trailing wildcards in keys":
+    let
+      q = Query.init(Key.init("/a/*").tryGet)
+      iter = (await ds.query(q)).tryGet
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data == val1
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-  #     res[1].key.get == key2
-  #     res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-  #     res[2].key.get == key3
-  #     res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
-  # test "should disregard backward trailing wildcards in key":
-  #   let
-  #     q = Query.init(Key.init("/a\\*").tryGet)
-  #     iter = (await ds.query(q)).tryGet
-  #     res = (await allFinished(toSeq(iter)))
-  #       .mapIt( it.read.tryGet )
-  #       .filterIt( it.key.isSome )
+  test "should disregard backward trailing wildcards in key":
+    let
+      q = Query.init(Key.init("/a\\*").tryGet)
+      iter = (await ds.query(q)).tryGet
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
 
-  #   check:
-  #     res.len == 3
-  #     res[0].key.get == key1
-  #     res[0].data == val1
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
 
-  #     res[1].key.get == key2
-  #     res[1].data == val2
+      res[1].key.get == key2
+      res[1].data == val2
 
-  #     res[2].key.get == key3
-  #     res[2].data == val3
+      res[2].key.get == key3
+      res[2].data == val3
 
   test "should dispose automatically when iterator is finished":
     let
@@ -174,3 +174,24 @@ suite "LevelDB Query":
 
     check iter.finished == true
     check iter.disposed == true
+
+  test "should dispose automatically of iterators when datastore is closed":
+    let
+      q1 = Query.init(Key.init("/a/b/c").tryGet)
+      q2 = Query.init(Key.init("/a/b").tryGet)
+      i1 = (await ds.query(q1)).tryGet
+      i2 = (await ds.query(q2)).tryGet
+
+    check i1.disposed == false
+    check i2.disposed == false
+
+    (await ds.close()).tryGet
+
+    check i1.disposed == true
+    check i2.disposed == true
+
+  test "should have idempotent QueryIterator.dispose":
+    let q = Query.init(Key.init("/a/b/c").tryGet)
+    let iter = (await ds.query(q)).tryGet
+    (await iter.dispose()).tryGet
+    (await iter.dispose()).tryGet

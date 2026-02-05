@@ -5,6 +5,7 @@ import std/tables
 import std/os
 import std/strformat
 import std/strutils
+import std/sets
 
 import pkg/leveldbstatic
 import pkg/chronos
@@ -19,6 +20,10 @@ type
   LevelDbDatastore* = ref object of Datastore
     db: LevelDb
     locks: TableRef[Key, AsyncLock]
+    openIterators: HashSet[QueryIter]
+
+proc hash(iter: QueryIter): Hash =
+  hash(addr iter)
 
 method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
@@ -70,6 +75,10 @@ method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.as
 
 method close*(self: LevelDbDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
+    for iter in self.openIterators:
+      if err =? (await iter.dispose()).errorOption:
+        return failure(err.msg)
+    self.openIterators.clear()
     self.db.close()
     return success()
   except LevelDbException as e:
@@ -101,6 +110,8 @@ method query*(
   proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
     dbIter.dispose()
     iter.disposed = true
+    self.openIterators.excl(iter)
+
     return success()
 
   proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
@@ -124,6 +135,8 @@ method query*(
 
   iter.next = next
   iter.dispose = dispose
+  self.openIterators.incl(iter)
+
   return success iter
 
 method modifyGet*(
