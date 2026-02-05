@@ -20,27 +20,27 @@ type
     db: LevelDb
     locks: TableRef[Key, AsyncLock]
 
-method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
     let str = self.db.get($key)
     return success(str.isSome)
   except LevelDbException as e:
     return failure("LevelDbDatastore.has exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: LevelDbDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     self.db.delete($key, sync = true)
     return success()
   except LevelDbException as e:
     return failure("LevelDbDatastore.delete exception: " & e.msg)
 
-method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: LevelDbDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure(err.msg)
   return success()
 
-method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   try:
     let str = self.db.get($key)
     if not str.isSome:
@@ -50,7 +50,7 @@ method get*(self: LevelDbDatastore, key: Key): Future[?!seq[byte]] {.async.} =
   except LevelDbException as e:
     return failure("LevelDbDatastore.get exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     let str = string.fromBytes(data)
     self.db.put($key, str)
@@ -58,7 +58,7 @@ method put*(self: LevelDbDatastore, key: Key, data: seq[byte]): Future[?!void] {
   except LevelDbException as e:
     return failure("LevelDbDatastore.put exception: " & $e.msg)
 
-method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     let b = newBatch()
     for entry in batch:
@@ -68,7 +68,7 @@ method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.as
   except LevelDbException as e:
     return failure("LevelDbDatastore.put (batch) exception: " & $e.msg)
 
-method close*(self: LevelDbDatastore): Future[?!void] {.async.} =
+method close*(self: LevelDbDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     self.db.close()
     return success()
@@ -84,7 +84,7 @@ proc getQueryString(query: Query): string =
 
 method query*(
   self: LevelDbDatastore,
-  query: Query): Future[?!QueryIter] {.async, gcsafe.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]), gcsafe.} =
 
   if not (query.sort == SortOrder.Assending):
     return failure("LevelDbDatastore.query: query.sort is not SortOrder.Ascending. Unsupported.")
@@ -98,7 +98,7 @@ method query*(
       limit = query.limit
     )
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
@@ -114,7 +114,7 @@ method query*(
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
 
-  proc dispose(): Future[?!void] {.async.} =
+  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
     dbIter.dispose()
     return success()
 
@@ -125,7 +125,7 @@ method query*(
 method modifyGet*(
   self: LevelDbDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
@@ -137,7 +137,7 @@ method modifyGet*(
 method modify*(
   self: LevelDbDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())

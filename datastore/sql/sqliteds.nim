@@ -40,7 +40,7 @@ proc newRollbackError(rbErr: ref CatchableError, opErrMsg: string): ref Rollback
 proc newRollbackError(rbErr: ref CatchableError, opErr: ref CatchableError): ref RollbackError =
   return newRollbackError(rbErr, opErr)
 
-method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   var
     retriesLeft = 100 # allows reasonable concurrency, avoids infinite loop
     aux: seq[byte]
@@ -62,6 +62,8 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
 
     try:
       (maybeNewData, aux) = await fn(maybeCurrentData)
+    except CancelledError as err:
+      raise err
     except CatchableError as err:
       return failure(err)
 
@@ -135,7 +137,7 @@ method modifyGet*(self: SQLiteDatastore, key: Key, fn: ModifyGet): Future[?!seq[
   return success(aux)
 
 
-method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async.} =
+method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
   proc wrappedFn(maybeValue: ?seq[byte]): Future[(?seq[byte], seq[byte])] {.async.} =
     let res = await fn(maybeValue)
     let ignoredAux = newSeq[byte]()
@@ -146,7 +148,7 @@ method modify*(self: SQLiteDatastore, key: Key, fn: Modify): Future[?!void] {.as
   else:
     return success()
 
-method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   var
     exists = false
 
@@ -158,10 +160,10 @@ method has*(self: SQLiteDatastore, key: Key): Future[?!bool] {.async.} =
 
   return success exists
 
-method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   return self.db.deleteStmt.exec((key.id))
 
-method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure(err)
 
@@ -177,7 +179,7 @@ method delete*(self: SQLiteDatastore, keys: seq[Key]): Future[?!void] {.async.} 
 
   return success()
 
-method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   # see comment in ./filesystem_datastore re: finer control of memory
   # allocation in `method get`, could apply here as well if bytes were read
   # incrementally with `sqlite3_blob_read`
@@ -197,10 +199,10 @@ method get*(self: SQLiteDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 
   return success bytes
 
-method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore, key: Key, data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
   return self.db.putStmt.exec((key.id, data, initVersion, timestamp()))
 
-method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async.} =
+method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
   if err =? self.db.beginStmt.exec().errorOption:
     return failure err
 
@@ -216,14 +218,14 @@ method put*(self: SQLiteDatastore, batch: seq[BatchEntry]): Future[?!void] {.asy
 
   return success()
 
-method close*(self: SQLiteDatastore): Future[?!void] {.async.} =
+method close*(self: SQLiteDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   self.db.close()
 
   return success()
 
 method query*(
   self: SQLiteDatastore,
-  query: Query): Future[?!QueryIter] {.async.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]).} =
 
   var
     iter = QueryIter()
@@ -267,7 +269,7 @@ method query*(
     if not (v == SQLITE_OK):
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
 
@@ -321,7 +323,7 @@ method query*(
       iter.finished = true
       return failure newException(DatastoreError, $sqlite3_errstr(v))
 
-  iter.dispose = proc(): Future[?!void] {.async.} =
+  iter.dispose = proc(): Future[?!void] {.async: (raises: [CancelledError]).} =
     discard sqlite3_reset(s)
     discard sqlite3_clear_bindings(s)
     iter.next = nil

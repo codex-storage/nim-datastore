@@ -65,10 +65,10 @@ proc path*(self: FSDatastore, key: Key): ?!string =
 
   return success fullname
 
-method has*(self: FSDatastore, key: Key): Future[?!bool] {.async.} =
+method has*(self: FSDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   return self.path(key).?fileExists()
 
-method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
+method delete*(self: FSDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   without path =? self.path(key), error:
     return failure error
 
@@ -82,7 +82,7 @@ method delete*(self: FSDatastore, key: Key): Future[?!void] {.async.} =
 
   return success()
 
-method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+method delete*(self: FSDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   for key in keys:
     if err =? (await self.delete(key)).errorOption:
       return failure err
@@ -119,7 +119,7 @@ proc readFile*(self: FSDatastore, path: string): ?!seq[byte] =
   except CatchableError as e:
     return failure e
 
-method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
+method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   without path =? self.path(key), error:
     return failure error
 
@@ -132,7 +132,7 @@ method get*(self: FSDatastore, key: Key): Future[?!seq[byte]] {.async.} =
 method put*(
   self: FSDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async.} =
+  data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   without path =? self.path(key), error:
     return failure error
@@ -147,7 +147,7 @@ method put*(
 
 method put*(
   self: FSDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for entry in batch:
     if err =? (await self.put(entry.key, entry.data)).errorOption:
@@ -163,12 +163,12 @@ proc dirWalker(path: string): (iterator: string {.raises: [Defect], gcsafe.}) =
     except CatchableError as exc:
       raise newException(Defect, exc.msg)
 
-method close*(self: FSDatastore): Future[?!void] {.async.} =
+method close*(self: FSDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   return success()
 
 method query*(
   self: FSDatastore,
-  query: Query): Future[?!QueryIter] {.async.} =
+  query: Query): Future[?!QueryIter] {.async: (raises: [CancelledError]).} =
 
   without path =? self.path(query.key), error:
     return failure error
@@ -189,7 +189,7 @@ method query*(
   var
     iter = QueryIter.new()
 
-  proc next(): Future[?!QueryResponse] {.async.} =
+  proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     let
       path = walker()
 
@@ -208,8 +208,13 @@ method query*(
       key = Key.init(keyPath).expect("should not fail")
       data =
         if query.value:
-          self.readFile((basePath / path).absolutePath)
-            .expect("Should read file")
+          try:
+            self.readFile((basePath / path).absolutePath)
+              .expect("Should read file")
+          except ValueError as err:
+            return failure err
+          except OSError as err:
+            return failure err
         else:
           @[]
 
@@ -221,7 +226,7 @@ method query*(
 method modifyGet*(
   self: FSDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
@@ -233,8 +238,9 @@ method modifyGet*(
 method modify*(
   self: FSDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
   var lock: AsyncLock
+
   try:
     lock = self.locks.mgetOrPut(key, newAsyncLock())
     return await defaultModifyImpl(self, lock, key, fn)

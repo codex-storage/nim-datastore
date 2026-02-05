@@ -28,7 +28,7 @@ proc stores*(self: TieredDatastore): seq[Datastore] =
 
 method has*(
   self: TieredDatastore,
-  key: Key): Future[?!bool] {.async.} =
+  key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
 
   for store in self.stores:
     without res =? (await store.has(key)), err:
@@ -41,32 +41,32 @@ method has*(
 
 method delete*(
   self: TieredDatastore,
-  key: Key): Future[?!void] {.async.} =
+  key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    ? await fut
 
   return success()
 
 method delete*(
   self: TieredDatastore,
-  keys: seq[Key]): Future[?!void] {.async.} =
+  keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for key in keys:
     let
       pending = await allFinished(self.stores.mapIt(it.delete(key)))
 
     for fut in pending:
-      if fut.read().isErr: return fut.read()
+      ? await fut
 
   return success()
 
 method get*(
   self: TieredDatastore,
-  key: Key): Future[?!seq[byte]] {.async.} =
+  key: Key): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
 
   var
     bytes: seq[byte]
@@ -91,33 +91,33 @@ method get*(
 method put*(
   self: TieredDatastore,
   key: Key,
-  data: seq[byte]): Future[?!void] {.async.} =
+  data: seq[byte]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.put(key, data)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    ? await fut
 
   return success()
 
 method put*(
   self: TieredDatastore,
-  batch: seq[BatchEntry]): Future[?!void] {.async.} =
+  batch: seq[BatchEntry]): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   for entry in batch:
     let
       pending = await allFinished(self.stores.mapIt(it.put(entry.key, entry.data)))
 
     for fut in pending:
-      if fut.read().isErr: return fut.read()
+      ? await fut
 
   return success()
 
 method modifyGet*(
   self: TieredDatastore,
   key: Key,
-  fn: ModifyGet): Future[?!seq[byte]] {.async.} =
+  fn: ModifyGet): Future[?!seq[byte]] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modifyGet(key, fn)))
@@ -125,23 +125,21 @@ method modifyGet*(
   var aux = newSeq[byte]()
 
   for fut in pending:
-    if fut.read().isErr:
-      return fut.read()
-    else:
-      aux.add(fut.read().get)
+    let res = ? await fut
+    aux.add(res)
 
   return success(aux)
 
 method modify*(
   self: TieredDatastore,
   key: Key,
-  fn: Modify): Future[?!void] {.async.} =
+  fn: Modify): Future[?!void] {.async: (raises: [CancelledError]).} =
 
   let
     pending = await allFinished(self.stores.mapIt(it.modify(key, fn)))
 
   for fut in pending:
-    if fut.read().isErr: return fut.read()
+    ? await fut
 
   return success()
 

@@ -47,11 +47,11 @@ type
   TypedDatastore* = ref object of RootObj
     ds*: Datastore
 
-  Modify*[T] = proc(v: ?T): Future[?T] {.raises: [CatchableError], gcsafe, closure.}
-  ModifyGet*[T, U] = proc(v: ?T): Future[(?T, U)] {.raises: [CatchableError], gcsafe, closure.}
+  Modify*[T] = proc(v: ?T): Future[?T] {.raises: [CancelledError], gcsafe, closure.}
+  ModifyGet*[T, U] = proc(v: ?T): Future[(?T, U)] {.raises: [CancelledError], gcsafe, closure.}
 
   QueryResponse*[T] = tuple[key: ?Key, value: ?!T]
-  GetNext*[T] = proc(): Future[?!QueryResponse[T]] {.raises: [], gcsafe, closure.}
+  GetNext*[T] = proc(): Future[?!QueryResponse[T]] {.async: (raises: [CancelledError]), gcsafe, closure.}
   QueryIter*[T] = ref object
     finished*: bool
     next*: GetNext[T]
@@ -71,16 +71,16 @@ template requireEncoder*(T: typedesc): untyped =
     {.error: "provide an encoder: `proc encode(a: " & $T & "): seq[byte]`".}
 
 # Original Datastore API
-proc has*(self: TypedDatastore, key: Key): Future[?!bool] {.async.} =
+proc has*(self: TypedDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   await self.ds.has(key)
 
-proc contains*(self: TypedDatastore, key: Key): Future[bool] {.async.} =
+proc contains*(self: TypedDatastore, key: Key): Future[bool] {.async: (raises: [CancelledError]).} =
   return (await self.ds.has(key)) |? false
 
-proc delete*(self: TypedDatastore, key: Key): Future[?!void] {.async.} =
+proc delete*(self: TypedDatastore, key: Key): Future[?!void] {.async: (raises: [CancelledError]).} =
   await self.ds.delete(key)
 
-proc delete*(self: TypedDatastore, keys: seq[Key]): Future[?!void] {.async.} =
+proc delete*(self: TypedDatastore, keys: seq[Key]): Future[?!void] {.async: (raises: [CancelledError]).} =
   await self.ds.delete(keys)
 
 proc close*(self: TypedDatastore): Future[?!void] {.async.} =
@@ -90,19 +90,19 @@ proc close*(self: TypedDatastore): Future[?!void] {.async.} =
 proc init*(T: type TypedDatastore, ds: Datastore): T =
   TypedDatastore(ds: ds)
 
-proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async.} =
+proc put*[T](self: TypedDatastore, key: Key, t: T): Future[?!void] {.async: (raises: [CancelledError]).} =
   requireEncoder(T)
 
   await self.ds.put(key, t.encode)
 
-proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async.} =
+proc get*[T](self: TypedDatastore, key: Key): Future[?!T] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
 
   without bytes =? await self.ds.get(key), error:
     return failure(error)
   return T.decode(bytes)
 
-proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {.async.} =
+proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
   requireEncoder(T)
 
@@ -123,7 +123,7 @@ proc modify*[T](self: TypedDatastore, key: Key, fn: Modify[T]): Future[?!void] {
 
   await self.ds.modify(key, wrappedFn)
 
-proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Future[?!U] {.async.} =
+proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Future[?!U] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
   requireEncoder(T)
   requireEncoder(U)
@@ -153,7 +153,7 @@ proc modifyGet*[T, U](self: TypedDatastore, key: Key, fn: ModifyGet[T, U]): Futu
 
   return U.decode(auxBytes)
 
-proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async.} =
+proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async: (raises: [CancelledError]).} =
   requireDecoder(T)
 
   without dsIter =? await self.ds.query(q), error:
@@ -161,14 +161,14 @@ proc query*[T](self: TypedDatastore, q: Query): Future[?!QueryIter[T]] {.async.}
     return failure(childErr)
 
   var iter = QueryIter[T]()
-  iter.dispose = proc (): Future[?!void] {.async.} =
+  iter.dispose = proc (): Future[?!void] {.async: (raises: [CancelledError]).} =
     await dsIter.dispose()
 
   if dsIter.finished:
     iter.finished = true
     return success(iter)
 
-  proc getNext: Future[?!QueryResponse[T]] {.async.} =
+  proc getNext: Future[?!QueryResponse[T]] {.async: (raises: [CancelledError]).} =
     without pair =? await dsIter.next(), error:
       return failure(error)
 

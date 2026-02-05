@@ -16,37 +16,37 @@ type
   Modify* = Function[?seq[byte], Future[?seq[byte]]]
   ModifyGet* = Function[?seq[byte], Future[(?seq[byte], seq[byte])]]
 
-method has*(self: Datastore, key: Key): Future[?!bool] {.base, gcsafe, locks: "unknown".} =
+method has*(self: Datastore, key: Key): Future[?!bool] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method delete*(self: Datastore, key: Key): Future[?!void] {.base, gcsafe, locks: "unknown".} =
+method delete*(self: Datastore, key: Key): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method delete*(self: Datastore, keys: seq[Key]): Future[?!void] {.base, gcsafe, locks: "unknown".} =
+method delete*(self: Datastore, keys: seq[Key]): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, gcsafe, locks: "unknown".} =
+method get*(self: Datastore, key: Key): Future[?!seq[byte]] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, gcsafe, locks: "unknown".} =
+method put*(self: Datastore, key: Key, data: seq[byte]): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method put*(self: Datastore, batch: seq[BatchEntry]): Future[?!void] {.base, gcsafe, locks: "unknown".} =
+method put*(self: Datastore, batch: seq[BatchEntry]): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
-method close*(self: Datastore): Future[?!void] {.base, async, locks: "unknown".} =
+method close*(self: Datastore): Future[?!void] {.base, async: (raises: [CancelledError]), locks: "unknown".} =
   raiseAssert("Not implemented!")
 
 method query*(
   self: Datastore,
-  query: Query): Future[?!QueryIter] {.base, gcsafe.} =
+  query: Query): Future[?!QueryIter] {.base, gcsafe, async: (raises: [CancelledError]).} =
 
   raiseAssert("Not implemented!")
 
-proc contains*(self: Datastore, key: Key): Future[bool] {.async.} =
+proc contains*(self: Datastore, key: Key): Future[bool] {.async: (raises: [CancelledError]).} =
   return (await self.has(key)) |? false
 
-method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gcsafe, locks: "unknown".} =
+method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   ## Concurrently safe way of modifying the value associated with the `key`.
   ##
   ## Same as `modifyGet`, but this takes `fn` that doesn't produce any auxillary value.
@@ -54,7 +54,7 @@ method modify*(self: Datastore, key: Key, fn: Modify): Future[?!void] {.base, gc
 
   raiseAssert("Not implemented!")
 
-method modifyGet*(self: Datastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.base, gcsafe, locks: "unknown".} =
+method modifyGet*(self: Datastore, key: Key, fn: ModifyGet): Future[?!seq[byte]] {.base, gcsafe, async: (raises: [CancelledError]), locks: "unknown".} =
   ## Concurrently safe way of updating value associated with the `key`. Returns auxillary value on
   ## successful update.
   ##
