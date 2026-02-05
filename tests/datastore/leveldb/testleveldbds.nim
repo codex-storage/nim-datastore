@@ -16,56 +16,56 @@ import ../modifycommontests
 import ../querycommontests
 import ../typeddscommontests
 
-# suite "Test Basic LevelDbDatastore":
-#   let
-#     tempDir = getTempDir() / "testleveldbds"
-#     ds = LevelDbDatastore.new(tempDir).tryGet()
-#     key = Key.init("a:b/c/d:e").tryGet()
-#     bytes = "some bytes".toBytes
-#     otherBytes = "some other bytes".toBytes
+suite "Test Basic LevelDbDatastore":
+  let
+    tempDir = getTempDir() / "testleveldbds"
+    ds = LevelDbDatastore.new(tempDir).tryGet()
+    key = Key.init("a:b/c/d:e").tryGet()
+    bytes = "some bytes".toBytes
+    otherBytes = "some other bytes".toBytes
 
-#   setupAll:
-#     createDir(tempDir)
+  setupAll:
+    createDir(tempDir)
 
-#   teardownAll:
-#     (await ds.close()).tryGet()
-#     removeDir(tempDir)
+  teardownAll:
+    (await ds.close()).tryGet()
+    removeDir(tempDir)
 
-#   basicStoreTests(ds, key, bytes, otherBytes)
-#   modifyTests(ds, key)
-#   typedDsTests(ds, key)
+  basicStoreTests(ds, key, bytes, otherBytes)
+  modifyTests(ds, key)
+  typedDsTests(ds, key)
 
-# suite "Test LevelDB Query":
-#   let tempDir = getTempDir() / "testleveldbds"
-#   var ds: LevelDbDatastore
+suite "Test LevelDB Query":
+  let tempDir = getTempDir() / "testleveldbds"
+  var ds: LevelDbDatastore
 
-#   setup:
-#     createDir(tempDir)
-#     ds = LevelDbDatastore.new(tempDir).tryGet()
+  setup:
+    createDir(tempDir)
+    ds = LevelDbDatastore.new(tempDir).tryGet()
 
-#   teardown:
-#     (await ds.close()).tryGet
-#     removeDir(tempDir)
+  teardown:
+    (await ds.close()).tryGet
+    removeDir(tempDir)
 
-#   queryTests(ds,
-#     testLimitsAndOffsets = true,
-#     testSortOrder = false
-#   )
+  queryTests(ds,
+    testLimitsAndOffsets = true,
+    testSortOrder = false
+  )
 
-# suite "Test LevelDB Typed Query":
-#   let tempDir = getTempDir() / "testleveldbds"
-#   var ds: LevelDbDatastore
+suite "Test LevelDB Typed Query":
+  let tempDir = getTempDir() / "testleveldbds"
+  var ds: LevelDbDatastore
 
-#   setup:
-#     createDir(tempDir)
-#     ds = LevelDbDatastore.new(tempDir).tryGet()
+  setup:
+    createDir(tempDir)
+    ds = LevelDbDatastore.new(tempDir).tryGet()
 
-#   teardown:
-#     (await ds.close()).tryGet
-#     removeDir(tempDir)
+  teardown:
+    (await ds.close()).tryGet
+    removeDir(tempDir)
 
-#   test "Typed Queries":
-#     typedDsQueryTests(ds)
+  test "Typed Queries":
+    typedDsQueryTests(ds)
 
 suite "LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
