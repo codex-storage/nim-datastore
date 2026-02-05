@@ -99,7 +99,7 @@ suite "LevelDB Query":
 
   test "should query by prefix":
     let
-      q = Query.init(Key.init("/a/*").tryGet)
+      q = Query.init(Key.init("/a").tryGet)
       iter = (await ds.query(q)).tryGet
       res = (await allFinished(toSeq(iter)))
         .mapIt( it.read.tryGet )
