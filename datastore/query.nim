@@ -27,6 +27,7 @@ type
   IterDispose* = proc(): Future[?!void] {.async: (raises: [CancelledError]), gcsafe.}
   QueryIter* = ref object
     finished*: bool
+    disposed*: bool
     next*: GetNext
     dispose*: IterDispose
 

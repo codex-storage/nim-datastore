@@ -67,7 +67,7 @@ suite "Test LevelDB Typed Query":
   test "Typed Queries":
     typedDsQueryTests(ds)
 
-suite "LevelDB Query: keys should disregard trailing wildcards":
+suite "LevelDB Query":
   let tempDir = getTempDir() / "testleveldbds"
   var
     ds: LevelDbDatastore
@@ -97,9 +97,9 @@ suite "LevelDB Query: keys should disregard trailing wildcards":
     (await ds.close()).tryGet
     removeDir(tempDir)
 
-  test "Forward":
+  test "should query by prefix":
     let
-      q = Query.init(Key.init("/a/*").tryGet)
+      q = Query.init(Key.init("/a").tryGet)
       iter = (await ds.query(q)).tryGet
       res = (await allFinished(toSeq(iter)))
         .mapIt( it.read.tryGet )
@@ -118,7 +118,26 @@ suite "LevelDB Query: keys should disregard trailing wildcards":
 
     (await iter.dispose()).tryGet
 
-  test "Backwards":
+  test "should disregard forward trailing wildcards in keys":
+    let
+      q = Query.init(Key.init("/a/*").tryGet)
+      iter = (await ds.query(q)).tryGet
+      res = (await allFinished(toSeq(iter)))
+        .mapIt( it.read.tryGet )
+        .filterIt( it.key.isSome )
+
+    check:
+      res.len == 3
+      res[0].key.get == key1
+      res[0].data == val1
+
+      res[1].key.get == key2
+      res[1].data == val2
+
+      res[2].key.get == key3
+      res[2].data == val3
+
+  test "should disregard backward trailing wildcards in key":
     let
       q = Query.init(Key.init("/a\\*").tryGet)
       iter = (await ds.query(q)).tryGet
@@ -137,4 +156,42 @@ suite "LevelDB Query: keys should disregard trailing wildcards":
       res[2].key.get == key3
       res[2].data == val3
 
+  test "should dispose automatically of iterators when finished":
+    let
+      q = Query.init(Key.init("/a/b/c").tryGet)
+      iter = (await ds.query(q)).tryGet
+
+    let val = (await iter.next()).tryGet()
+    check val.key.get == key3
+    check val.data == val3
+
+    check iter.finished == false
+    check iter.disposed == false
+
+    let val2 = (await iter.next()).tryGet()
+    check val2.key == Key.none
+    check val2.data == EmptyBytes
+
+    check iter.finished == true
+    check iter.disposed == true
+
+  test "should dispose automatically of iterators when datastore is closed":
+    let
+      q1 = Query.init(Key.init("/a/b/c").tryGet)
+      q2 = Query.init(Key.init("/a/b").tryGet)
+      i1 = (await ds.query(q1)).tryGet
+      i2 = (await ds.query(q2)).tryGet
+
+    check i1.disposed == false
+    check i2.disposed == false
+
+    (await ds.close()).tryGet
+
+    check i1.disposed == true
+    check i2.disposed == true
+
+  test "should have idempotent QueryIterator.dispose":
+    let q = Query.init(Key.init("/a/b/c").tryGet)
+    let iter = (await ds.query(q)).tryGet
+    (await iter.dispose()).tryGet
     (await iter.dispose()).tryGet

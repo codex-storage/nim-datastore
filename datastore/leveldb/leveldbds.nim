@@ -5,6 +5,7 @@ import std/tables
 import std/os
 import std/strformat
 import std/strutils
+import std/sets
 
 import pkg/leveldbstatic
 import pkg/chronos
@@ -19,6 +20,10 @@ type
   LevelDbDatastore* = ref object of Datastore
     db: LevelDb
     locks: TableRef[Key, AsyncLock]
+    openIterators: HashSet[QueryIter]
+
+proc hash(iter: QueryIter): Hash =
+  hash(addr iter)
 
 method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
@@ -70,6 +75,10 @@ method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.as
 
 method close*(self: LevelDbDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
+    for iter in self.openIterators:
+      if err =? (await iter.dispose()).errorOption:
+        return failure(err.msg)
+    self.openIterators.clear()
     self.db.close()
     return success()
   except LevelDbException as e:
@@ -98,6 +107,13 @@ method query*(
       limit = query.limit
     )
 
+  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
+    dbIter.dispose()
+    iter.disposed = true
+    self.openIterators.excl(iter)
+
+    return success()
+
   proc next(): Future[?!QueryResponse] {.async: (raises: [CancelledError]).} =
     if iter.finished:
       return failure(newException(QueryEndedError, "Calling next on a finished query!"))
@@ -107,6 +123,9 @@ method query*(
 
       if dbIter.finished:
         iter.finished = true
+        if err =? (await dispose()).errorOption:
+          return failure(err)
+
         return success (Key.none, EmptyBytes)
       else:
         let key = Key.init(keyStr).expect("LevelDbDatastore.query (next) Failed to create key.")
@@ -114,12 +133,10 @@ method query*(
     except LevelDbException as e:
       return failure("LevelDbDatastore.query -> next exception: " & $e.msg)
 
-  proc dispose(): Future[?!void] {.async: (raises: [CancelledError]).} =
-    dbIter.dispose()
-    return success()
-
   iter.next = next
   iter.dispose = dispose
+  self.openIterators.incl(iter)
+
   return success iter
 
 method modifyGet*(
