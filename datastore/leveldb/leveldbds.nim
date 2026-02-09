@@ -23,7 +23,7 @@ type
     openIterators: HashSet[QueryIter]
 
 proc hash(iter: QueryIter): Hash =
-  hash(addr iter)
+  hash(addr iter[])
 
 method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
