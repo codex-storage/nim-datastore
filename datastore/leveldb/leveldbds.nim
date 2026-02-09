@@ -164,6 +164,9 @@ method modify*(
     if not lock.locked:
       self.locks.del(key)
 
+proc openIteratorCount*(self: LevelDbDatastore): int =
+  self.openIterators.len
+
 proc new*(
   T: type LevelDbDatastore, dbName: string): ?!T =
   try:
