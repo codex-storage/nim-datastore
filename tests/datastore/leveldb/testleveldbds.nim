@@ -195,3 +195,10 @@ suite "LevelDB Query":
     let iter = (await ds.query(q)).tryGet
     (await iter.dispose()).tryGet
     (await iter.dispose()).tryGet
+
+  test "should stop tracking iterator objects once those are disposed":
+    let q = Query.init(Key.init("/a/b/c").tryGet)
+    let iter = (await ds.query(q)).tryGet
+    check ds.openIteratorCount == 1
+    (await iter.dispose()).tryGet
+    check ds.openIteratorCount == 0

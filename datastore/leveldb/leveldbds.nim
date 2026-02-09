@@ -6,6 +6,7 @@ import std/os
 import std/strformat
 import std/strutils
 import std/sets
+import std/sequtils
 
 import pkg/leveldbstatic
 import pkg/chronos
@@ -23,7 +24,7 @@ type
     openIterators: HashSet[QueryIter]
 
 proc hash(iter: QueryIter): Hash =
-  hash(addr iter)
+  hash(addr iter[])
 
 method has*(self: LevelDbDatastore, key: Key): Future[?!bool] {.async: (raises: [CancelledError]).} =
   try:
@@ -75,7 +76,7 @@ method put*(self: LevelDbDatastore, batch: seq[BatchEntry]): Future[?!void] {.as
 
 method close*(self: LevelDbDatastore): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
-    for iter in self.openIterators:
+    for iter in self.openIterators.toSeq:
       if err =? (await iter.dispose()).errorOption:
         return failure(err.msg)
     self.openIterators.clear()
@@ -162,6 +163,9 @@ method modify*(
   finally:
     if not lock.locked:
       self.locks.del(key)
+
+proc openIteratorCount*(self: LevelDbDatastore): int =
+  self.openIterators.len
 
 proc new*(
   T: type LevelDbDatastore, dbName: string): ?!T =
